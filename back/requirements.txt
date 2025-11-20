@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary  # PostgreSQL 드라이버
+pydantic
+python-dotenv    # .env 파일 로드용
+passlib[bcrypt]  # 비밀번호 해싱용
+python-jose[cryptography] # JWT 토큰 처리용
