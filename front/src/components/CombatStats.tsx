@@ -10,9 +10,7 @@ export default function CombatStats({ stats }: CombatStatsProps) {
       <div className="p-4 bg-white border rounded-lg">
         <h3 className="font-semibold text-lg mb-3">대미지</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div>
-            <span className="text-gray-600">입힌 대미지:</span> {stats.damage_dealt}
-          </div>
+          
           <div>
             <span className="text-gray-600">받은 대미지:</span> {stats.damage_taken}
           </div>
@@ -34,6 +32,9 @@ export default function CombatStats({ stats }: CombatStatsProps) {
       <div className="p-4 bg-white border rounded-lg">
         <h3 className="font-semibold text-lg mb-3">공격 타입별 대미지</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div>
+            <span className="text-gray-600">입힌 대미지:</span> {stats.damage_dealt}
+          </div>
           <div>
             <span className="text-gray-600">투사체:</span> {stats.projectile_damage}
             <div className="text-sm text-gray-500">수: {stats.projectile_count}</div>

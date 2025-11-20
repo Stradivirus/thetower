@@ -31,7 +31,7 @@ export default function BotGuardianStats({ stats }: BotGuardianStatsProps) {
       
       {/* 보상 및 파편 통계 */}
       <div className="p-4 bg-white border rounded-xl shadow-lg">
-        <h3 className="font-bold text-xl mb-4 text-green-700 border-b pb-2">획득 보상</h3>
+        <h3 className="font-bold text-xl mb-4 text-green-700 border-b pb-2">술책 획득</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <StatItem label="보석" value={stats.gems} />
           <StatItem label="메달" value={stats.medals} />
