@@ -3,7 +3,7 @@ import { Plus, TrendingUp, TrendingDown, Calendar, Search, Clock } from 'lucide-
 import { getReports } from '../../front/src/api/reports';
 import type { BattleMain } from '../../front/src/types/report';
 import { formatNumber, formatDate } from '../../front/src/utils/format';
-import ReportDetail from '../../front/src/components/ReportDetail';
+import ReportDetail from './pages/ReportDetail';
 import ReportInputModal from '../../front/src/components/ReportInputModal';
 
 export default function App() {
