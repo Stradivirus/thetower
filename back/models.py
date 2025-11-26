@@ -1,114 +1,58 @@
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey, Text
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB  # PostgreSQL 전용 JSON 타입
 from database import Base
 from datetime import datetime
 
-class BattleReport(Base):
-    __tablename__ = "battle_reports"
+class BattleMain(Base):
+    """
+    [메인 테이블] 
+    - 리스트 조회용 핵심 데이터
+    - 자주 검색/정렬하는 컬럼은 여기에 둡니다.
+    """
+    __tablename__ = "battle_mains"
     
+    # 1. 식별자 및 시간
     battle_date = Column(DateTime, primary_key=True, index=True)
-    game_time = Column(String)
-    real_time = Column(String)
-    tier = Column(String)
-    wave = Column(String)
-    killer = Column(String)
-    coin_earned = Column(String)
-    coin_per_hour = Column(String)
-    cash_earned = Column(String)
-    profit_earned = Column(String)
-    gem_block_tap = Column(String)
-    cells_earned = Column(String)
-    reroll_shards_earned = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-class CombatStats(Base):
-    __tablename__ = "combat_stats"
+    # 2. 게임 개요 (가장 자주 보는 정보)
+    tier = Column(String)
+    wave = Column(Integer)  # 숫자형으로 변경 (정렬 위해)
+    game_time = Column(String)
+    real_time = Column(String)
     
-    battle_date = Column(DateTime, primary_key=True, index=True)
-    damage_dealt = Column(String)
+    # 3. 주요 재화 (숫자형 BigInt로 변환 저장 -> 합계 계산 가능)
+    coin_earned = Column(BigInteger)     # 코인
+    cells_earned = Column(Integer)       # 셀
+    reroll_shards_earned = Column(Integer) # 리롤 파편
+
+    # 4. 핵심 전투 요약 (Cat 2 일부)
+    killer = Column(String)
+    damage_dealt = Column(String) # 단위가 너무 다양해서 일단 String 유지 (필요시 변환)
     damage_taken = Column(String)
-    barrier_damage_taken = Column(String)
-    berserker_damage_taken = Column(String)
-    berserker_damage_multiplier = Column(String)
-    death_resistance = Column(String)
-    lifesteal = Column(String)
-    projectile_damage = Column(String)
-    projectile_count = Column(String)
-    thorn_damage = Column(String)
-    orb_damage = Column(String)
-    orb_hits = Column(String)
-    mine_damage = Column(String)
-    mines_created = Column(String)
-    armor_shred_damage = Column(String)
-    death_ray_damage = Column(String)
-    smart_missile_damage = Column(String)
-    inner_mine_damage = Column(String)
-    chain_lightning_damage = Column(String)
-    death_wave_damage = Column(String)
-    death_wave_tagged = Column(String)
-    swamp_damage = Column(String)
-    black_hole_damage = Column(String)
 
-class UtilityStats(Base):
-    __tablename__ = "utility_stats"
-    
-    battle_date = Column(DateTime, primary_key=True, index=True)
-    waves_skipped = Column(String)
-    recovery_packages = Column(String)
-    free_attack_upgrades = Column(String)
-    free_defense_upgrades = Column(String)
-    free_utility_upgrades = Column(String)
-    death_wave_health = Column(String)
-    death_wave_coins = Column(String)
-    golden_tower_cash = Column(String)
-    golden_tower_coins = Column(String)
-    black_hole_coins = Column(String)
-    spotlight_coins = Column(String)
-    orb_coins = Column(String)
-    coin_upgrade_coins = Column(String)
-    coin_bonus_coins = Column(String)
+    # 5. [New] 메모 기능
+    notes = Column(Text, nullable=True)  # "모듈 실험 중" 같은 메모
 
-class EnemyStats(Base):
-    __tablename__ = "enemy_stats"
-    
-    battle_date = Column(DateTime, primary_key=True, index=True)
-    total_enemies = Column(String)
-    basic = Column(String)
-    swift = Column(String)
-    tanking = Column(String)
-    ranged = Column(String)
-    boss = Column(String)
-    guardian = Column(String)
-    total_elite = Column(String)
-    vampire = Column(String)
-    beam = Column(String)
-    scatter = Column(String)
-    saboteur = Column(String)
-    commander = Column(String)
-    discount = Column(String)
-    destroyed_by_orb = Column(String)
-    destroyed_by_thorn = Column(String)
-    destroyed_by_death_ray = Column(String)
-    destroyed_by_mine = Column(String)
-    destroyed_in_spotlight = Column(String)
+    # 관계 설정 (1:1)
+    detail = relationship("BattleDetail", back_populates="main", uselist=False, cascade="all, delete-orphan")
 
-class BotGuardianStats(Base):
-    __tablename__ = "bot_guardian_stats"
+class BattleDetail(Base):
+    """
+    [상세 테이블]
+    - 자주 안 보는 상세 데이터 (JSON 덩어리)
+    - 게임 업데이트로 스탯이 추가되어도 DB 구조 변경 불필요
+    """
+    __tablename__ = "battle_details"
     
-    battle_date = Column(DateTime, primary_key=True, index=True)
-    flame_bot_damage = Column(String)
-    thunder_bot_stuns = Column(String)
-    golden_bot_coins = Column(String)
-    destroyed_by_golden_bot = Column(String)
-    guardian_damage = Column(String)
-    guardian_summoned_enemies = Column(String)
-    guardian_stolen_coins = Column(String)
-    guardian_returned_coins = Column(String)
-    gems = Column(String)
-    medals = Column(String)
-    reroll_shards = Column(String)
-    cannon_shards = Column(String)
-    armor_shards = Column(String)
-    generator_shards = Column(String)
-    core_shards = Column(String)
-    common_modules = Column(String)
-    rare_modules = Column(String)
+    battle_date = Column(DateTime, ForeignKey("battle_mains.battle_date"), primary_key=True)
+    
+    # 각 카테고리별 데이터를 통째로 JSON으로 저장
+    combat_json = Column(JSONB)   # 전투 세부 통계 (투사체, 지뢰 등)
+    utility_json = Column(JSONB)  # 유틸리티 통계
+    enemy_json = Column(JSONB)    # 적 통계
+    bot_json = Column(JSONB)      # 봇/가디언 통계
+    
+    # 관계 설정
+    main = relationship("BattleMain", back_populates="detail")

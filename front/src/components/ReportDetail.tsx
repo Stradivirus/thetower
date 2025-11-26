@@ -1,152 +1,99 @@
 import { useState, useEffect } from 'react';
-import type{ FullReport } from '../types/report';
+import { ArrowLeft, Clock, Zap, Skull, Coins, Sword, Shield, Activity } from 'lucide-react';
+import type { FullReport } from '../types/report';
 import { getFullReport } from '../api/reports';
-import CombatStats from './CombatStats.tsx';
-import UtilityStats from './UtilityStats.tsx';
-import EnemyStats from './EnemyStats.tsx';
-import BotGuardianStats from './BotGuardianStats.tsx';
+import { formatNumber, formatDate } from '../utils/format';
 
-interface ReportDetailProps {
+interface Props {
   battleDate: string;
   onBack: () => void;
 }
 
-export default function ReportDetail({ battleDate, onBack }: ReportDetailProps) {
-  const [report, setReport] = useState<FullReport | null>(null);
+export default function ReportDetail({ battleDate, onBack }: Props) {
+  const [data, setData] = useState<FullReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchReport();
+    getFullReport(battleDate).then(setData).finally(() => setLoading(false));
   }, [battleDate]);
 
-  const fetchReport = async () => {
-    try {
-      setLoading(true);
-      const data = await getFullReport(battleDate);
-      setReport(data);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load report');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (loading) return <div className="text-center text-slate-400 py-20">로딩 중...</div>;
+  if (!data) return null;
 
-  if (loading) {
-    return <div className="text-center py-8">로딩 중...</div>;
-  }
+  const { main, detail } = data;
 
-  if (error || !report) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-600 mb-4">{error || '보고서를 찾을 수 없습니다.'}</p>
-        <button onClick={onBack} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
-          돌아가기
-        </button>
+  // JSON 데이터를 렌더링하기 편하게 변환하는 헬퍼
+  const StatGrid = ({ data, icon: Icon, title, color }: any) => (
+    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+      <h3 className={`text-lg font-bold mb-4 flex items-center gap-2 ${color}`}>
+        <Icon size={20} /> {title}
+      </h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-2">
+        {Object.entries(data).map(([key, value]) => (
+          <div key={key}>
+            <div className="text-xs text-slate-500 mb-0.5">{key}</div>
+            <div className="text-slate-200 font-medium font-mono text-sm truncate" title={String(value)}>
+              {String(value)}
+            </div>
+          </div>
+        ))}
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto p-6 overflow-y-auto h-screen">
-      <div className="mb-6 flex items-center justify-between sticky top-0 bg-gray-100 py-4 z-10">
-        <button
-          onClick={onBack}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-        >
-          ← 목록으로
+    <div className="max-w-6xl mx-auto pb-20 animate-fade-in">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-8 sticky top-0 bg-slate-950/80 backdrop-blur-md py-4 z-10 border-b border-slate-800">
+        <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+          <ArrowLeft size={20} /> 목록으로
         </button>
-        <h2 className="text-2xl font-bold">
-          {new Date(report.battle_report.battle_date).toLocaleString('ko-KR')}
-        </h2>
+        <div className="text-right">
+          <h1 className="text-2xl font-bold text-white">{formatDate(main.battle_date)}</h1>
+          <p className="text-slate-500 text-sm">Tier {main.tier} • Wave {main.wave}</p>
+        </div>
       </div>
 
-      <div className="space-y-6">
-        {/* 전투 정보 카드 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-blue-600">⚔️ 전투 정보</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="p-3 bg-gray-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">게임 시간</div>
-              <div className="font-semibold">{report.battle_report.game_time}</div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* 왼쪽: 메인 요약 (Main Table Data) */}
+        <div className="lg:col-span-1 space-y-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg">
+            <h2 className="text-xl font-bold text-white mb-6">전투 요약</h2>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between items-center py-2 border-b border-slate-800">
+                <span className="text-slate-400 flex items-center gap-2"><Clock size={16}/> 게임 시간</span>
+                <span className="text-white font-mono">{main.game_time}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-slate-800">
+                <span className="text-slate-400 flex items-center gap-2"><Coins size={16}/> 코인 획득</span>
+                <span className="text-yellow-400 font-bold font-mono text-lg">{formatNumber(main.coin_earned)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-slate-800">
+                <span className="text-slate-400 flex items-center gap-2"><Zap size={16}/> 셀 획득</span>
+                <span className="text-cyan-400 font-bold font-mono">{main.cells_earned}</span>
+              </div>
+              <div className="flex justify-between items-center py-2 border-b border-slate-800">
+                <span className="text-slate-400 flex items-center gap-2"><Skull size={16}/> 처치자</span>
+                <span className="text-rose-400">{main.killer}</span>
+              </div>
             </div>
-            <div className="p-3 bg-gray-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">실시간</div>
-              <div className="font-semibold">{report.battle_report.real_time}</div>
-            </div>
-            <div className="p-3 bg-gray-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">티어</div>
-              <div className="font-semibold">{report.battle_report.tier}</div>
-            </div>
-            <div className="p-3 bg-gray-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">웨이브</div>
-              <div className="font-semibold">{report.battle_report.wave}</div>
-            </div>
-            <div className="p-3 bg-gray-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">처치자</div>
-              <div className="font-semibold">{report.battle_report.killer}</div>
-            </div>
-            <div className="p-3 bg-gray-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">보석 블록 탭</div>
-              <div className="font-semibold">{report.battle_report.gem_block_tap}</div>
-            </div>
+
+            {main.notes && (
+              <div className="mt-6 bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                <div className="text-xs text-slate-500 mb-1">메모</div>
+                <div className="text-slate-300 text-sm">{main.notes}</div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 획득 정보 카드 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-green-600">💰 획득</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            <div className="p-3 bg-green-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">코인 획득</div>
-              <div className="font-semibold text-green-700">{report.battle_report.coin_earned}</div>
-            </div>
-            <div className="p-3 bg-green-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">시간당 코인</div>
-              <div className="font-semibold text-green-700">{report.battle_report.coin_per_hour}</div>
-            </div>
-            <div className="p-3 bg-green-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">캐시 획득</div>
-              <div className="font-semibold text-green-700">{report.battle_report.cash_earned}</div>
-            </div>
-            <div className="p-3 bg-green-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">이익 획득</div>
-              <div className="font-semibold text-green-700">{report.battle_report.profit_earned}</div>
-            </div>
-            <div className="p-3 bg-green-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">획득한 셀</div>
-              <div className="font-semibold text-green-700">{report.battle_report.cells_earned}</div>
-            </div>
-            <div className="p-3 bg-green-50 rounded">
-              <div className="text-sm text-gray-600 mb-1">다시 뽑기 파편</div>
-              <div className="font-semibold text-green-700">{report.battle_report.reroll_shards_earned}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* 전투 통계 카드 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-red-600">🗡️ 전투 통계</h3>
-          <CombatStats stats={report.combat_stats} />
-        </div>
-
-        {/* 유틸리티 통계 카드 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-purple-600">🛠️ 유틸리티</h3>
-          <UtilityStats stats={report.utility_stats} />
-        </div>
-
-        {/* 적 통계 카드 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-orange-600">👾 적 통계</h3>
-          <EnemyStats stats={report.enemy_stats} />
-        </div>
-
-        {/* 봇/가디언 통계 카드 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-xl font-bold mb-4 pb-2 border-b-2 border-indigo-600">🤖 봇/가디언</h3>
-          <BotGuardianStats stats={report.bot_guardian_stats} />
+        {/* 오른쪽: 상세 정보 (JSON Data) - 하이브리드 로딩 */}
+        <div className="lg:col-span-2 space-y-6">
+          <StatGrid title="전투 통계" icon={Sword} color="text-rose-500" data={detail.combat_json} />
+          <StatGrid title="유틸리티" icon={Activity} color="text-blue-500" data={detail.utility_json} />
+          <StatGrid title="적 통계" icon={Skull} color="text-orange-500" data={detail.enemy_json} />
+          <StatGrid title="봇 & 가디언" icon={Shield} color="text-purple-500" data={detail.bot_json} />
         </div>
       </div>
     </div>

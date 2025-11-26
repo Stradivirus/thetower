@@ -1,155 +1,155 @@
+import re
 from datetime import datetime
 
+def parse_number(value_str: str):
+    """
+    '5.42B', '1.2T', '500' 등을 실제 숫자(int)로 변환
+    """
+    if not value_str:
+        return 0
+    
+    # 공백 제거, 대문자, $와 x 제거
+    value_str = value_str.strip().upper().replace('$', '').replace('X', '')
+    
+    multiplier = 1
+    
+    if value_str.endswith('K'):
+        multiplier = 1_000
+        value_str = value_str[:-1]
+    elif value_str.endswith('M'):
+        multiplier = 1_000_000
+        value_str = value_str[:-1]
+    elif value_str.endswith('B'):
+        multiplier = 1_000_000_000
+        value_str = value_str[:-1]
+    elif value_str.endswith('T'):
+        multiplier = 1_000_000_000_000
+        value_str = value_str[:-1]
+    elif value_str.endswith('Q'): 
+        multiplier = 1_000_000_000_000_000
+        value_str = value_str[:-1]
+    # 소문자 q, s 등 게임 특유 단위 처리 (필요시 추가)
+    elif value_str.endswith('S'): # septillion 등 게임 후반 단위 고려
+        multiplier = 1_000_000_000_000_000_000_000
+        value_str = value_str[:-1]
+
+    try:
+        return int(float(value_str.replace(',', '')) * multiplier)
+    except ValueError:
+        return 0
+
 def parse_battle_report(text: str) -> dict:
-    """전투 보고서 텍스트를 파싱하여 딕셔너리로 변환"""
-    lines = text.strip().split('\n')
-    data = {}
+    # 1. 텍스트 전처리
+    clean_text = text.replace('\r\n', '\n').replace('\r', '\n')
+    lines = clean_text.split('\n')
     
-    # 각 줄을 탭으로 분리하여 키-값 매핑
-    for line in lines:
-        parts = line.split('\t')
-        if len(parts) == 2:
-            key = parts[0].strip()
-            value = parts[1].strip()
-            data[key] = value
-    
-    # 한국어 월 이름을 숫자로 변환
-    month_map = {
-        '1월': '01', '2월': '02', '3월': '03', '4월': '04',
-        '5월': '05', '6월': '06', '7월': '07', '8월': '08',
-        '9월': '09', '10월': '10', '11월': '11', '12월': '12'
+    # 2. 데이터를 담을 임시 저장소 (섹션별)
+    sections = {
+        'report': {},   # 전투 보고 (메인)
+        'combat': {},   # 전투
+        'utility': {},  # 유틸리티
+        'enemy': {},    # 적 파괴
+        'bot': {},      # 봇 + 가디언 (합쳐서 저장)
     }
     
+    # 현재 어떤 섹션을 읽고 있는지 추적 (기본값: report)
+    current_section = 'report' 
+    
+    # 섹션 헤더 매핑 (한글 제목 -> 저장소 키)
+    section_map = {
+        '전투 보고': 'report',
+        '전투': 'combat',
+        '유틸리티': 'utility',
+        '적 파괴': 'enemy',
+        '봇': 'bot',
+        '가디언': 'bot' # 가디언도 bot 섹션에 합침 (DB 구조상)
+    }
+
+    print("--- [Section Parser] 시작 ---")
+
+    for line in lines:
+        line = line.strip()
+        if not line: continue
+        
+        # 1) 섹션 헤더인지 확인 (정확히 일치하는 경우)
+        if line in section_map:
+            current_section = section_map[line]
+            print(f"👉 섹션 변경: [{line}] -> {current_section}")
+            continue
+            
+        # 2) 데이터 파싱 (Key-Value 분리)
+        key = None
+        val = None
+        
+        if '\t' in line:
+            parts = line.split('\t')
+            key = parts[0].strip()
+            val = parts[-1].strip()
+        else:
+            # 예외 처리: 날짜/시간 등 공백이 포함된 값
+            if current_section == 'report' and line.startswith("전투 날짜"):
+                key = "전투 날짜"
+                val = line.replace("전투 날짜", "", 1).strip()
+            elif current_section == 'report' and ("게임 시간" in line or "실시간" in line):
+                 if line.startswith("게임 시간"):
+                    key = "게임 시간"
+                    val = line.replace("게임 시간", "", 1).strip()
+                 elif line.startswith("실시간"):
+                    key = "실시간"
+                    val = line.replace("실시간", "", 1).strip()
+            else:
+                # 일반적인 경우: 뒤에서 첫 공백 기준 분리
+                parts = line.rsplit(' ', 1)
+                if len(parts) == 2:
+                    key = parts[0].strip()
+                    val = parts[1].strip()
+        
+        # 3) 현재 섹션 저장소에 데이터 넣기
+        if key and val:
+            sections[current_section][key] = val
+
+    # 3. 최종 데이터 조립 (DB 스키마에 맞게 매핑)
+    
+    # [Main Data] - '전투 보고' 섹션 + 일부 '전투' 섹션 데이터
+    repo = sections['report']
+    comb = sections['combat']
+    
     # 날짜 파싱
-    battle_date_str = data.get('전투 날짜', '')
+    date_str = repo.get('전투 날짜', '')
     try:
-        # "11월 20, 2025 17:36" 형식 파싱
-        import re
-        match = re.match(r'(\d+월)\s+(\d+),\s+(\d+)\s+(\d+):(\d+)', battle_date_str)
+        match = re.match(r'(\d+)월\s+(\d+),\s+(\d+)\s+(\d+):(\d+)', date_str)
         if match:
-            month_kr, day, year, hour, minute = match.groups()
-            month = month_map.get(month_kr, '01')
+            month, day, year, hour, minute = match.groups()
             battle_date = datetime(int(year), int(month), int(day), int(hour), int(minute))
         else:
             battle_date = datetime.now()
-    except Exception as e:
-        print(f"날짜 파싱 오류: {e}")
+    except:
         battle_date = datetime.now()
-    
-    # BattleReport
-    battle_report = {
+
+    main_data = {
         'battle_date': battle_date,
-        'game_time': data.get('게임 시간', ''),
-        'real_time': data.get('실시간', ''),
-        'tier': data.get('티어', ''),
-        'wave': data.get('웨이브', ''),
-        'killer': data.get('처치자', ''),
-        'coin_earned': data.get('코인 획득', ''),
-        'coin_per_hour': data.get('시간당 코인', ''),
-        'cash_earned': data.get('캐시 획득', ''),
-        'profit_earned': data.get('이익 획득', ''),
-        'gem_block_tap': data.get('보석 블록 탭', ''),
-        'cells_earned': data.get('획득한 셀', ''),
-        'reroll_shards_earned': data.get('다시 뽑기 파편 획득함', ''),
+        'tier': repo.get('티어', 'T1'),
+        'wave': int(repo.get('웨이브', '0').replace(',', '')),
+        'game_time': repo.get('게임 시간', ''),
+        'real_time': repo.get('실시간', ''),
+        
+        'coin_earned': parse_number(repo.get('코인 획득', '0')),
+        'cells_earned': parse_number(repo.get('획득한 셀', '0')),
+        'reroll_shards_earned': parse_number(repo.get('다시 뽑기 파편 획득함', '0')),
+        
+        'killer': repo.get('처치자', ''),
+        'damage_dealt': comb.get('입힌 대미지', '0'), # 전투 섹션에서 가져옴
+        'damage_taken': comb.get('받은 대미지', '0'), # 전투 섹션에서 가져옴
     }
+
+    # [Detail Data] - 각 섹션 딕셔너리를 그대로 JSON으로 활용
+    # (필요 없는 메인 데이터 중복 제거는 선택사항)
     
-    # CombatStats
-    combat_stats = {
-        'battle_date': battle_date,
-        'damage_dealt': data.get('입힌 대미지', ''),
-        'damage_taken': data.get('받은 대미지', ''),
-        'barrier_damage_taken': data.get('장벽이 받은 대미지', ''),
-        'berserker_damage_taken': data.get('광전사 효과 동안 받은 대미지', ''),
-        'berserker_damage_multiplier': data.get('광전사 효과로 획득한 대미지', ''),
-        'death_resistance': data.get('죽음 저항', ''),
-        'lifesteal': data.get('생명력 흡수', ''),
-        'projectile_damage': data.get('투사체 대미지', ''),
-        'projectile_count': data.get('투사체 수', ''),
-        'thorn_damage': data.get('가시 대미지', ''),
-        'orb_damage': data.get('오브 대미지', ''),
-        'orb_hits': data.get('오브에 맞은 적', ''),
-        'mine_damage': data.get('지뢰 대미지', ''),
-        'mines_created': data.get('생성된 지뢰', ''),
-        'armor_shred_damage': data.get('방어구 가르기 대미지', ''),
-        'death_ray_damage': data.get('죽음의 광선 대미지', ''),
-        'smart_missile_damage': data.get('스마트 미사일 대미지', ''),
-        'inner_mine_damage': data.get('내부 지뢰 대미지', ''),
-        'chain_lightning_damage': data.get('연쇄 번개 대미지', ''),
-        'death_wave_damage': data.get('죽음의 파동 대미지', ''),
-        'death_wave_tagged': data.get('Deathwave로 태그됨', ''),
-        'swamp_damage': data.get('늪 대미지', ''),
-        'black_hole_damage': data.get('블랙홀 대미지', ''),
+    detail_data = {
+        'combat_json': sections['combat'],
+        'utility_json': sections['utility'],
+        'enemy_json': sections['enemy'],
+        'bot_json': sections['bot'],
     }
-    
-    # UtilityStats
-    utility_stats = {
-        'battle_date': battle_date,
-        'waves_skipped': data.get('건너뛴 웨이브', ''),
-        'recovery_packages': data.get('회복 패키지', ''),
-        'free_attack_upgrades': data.get('무료 공격 업그레이드', ''),
-        'free_defense_upgrades': data.get('무료 방어 업그레이드', ''),
-        'free_utility_upgrades': data.get('무료 유틸리티 업그레이드', ''),
-        'death_wave_health': data.get('죽음의 파동으로 획득한 체력', ''),
-        'death_wave_coins': data.get('죽음의 파동으로 획득한 코인', ''),
-        'golden_tower_cash': data.get('황금 타워로 획득한 캐시', ''),
-        'golden_tower_coins': data.get('황금 타워로 획득한 코인', ''),
-        'black_hole_coins': data.get('블랙홀로 획득한 코인', ''),
-        'spotlight_coins': data.get('스포트라이트로 획득한 코인', ''),
-        'orb_coins': data.get('오브로 획득한 코인', ''),
-        'coin_upgrade_coins': data.get('코인 업그레이드로 얻은 코인', ''),
-        'coin_bonus_coins': data.get('코인 보너스의 코인', ''),
-    }
-    
-    # EnemyStats
-    enemy_stats = {
-        'battle_date': battle_date,
-        'total_enemies': data.get('적 합계', ''),
-        'basic': data.get('기본', ''),
-        'swift': data.get('신속', ''),
-        'tanking': data.get('탱킹', ''),
-        'ranged': data.get('원거리', ''),
-        'boss': data.get('보스', ''),
-        'guardian': data.get('수호자', ''),
-        'total_elite': data.get('총 엘리트', ''),
-        'vampire': data.get('뱀파이어', ''),
-        'beam': data.get('광선', ''),
-        'scatter': data.get('스캐터', ''),
-        'saboteur': data.get('방해 공작원', ''),
-        'commander': data.get('사령관', ''),
-        'discount': data.get('에누리', ''),
-        'destroyed_by_orb': data.get('오브에 의해 파괴', ''),
-        'destroyed_by_thorn': data.get('가시로 파괴함', ''),
-        'destroyed_by_death_ray': data.get('죽음의 광선으로 파괴함', ''),
-        'destroyed_by_mine': data.get('지뢰로 파괴함', ''),
-        'destroyed_in_spotlight': data.get('스포트라이트 속에서 파괴됨', ''),
-    }
-    
-    # BotGuardianStats
-    bot_guardian_stats = {
-        'battle_date': battle_date,
-        'flame_bot_damage': data.get('화염 봇 대미지', ''),
-        'thunder_bot_stuns': data.get('천둥 봇 기절', ''),
-        'golden_bot_coins': data.get('황금 봇 코인 획득', ''),
-        'destroyed_by_golden_bot': data.get('골든봇에서 파괴됨', ''),
-        'guardian_damage': data.get('대미지', ''),
-        'guardian_summoned_enemies': data.get('소환된 적들', ''),
-        'guardian_stolen_coins': data.get('가디언이 훔친 코인', ''),
-        'guardian_returned_coins': data.get('가져온 동전', ''),
-        'gems': data.get('보석', ''),
-        'medals': data.get('메달', ''),
-        'reroll_shards': data.get('샤드 재롤', ''),
-        'cannon_shards': data.get('대포 파편', ''),
-        'armor_shards': data.get('갑옷 파편', ''),
-        'generator_shards': data.get('발전기 파편', ''),
-        'core_shards': data.get('코어 샤드', ''),
-        'common_modules': data.get('공통 모듈', ''),
-        'rare_modules': data.get('희귀 모듈', ''),
-    }
-    
-    return {
-        'battle_report': battle_report,
-        'combat_stats': combat_stats,
-        'utility_stats': utility_stats,
-        'enemy_stats': enemy_stats,
-        'bot_guardian_stats': bot_guardian_stats,
-    }
+
+    return {'main': main_data, 'detail': detail_data}
