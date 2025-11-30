@@ -8,29 +8,35 @@ def parse_number(value_str: str):
     if not value_str:
         return 0
     
-    # 공백 제거, 대문자, $와 x 제거
-    value_str = value_str.strip().upper().replace('$', '').replace('X', '')
+    # 공백 제거, $와 x 제거
+    value_str = value_str.strip().replace('$', '').replace('X', '')
     
     multiplier = 1
     
-    if value_str.endswith('K'):
-        multiplier = 1_000
+    # 게임 표기법에 따라 대소문자 구분하여 처리
+    if value_str.endswith('S'): # Septillion (10^24)
+        multiplier = 1_000_000_000_000_000_000_000_000
         value_str = value_str[:-1]
-    elif value_str.endswith('M'):
-        multiplier = 1_000_000
+    elif value_str.endswith('s'): # Sextillion (10^21)
+        multiplier = 1_000_000_000_000_000_000_000
         value_str = value_str[:-1]
-    elif value_str.endswith('B'):
-        multiplier = 1_000_000_000
+    elif value_str.endswith('Q'): # Quintillion (10^18)
+        multiplier = 1_000_000_000_000_000_000
         value_str = value_str[:-1]
-    elif value_str.endswith('T'):
-        multiplier = 1_000_000_000_000
-        value_str = value_str[:-1]
-    elif value_str.endswith('Q'): 
+    elif value_str.endswith('q'): # Quadrillion (10^15)
         multiplier = 1_000_000_000_000_000
         value_str = value_str[:-1]
-    # 소문자 q, s 등 게임 특유 단위 처리 (필요시 추가)
-    elif value_str.endswith('S'): # septillion 등 게임 후반 단위 고려
-        multiplier = 1_000_000_000_000_000_000_000
+    elif value_str.endswith(('t', 'T')):
+        multiplier = 1_000_000_000_000
+        value_str = value_str[:-1]
+    elif value_str.endswith(('b', 'B')):
+        multiplier = 1_000_000_000
+        value_str = value_str[:-1]
+    elif value_str.endswith(('m', 'M')):
+        multiplier = 1_000_000
+        value_str = value_str[:-1]
+    elif value_str.endswith(('k', 'K')):
+        multiplier = 1_000
         value_str = value_str[:-1]
 
     try:

@@ -1,6 +1,8 @@
 // [New] src/utils/format.ts
 
 export const formatNumber = (num: number): string => {
+  if (num >= 1e24) return (num / 1e24).toFixed(2) + 'S';
+  if (num >= 1e21) return (num / 1e21).toFixed(2) + 's';
   if (num >= 1e18) return (num / 1e18).toFixed(2) + 'Q';
   if (num >= 1e15) return (num / 1e15).toFixed(2) + 'q';
   if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
