@@ -15,22 +15,37 @@ type TabType = 'unlock' | 'base' | 'plus' | 'card' | 'module';
 export default function StonesPage({ onBack }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('unlock');
   const [selectedUw, setSelectedUw] = useState<string>('death_wave');
-  const [progress, setProgress] = useState<Record<string, number>>({});
+  // 데이터 구조가 복잡해졌으므로 any로 유연하게 처리
+  const [progress, setProgress] = useState<Record<string, any>>({});
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
+  // 1. 초기 데이터 로드 (로컬 스토리지)
   useEffect(() => {
     const saved = localStorage.getItem('thetower_progress');
     if (saved) {
-      setProgress(JSON.parse(saved));
+      try {
+        setProgress(JSON.parse(saved));
+      } catch (e) {
+        console.error("데이터 파싱 오류", e);
+      }
     }
   }, []);
 
-  const updateProgress = (key: string, level: number) => {
-    const newProgress = { ...progress, [key]: level };
+  // 2. 상태 업데이트 & 자동 저장
+  const updateProgress = (key: string, value: any) => {
+    const newProgress = { ...progress, [key]: value };
     setProgress(newProgress);
     localStorage.setItem('thetower_progress', JSON.stringify(newProgress));
   };
 
+  // [New] 일괄 업데이트 (리셋 기능 등에서 사용)
+  const updateBatch = (updates: Record<string, any>) => {
+    const newProgress = { ...progress, ...updates };
+    setProgress(newProgress);
+    localStorage.setItem('thetower_progress', JSON.stringify(newProgress));
+  };
+
+  // 카드 리셋
   const resetCards = () => {
     const newProg = { ...progress };
     Object.keys(newProg).forEach(k => { if(k.startsWith('card_')) delete newProg[k]; });
@@ -38,12 +53,17 @@ export default function StonesPage({ onBack }: Props) {
     localStorage.setItem('thetower_progress', JSON.stringify(newProg));
   };
 
-  // [New] 전체 초기화 함수
+  // 전체 리셋
   const resetAll = () => {
     if (window.confirm("정말 모든 데이터를 초기화하시겠습니까?\n이 작업은 복구할 수 없습니다.")) {
       setProgress({});
       localStorage.removeItem('thetower_progress');
     }
+  };
+
+  // 요약 버튼 핸들러 (DB 저장 없이 모달만 오픈)
+  const handleOpenSummary = () => {
+    setIsSummaryOpen(true);
   };
 
   const tabs = [
@@ -68,8 +88,9 @@ export default function StonesPage({ onBack }: Props) {
             </h1>
           </div>
 
+          {/* 모바일 요약 버튼 */}
           <button 
-            onClick={() => setIsSummaryOpen(true)}
+            onClick={handleOpenSummary}
             className="md:hidden p-2 text-cyan-400 hover:bg-slate-800 rounded-full border border-cyan-500/30 bg-cyan-500/10"
           >
             <List size={20} />
@@ -90,7 +111,7 @@ export default function StonesPage({ onBack }: Props) {
             ))}
           </div>
 
-          {/* [New] 전체 초기화 버튼 (탭과 요약 버튼 사이) */}
+          {/* 전체 초기화 버튼 */}
           <button 
             onClick={resetAll}
             className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all font-bold text-sm"
@@ -99,8 +120,9 @@ export default function StonesPage({ onBack }: Props) {
             <RotateCcw size={16} /> Reset
           </button>
 
+          {/* 데스크탑 요약 버튼 */}
           <button 
-            onClick={() => setIsSummaryOpen(true)}
+            onClick={handleOpenSummary}
             className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all font-bold text-sm"
           >
             <List size={16} /> Summary
@@ -110,7 +132,13 @@ export default function StonesPage({ onBack }: Props) {
 
       {/* 컨텐츠 영역 */}
       <div>
-        {activeTab === 'unlock' && <UnlockTab progress={progress} updateProgress={updateProgress} />}
+        {activeTab === 'unlock' && (
+          <UnlockTab 
+            progress={progress} 
+            updateProgress={updateProgress} 
+            updateBatch={updateBatch} 
+          />
+        )}
         
         {activeTab === 'base' && (
           <UwStatsTab 
@@ -136,11 +164,11 @@ export default function StonesPage({ onBack }: Props) {
         {activeTab === 'module' && <ModuleTab progress={progress} updateProgress={updateProgress} />}
       </div>
 
+      {/* 통합 요약 모달 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
         progress={progress}
-        category={activeTab} 
       />
     </div>
   );

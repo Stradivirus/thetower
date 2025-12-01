@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Triangle } from 'lucide-react'; // [Updated] Triangle 추가
+import { Plus, Triangle } from 'lucide-react';
 import { getReports } from './api/reports';
 import type { BattleMain } from './types/report';
 import ReportDetail from './pages/ReportDetail';

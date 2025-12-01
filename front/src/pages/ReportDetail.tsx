@@ -68,9 +68,9 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
 
         {/* 2. 하단 상세 데이터 그리드 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <StatGrid title="유틸리티" icon={Activity} color="text-blue-500" data={detail.utility_json} defaultOpen={true} />
-          <StatGrid title="적 통계" icon={Skull} color="text-orange-500" data={detail.enemy_json} defaultOpen={true} />
-          <StatGrid title="봇 & 가디언" icon={Shield} color="text-purple-500" data={detail.bot_json} defaultOpen={true} />
+          <StatGrid title="유틸리티" icon={Activity} color="text-blue-500" data={detail.utility_json} defaultOpen={false} />
+          <StatGrid title="적 통계" icon={Skull} color="text-orange-500" data={detail.enemy_json} defaultOpen={false} />
+          <StatGrid title="봇 & 가디언" icon={Shield} color="text-purple-500" data={detail.bot_json} defaultOpen={false} />
         </div>
       </div>
     </div>

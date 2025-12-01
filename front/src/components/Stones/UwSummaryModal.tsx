@@ -6,8 +6,8 @@ import cardCosts from '../../data/card_mastery_costs.json';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  progress: Record<string, number>;
-  category: string;
+  // [수정] number -> any (배열 데이터가 포함될 수 있음)
+  progress: Record<string, any>;
 }
 
 // 스탯 이름에 따른 아이콘 매핑
@@ -121,12 +121,10 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
 
                       return (
                         <div key={statName} className="w-[150px] flex-shrink-0 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-slate-600 transition-colors shadow-sm min-h-[64px]">
-                          {/* 배경 장식 */}
                           <div className="absolute -bottom-2 -right-2 p-1 opacity-5 group-hover:opacity-10 transition-opacity transform rotate-12 scale-150 pointer-events-none">
                              {getStatIcon(statName)}
                           </div>
 
-                          {/* [1단] 이름 (좌) --- 값 (우) */}
                           <div className="flex items-center justify-between z-10">
                             <div className="flex items-center gap-1.5 overflow-hidden">
                               <span className="flex-shrink-0">{getStatIcon(statName)}</span>
@@ -137,7 +135,6 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                             </div>
                           </div>
                           
-                          {/* [2단] Lv (좌) --- 레벨 숫자 (우) */}
                           <div className="flex items-end justify-between z-10 w-full">
                             <span className="text-[10px] text-slate-500 font-bold leading-none">Lv</span>
                             <div className="flex items-baseline gap-0.5 font-mono leading-none">
@@ -161,12 +158,10 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
 
                       return (
                         <div key={statName} className="w-[150px] flex-shrink-0 bg-slate-900 border-2 border-pink-500/30 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-pink-400 transition-all shadow-[0_0_10px_rgba(236,72,153,0.1)] hover:shadow-[0_0_15px_rgba(236,72,153,0.2)] min-h-[64px]">
-                          {/* 배경 장식 */}
                           <div className="absolute -bottom-2 -right-2 p-1 opacity-10 group-hover:opacity-20 transition-opacity transform rotate-12 scale-150 pointer-events-none">
                              <Sparkles size={16} className="text-pink-500" />
                           </div>
 
-                          {/* [1단] 이름 (좌) --- 값 (우) */}
                           <div className="flex items-center justify-between z-10">
                             <div className="flex items-center gap-1.5 overflow-hidden">
                               <span className="flex-shrink-0"><Sparkles size={12} className="text-pink-400 fill-pink-400/20" /></span>
@@ -177,7 +172,6 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                             </div>
                           </div>
                           
-                          {/* [2단] Lv (좌) --- 레벨 숫자 (우) */}
                           <div className="flex items-end justify-between z-10 w-full">
                             <span className="text-[10px] text-slate-500 font-bold leading-none">Lv</span>
                             <div className="flex items-baseline gap-0.5 font-mono leading-none">
