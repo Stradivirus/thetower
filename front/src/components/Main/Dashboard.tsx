@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { TrendingUp, TrendingDown, Zap, Layers, Skull } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber } from '../../utils/format';
-import styles from './Dashboard.module.css';
 
 interface Props {
   reports: BattleMain[];
@@ -56,11 +55,11 @@ export default function Dashboard({ reports }: Props) {
   }, [reports, threeDaysAgoTimestamp]);
 
   return (
-    <div className={styles.dashboardGrid}>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       {/* 1. 오늘 코인 */}
-      <div className={`${styles.summaryCard} group flex flex-col justify-center`}>
-        <div className={`${styles.cardBgEffect} bg-yellow-500/10 group-hover:bg-yellow-500/20`}></div>
-        <h3 className={styles.cardTitle}>오늘 획득 코인</h3>
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col justify-center">
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-yellow-500/10 group-hover:bg-yellow-500/20"></div>
+        <h3 className="text-slate-400 text-sm font-medium mb-3">오늘 획득 코인</h3>
         <div className="flex justify-between items-end">
           <div className="text-3xl font-bold text-white leading-none mb-1">{formatNumber(todayCoins)}</div>
           <div className="text-right flex flex-col gap-1">
@@ -74,9 +73,9 @@ export default function Dashboard({ reports }: Props) {
       </div>
 
       {/* 2. 주요 자원 */}
-      <div className={`${styles.summaryCard} group flex flex-col justify-center`}>
-        <div className={`${styles.cardBgEffect} bg-cyan-500/10 group-hover:bg-cyan-500/20`}></div>
-        <h3 className={styles.cardTitle}>오늘 주요 자원</h3>
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col justify-center">
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-cyan-500/10 group-hover:bg-cyan-500/20"></div>
+        <h3 className="text-slate-400 text-sm font-medium mb-3">오늘 주요 자원</h3>
         <div className="grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2 mb-1">
@@ -98,9 +97,9 @@ export default function Dashboard({ reports }: Props) {
       </div>
 
       {/* 3. 최근 위협 */}
-      <div className={`${styles.summaryCard} group`}>
-        <div className={`${styles.cardBgEffect} bg-rose-500/10 group-hover:bg-rose-500/20`}></div>
-        <h3 className={`${styles.cardTitle} flex items-center gap-2`}>
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-rose-500/10 group-hover:bg-rose-500/20"></div>
+        <h3 className="text-slate-400 text-sm font-medium mb-3 flex items-center gap-2">
           <Skull size={16} className="text-rose-500"/> 최근 3일간의 위협
         </h3>
         {recentKillers.length > 0 ? (
