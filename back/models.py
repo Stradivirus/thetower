@@ -4,45 +4,58 @@ from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
 from datetime import datetime
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    is_active = Column(Integer, default=1)
+
+    # 1:N 관계 (리포트)
+    reports = relationship("BattleMain", back_populates="owner")
+    
+    # 1:1 관계 (진행 상황)
+    progress = relationship("UserProgress", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+class UserProgress(Base):
+    __tablename__ = "user_progress"
+
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    progress_json = Column(JSONB) # 프론트의 progress 객체를 통째로 저장
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="progress")
+
 class BattleMain(Base):
-    """
-    [메인 테이블] 
-    - 리스트 조회용 핵심 데이터
-    """
     __tablename__ = "battle_mains"
     
-    # 1. 식별자 및 시간
     battle_date = Column(DateTime, primary_key=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # 2. 게임 개요
+    # 소유자 연결
+    owner_id = Column(Integer, ForeignKey("users.id"))
+    owner = relationship("User", back_populates="reports")
+
     tier = Column(String)
     wave = Column(Integer)
     game_time = Column(String)
     real_time = Column(String)
     
-    # 3. 주요 재화 (BigInt)
-    coin_earned = Column(BigInteger)       # 총 코인
-    coins_per_hour = Column(BigInteger)    # 시간당 코인 (CPH)
-    cells_earned = Column(Integer)         # 셀
-    reroll_shards_earned = Column(Integer) # 리롤 파편
+    coin_earned = Column(BigInteger)
+    coins_per_hour = Column(BigInteger)
+    cells_earned = Column(Integer)
+    reroll_shards_earned = Column(Integer)
 
-    # 4. 핵심 전투 요약
     killer = Column(String)
     damage_dealt = Column(String)
     damage_taken = Column(String)
 
-    # 5. 메모
     notes = Column(Text, nullable=True)
 
-    # 관계 설정 (1:1)
     detail = relationship("BattleDetail", back_populates="main", uselist=False, cascade="all, delete-orphan")
 
 class BattleDetail(Base):
-    """
-    [상세 테이블]
-    - JSON 데이터 저장소
-    """
     __tablename__ = "battle_details"
     
     battle_date = Column(DateTime, ForeignKey("battle_mains.battle_date"), primary_key=True)

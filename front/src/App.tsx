@@ -1,37 +1,43 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Triangle, Archive, LayoutGrid } from 'lucide-react';
+import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, User } from 'lucide-react';
 import { getReports } from './api/reports';
 import type { BattleMain } from './types/report';
 import ReportDetail from './pages/ReportDetail';
 import ReportInputModal from './components/Detail/ReportInputModal';
+import AuthModal from './components/Auth/AuthModal';
 import MainPage from './pages/MainPage';
-import HistoryPage from './pages/HistoryPage'; // [New] 추가
+import HistoryPage from './pages/HistoryPage';
 import StonesPage from './pages/StonesPage';
 
 export default function App() {
   const [view, setView] = useState<'list' | 'history' | 'detail' | 'stones'>('list');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [reports, setReports] = useState<BattleMain[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
 
   useEffect(() => {
-    loadReports();
-  }, []);
+    if (token) {
+        loadReports();
+    } else {
+        setReports([]);
+    }
+  }, [token]);
 
   const loadReports = async () => {
     try {
-      const data = await getReports();
+      const data = await getReports(); 
       setReports(data);
     } catch (e) {
       console.error(e);
     }
   };
 
-  // [New] 데이터 분리 로직 (최근 3일 vs 과거)
   const { recentReports, pastReports } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
     const recent: BattleMain[] = [];
     const past: BattleMain[] = [];
 
@@ -41,24 +47,23 @@ export default function App() {
       const diffTime = today.getTime() - reportDate.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-      // 3일 미만(0, 1, 2일차)은 최근 기록
-      if (diffDays < 3) {
-        recent.push(report);
-      } else {
-        past.push(report);
-      }
+      if (diffDays < 3) recent.push(report);
+      else past.push(report);
     });
-
     return { recentReports: recent, pastReports: past };
   }, [reports]);
 
-  const handleSelectReport = (date: string) => {
-    setSelectedDate(date);
-    setView('detail');
+  const handleLoginSuccess = (accessToken: string) => {
+    localStorage.setItem('access_token', accessToken);
+    setToken(accessToken);
+    setIsAuthModalOpen(false);
   };
 
-  const handleBackToList = () => {
-    setSelectedDate(null);
+  // [Modified] 로그아웃 시 confirm 제거
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    setToken(null);
+    setReports([]);
     setView('list');
   };
 
@@ -69,19 +74,15 @@ export default function App() {
       <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           
-          {/* 로고 */}
           <div 
             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={handleBackToList}
+            onClick={() => setView('list')}
           >
             <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-purple-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/20">T</div>
             <span className="font-bold text-xl tracking-tight text-white hidden sm:block">The Tower <span className="text-slate-500 text-base font-normal">Analytics</span></span>
           </div>
 
-          {/* 우측 버튼 그룹 */}
           <div className="flex items-center gap-2 md:gap-3">
-            
-            {/* 1. Main (Recent) */}
             <button 
               onClick={() => setView('list')}
               className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all border ${view === 'list' ? 'bg-blue-500/10 text-blue-400 border-blue-500/50' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
@@ -89,7 +90,6 @@ export default function App() {
               <LayoutGrid size={16} /> <span className="hidden md:inline">Main</span>
             </button>
 
-            {/* 2. History (Past) [New] */}
             <button 
               onClick={() => setView('history')}
               className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all border ${view === 'history' ? 'bg-purple-500/10 text-purple-400 border-purple-500/50' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
@@ -97,7 +97,6 @@ export default function App() {
               <Archive size={16} /> <span className="hidden md:inline">기록</span>
             </button>
 
-            {/* 3. Stones */}
             <button 
               onClick={() => setView('stones')}
               className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all border ${view === 'stones' ? 'bg-green-500/10 text-green-400 border-green-500/50' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
@@ -105,38 +104,80 @@ export default function App() {
               <Triangle size={16} className={view === 'stones' ? "fill-green-400/20" : ""} /> <span className="hidden md:inline">Stones</span>
             </button>
 
-            {/* 4. Add Report */}
             <button 
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                  if(!token) { setIsAuthModalOpen(true); return; }
+                  setIsReportModalOpen(true);
+              }}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all shadow-lg shadow-blue-600/20 ml-2"
             >
               <Plus size={16} /> <span className="hidden md:inline">추가</span>
             </button>
+
+            <div className="h-6 w-px bg-slate-800 mx-1"></div>
+            
+            {token ? (
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                    title="Logout"
+                >
+                    <LogOut size={18} />
+                </button>
+            ) : (
+                <button
+                    onClick={() => setIsAuthModalOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold transition-all border bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white"
+                >
+                    <LogIn size={16} /> <span className="hidden md:inline">Login</span>
+                </button>
+            )}
           </div>
         </div>
       </nav>
 
       {/* 메인 컨텐츠 */}
       <main className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+        
         {view === 'list' && (
-          <MainPage reports={recentReports} onSelectReport={handleSelectReport} />
+            token ? (
+              <MainPage reports={recentReports} onSelectReport={(date) => { setSelectedDate(date); setView('detail'); }} />
+            ) : (
+              <div className="text-center py-20 text-slate-500">
+                 <User size={48} className="mx-auto mb-4 opacity-20"/>
+                 <p>로그인이 필요합니다.</p>
+                 <button onClick={() => setIsAuthModalOpen(true)} className="mt-4 text-blue-400 hover:underline">로그인 하러가기</button>
+              </div>
+            )
         )}
+        
         {view === 'history' && (
-          <HistoryPage reports={pastReports} onSelectReport={handleSelectReport} />
+           token ? (
+             <HistoryPage reports={pastReports} onSelectReport={(date) => { setSelectedDate(date); setView('detail'); }} />
+           ) : <div className="text-center py-20 text-slate-500">로그인이 필요합니다.</div>
         )}
+        
         {view === 'detail' && selectedDate && (
-          <ReportDetail battleDate={selectedDate} onBack={handleBackToList} />
+          <ReportDetail battleDate={selectedDate} onBack={() => { setSelectedDate(null); setView('list'); }} />
         )}
+        
         {view === 'stones' && (
-          <StonesPage onBack={handleBackToList} />
+          <StonesPage onBack={() => setView('list')} token={token} /> 
         )}
       </main>
 
-      {/* 입력 모달 */}
-      {isModalOpen && (
+      {/* 모달들 */}
+      {isReportModalOpen && (
         <ReportInputModal 
-          onClose={() => setIsModalOpen(false)} 
+          onClose={() => setIsReportModalOpen(false)} 
           onSuccess={loadReports}
+        />
+      )}
+
+      {isAuthModalOpen && (
+        <AuthModal 
+          onClose={() => setIsAuthModalOpen(false)}
+          onLoginSuccess={handleLoginSuccess}
         />
       )}
     </div>

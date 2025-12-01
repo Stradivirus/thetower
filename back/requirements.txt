@@ -7,3 +7,4 @@ python-dotenv    # .env 파일 로드용
 passlib[bcrypt]  # 비밀번호 해싱용
 python-jose[cryptography] # JWT 토큰 처리용
 python-multipart
+bcrypt==4.0.1 

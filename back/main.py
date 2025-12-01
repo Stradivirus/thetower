@@ -1,24 +1,24 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import reports
+from routers import reports, auth, progress
 
 # 테이블 생성
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="The Tower Battle Reports API")
 
-# CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # React 개발 서버
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 라우터 등록
+app.include_router(auth.router)
 app.include_router(reports.router)
+app.include_router(progress.router)
 
 @app.get("/")
 def root():

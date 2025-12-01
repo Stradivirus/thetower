@@ -1,44 +1,72 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'; // [Fixed] useMemo 제거
 import { ArrowLeft, Triangle, Lock, Zap, PlusCircle, Layers, Box, List, RotateCcw } from 'lucide-react';
 import UnlockTab from '../components/Stones/UnlockTab';
 import UwStatsTab from '../components/Stones/UwStatsTab';
 import CardTab from '../components/Stones/CardTab';
 import ModuleTab from '../components/Stones/ModuleTab';
 import UwSummaryModal from '../components/Stones/UwSummaryModal';
+import { fetchProgress, saveProgress } from '../api/progress';
+import { formatNum } from '../components/Stones/StoneShared';
+import { useTotalStones } from '../utils/stoneCalculations';
 
 interface Props {
   onBack: () => void;
+  token: string | null;
 }
 
 type TabType = 'unlock' | 'base' | 'plus' | 'card' | 'module';
 
-export default function StonesPage({ onBack }: Props) {
+export default function StonesPage({ onBack, token }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('unlock');
   const [selectedUw, setSelectedUw] = useState<string>('death_wave');
-  // 데이터 구조가 복잡해졌으므로 any로 유연하게 처리
   const [progress, setProgress] = useState<Record<string, any>>({});
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // 1. 초기 데이터 로드 (로컬 스토리지)
+  const totalStonesUsed = useTotalStones(progress);
+
+  // 1. 초기 데이터 로드 (서버 동기화 및 로컬 스토리지)
   useEffect(() => {
-    const saved = localStorage.getItem('thetower_progress');
-    if (saved) {
-      try {
-        setProgress(JSON.parse(saved));
-      } catch (e) {
-        console.error("데이터 파싱 오류", e);
-      }
-    }
-  }, []);
+    const loadData = async () => {
+      let dataToLoad: Record<string, any> = {};
 
-  // 2. 상태 업데이트 & 자동 저장
+      if (token) {
+        try {
+          const serverData = await fetchProgress();
+          if (Object.keys(serverData).length > 0) {
+            dataToLoad = serverData;
+            console.log("Stones data loaded from server.");
+          }
+        } catch (e) {
+          console.error("Server Progress fetch failed, falling back to local.", e);
+        }
+      }
+
+      const saved = localStorage.getItem('thetower_progress');
+      if (Object.keys(dataToLoad).length === 0 && saved) {
+        try {
+          dataToLoad = JSON.parse(saved);
+          console.log("Stones data loaded from local storage.");
+        } catch (e) {
+          console.error("데이터 파싱 오류", e);
+        }
+      }
+      
+      setProgress(dataToLoad);
+      localStorage.setItem('thetower_progress', JSON.stringify(dataToLoad));
+    };
+    
+    loadData();
+  }, [token]);
+
+  // 2. 상태 업데이트 & 자동 저장 (로컬 저장 유지)
   const updateProgress = (key: string, value: any) => {
     const newProgress = { ...progress, [key]: value };
     setProgress(newProgress);
     localStorage.setItem('thetower_progress', JSON.stringify(newProgress));
   };
 
-  // [New] 일괄 업데이트 (리셋 기능 등에서 사용)
+  // 일괄 업데이트 (리셋 기능 등에서 사용)
   const updateBatch = (updates: Record<string, any>) => {
     const newProgress = { ...progress, ...updates };
     setProgress(newProgress);
@@ -55,15 +83,31 @@ export default function StonesPage({ onBack }: Props) {
 
   // 전체 리셋
   const resetAll = () => {
-    if (window.confirm("정말 모든 데이터를 초기화하시겠습니까?\n이 작업은 복구할 수 없습니다.")) {
-      setProgress({});
-      localStorage.removeItem('thetower_progress');
-    }
+    setProgress({});
+    localStorage.removeItem('thetower_progress');
+    if (token) saveProgress({});
   };
 
-  // 요약 버튼 핸들러 (DB 저장 없이 모달만 오픈)
-  const handleOpenSummary = () => {
+  // 저장 및 요약 버튼 핸들러
+  const handleSaveAndSummary = async () => {
     setIsSummaryOpen(true);
+    
+    if (!token) {
+      return;
+    }
+
+    setIsSaving(true);
+    saveProgress(progress)
+      .then(() => {
+        console.log("Progress saved successfully in the background.");
+      })
+      .catch((e) => {
+        alert("백그라운드 저장 실패. 로그인 상태를 확인하거나 다시 시도해주세요.");
+        console.error("Save failed:", e);
+      })
+      .finally(() => {
+        setIsSaving(false);
+      });
   };
 
   const tabs = [
@@ -83,15 +127,23 @@ export default function StonesPage({ onBack }: Props) {
             <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <Triangle className="text-green-400 fill-green-400/20" size={20} /> Resource Costs
+            <h1 className="text-xl font-bold text-white flex flex-col items-start gap-1">
+              <div className="flex items-center gap-2">
+                 <Triangle className="text-green-400 fill-green-400/20" size={20} /> 
+                 <span className="text-xl">Stone Costs</span>
+              </div>
+              <div className="text-xs text-slate-400 font-medium ml-7 flex items-center gap-1">
+                 Total Stones Used: 
+                 <span className="text-yellow-400 font-bold font-mono ml-1">{formatNum(totalStonesUsed)}</span>
+              </div>
             </h1>
           </div>
 
-          {/* 모바일 요약 버튼 */}
+          {/* 모바일 저장 및 요약 버튼 */}
           <button 
-            onClick={handleOpenSummary}
-            className="md:hidden p-2 text-cyan-400 hover:bg-slate-800 rounded-full border border-cyan-500/30 bg-cyan-500/10"
+            onClick={handleSaveAndSummary}
+            className="md:hidden p-2 text-cyan-400 hover:bg-slate-800 rounded-full border border-cyan-500/30 bg-cyan-500/10 disabled:opacity-50"
+            disabled={isSaving || !token}
           >
             <List size={20} />
           </button>
@@ -120,12 +172,13 @@ export default function StonesPage({ onBack }: Props) {
             <RotateCcw size={16} /> Reset
           </button>
 
-          {/* 데스크탑 요약 버튼 */}
+          {/* 데스크탑 저장 및 요약 버튼 */}
           <button 
-            onClick={handleOpenSummary}
-            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all font-bold text-sm"
+            onClick={handleSaveAndSummary}
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isSaving || !token}
           >
-            <List size={16} /> Summary
+            <List size={16} /> {isSaving ? '저장 중...' : '저장 및 요약'}
           </button>
         </div>
       </div>
