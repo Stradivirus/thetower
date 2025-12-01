@@ -1,7 +1,7 @@
 // [New] src/components/ReportInputModal.tsx
 import { useState } from 'react';
 import { X, Save, FileText } from 'lucide-react';
-import { createReport } from '../api/reports';
+import { createReport } from '../../api/reports';
 
 interface Props {
   onClose: () => void;

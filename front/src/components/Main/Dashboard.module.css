@@ -1,0 +1,18 @@
+/* front/src/components/Dashboard.module.css */
+
+.dashboardGrid {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6 mb-8;
+}
+
+/* group은 TSX에서 직접 사용 */
+.summaryCard {
+  @apply bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden;
+}
+
+.cardBgEffect {
+  @apply absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all;
+}
+
+.cardTitle {
+  @apply text-slate-400 text-sm font-medium mb-3;
+}

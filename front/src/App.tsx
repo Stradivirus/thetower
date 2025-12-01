@@ -3,7 +3,7 @@ import { Plus } from 'lucide-react';
 import { getReports } from './api/reports';
 import type { BattleMain } from './types/report';
 import ReportDetail from './pages/ReportDetail';
-import ReportInputModal from './components/ReportInputModal';
+import ReportInputModal from './components/Detail/ReportInputModal';
 import MainPage from './pages/MainPage';
 
 export default function App() {

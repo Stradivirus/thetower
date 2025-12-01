@@ -1,0 +1,13 @@
+/* front/src/pages/MainPage.module.css */
+
+.searchBarSection {
+  @apply flex items-center justify-between mb-6;
+}
+
+.searchIcon {
+  @apply absolute left-3 top-1/2 -translate-y-1/2 text-slate-500;
+}
+
+.searchInput {
+  @apply bg-slate-900 border border-slate-800 rounded-full pl-10 pr-4 py-2 text-sm text-slate-300 focus:outline-none focus:border-slate-600 w-64;
+}
