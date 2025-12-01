@@ -5,7 +5,6 @@ services:
       context: ../
       dockerfile: docker/backend.Dockerfile
     container_name: thetower_backend
-    # .env file is used for environment variables.
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -15,7 +14,6 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: ${ALGORITHM}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
-    # No ports are exposed to the host; the frontend service proxies requests.
 
   # --- 2. Frontend Service (React Build + Caddy Server) ---
   frontend:
@@ -28,8 +26,6 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp" # Required for HTTP/3
+      - "443:443/udp"
 
-# Volumes for frontend build artifacts are no longer needed
-# as the frontend image is now self-contained.
 volumes: {}
