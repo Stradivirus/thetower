@@ -10,7 +10,14 @@ app = FastAPI(title="The Tower Battle Reports API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "https://thetower.kro.kr", "http://thetower.kro.kr"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://towerreport.p-e.kr",  # 추가
+        "https://towerreport.p-e.kr", # 추가
+        "http://localhost",
+        "http://frontend"  # Docker 내부 서비스 이름
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
