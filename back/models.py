@@ -23,7 +23,7 @@ class BattleMain(Base):
     
     # 3. 주요 재화 (BigInt)
     coin_earned = Column(BigInteger)       # 총 코인
-    coins_per_hour = Column(BigInteger)    # [New] 시간당 코인 (CPH)
+    coins_per_hour = Column(BigInteger)    # 시간당 코인 (CPH)
     cells_earned = Column(Integer)         # 셀
     reroll_shards_earned = Column(Integer) # 리롤 파편
 

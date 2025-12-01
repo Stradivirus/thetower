@@ -11,7 +11,7 @@ class BattleMainBase(BaseModel):
     real_time: str
     
     coin_earned: int
-    coins_per_hour: int   # [New] 시간당 코인 추가
+    coins_per_hour: int
     cells_earned: int
     reroll_shards_earned: int
     

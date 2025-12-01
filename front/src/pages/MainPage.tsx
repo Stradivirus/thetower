@@ -24,7 +24,7 @@ export default function MainPage({ reports, onSelectReport }: MainPageProps) {
       const killerMatch = report.killer?.toLowerCase().includes(lowerTerm);
       const tierMatch = report.tier?.toLowerCase().includes(lowerTerm);
       
-      // 2. [New] 날짜 검색 추가
+      // 2. 날짜 검색 추가
       const dateObj = new Date(report.battle_date);
       // 포맷 A: "11월 30일" 형태 (한글 검색 지원)
       const dateStrKr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;

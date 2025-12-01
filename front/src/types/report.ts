@@ -8,7 +8,7 @@ export interface BattleMain {
   real_time: string;
   
   coin_earned: number;
-  coins_per_hour: number; // [New] 시간당 코인
+  coins_per_hour: number;
   cells_earned: number;
   reroll_shards_earned: number;
   
