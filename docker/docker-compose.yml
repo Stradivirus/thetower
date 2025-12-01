@@ -31,7 +31,7 @@ services:
     volumes:
       - ../front:/app/front
       - front_dist:/app/front/dist
-    command: npm run build
+    command: sh -c "npm ci && npm run build"  # npm ci는 더 빠르고 안정적
     profiles: ["build"]
 
   # --- 3. Caddy Reverse Proxy / Frontend Server ---
