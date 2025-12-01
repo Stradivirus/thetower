@@ -22,4 +22,4 @@ thetower.kro.kr {
         try_files {path} /index.html
         file_server
     }
-}1
+}
