@@ -1,17 +1,11 @@
-# 환경 변수 $DOMAIN을 사용합니다 (compose 파일에서 localhost로 설정됨)
-{$DOMAIN:localhost} {
-    # 1. API 리버스 프록시: /api로 오는 모든 요청을 backend 서비스로 전달 (우선순위 최상위)
+thetower.kro.kr {
     handle /api/* {
         reverse_proxy backend:8000
     }
     
-    # 2. 정적 파일 서빙 (React 빌드 결과물)
     handle {
         root * /usr/share/caddy/html
         try_files {path} /index.html
         file_server
     }
-    
-    # 3. 자동 HTTPS/TLS: Caddy가 자동으로 TLS 인증서를 발급받거나 localhost용 자체 서명 인증서를 사용합니다.
-    tls internal 
 }

@@ -41,7 +41,8 @@ services:
     depends_on:
       - backend
     ports:
-      - "8005:443" # HTTPS 노출
+      - "80:80"   # HTTP 노출
+      - "443:443" # HTTPS 노출
     environment:
       DOMAIN: localhost
     volumes:
