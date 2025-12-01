@@ -1,16 +1,29 @@
-# Stage 1: Build the React application using Node
-FROM node:20-alpine AS build
-
-# Create and set the working directory
-WORKDIR /app
+# Stage 1: Build the React application
+FROM node:20-alpine AS builder
+WORKDIR /app/front
 
 # Copy package files and install dependencies
-COPY front/package.json front/package-lock.json ./front/
-RUN cd front && npm install
+# Copying these separately leverages Docker layer caching
+COPY front/package.json front/package-lock.json ./
+RUN npm ci
 
-# Copy application source code
-COPY front/ ./front/
+# Copy the rest of the frontend source code
+COPY front/ .
 
-# Build the project (output to front/dist)
-# NOTE: The host's build script is used to generate the static files.
-# We will use this file as a base image for the builder service in compose.
+# Build the application
+RUN npm run build
+
+# Stage 2: Serve the application with Caddy
+FROM caddy:2-alpine
+
+# Copy the Caddyfile. The build context is the project root.
+COPY docker/Caddyfile /etc/caddy/Caddyfile
+
+# Use sed to replace the production domain with "localhost" for local development
+RUN sed -i 's/thetower.kro.kr/localhost/' /etc/caddy/Caddyfile
+
+# Copy the built static files from the builder stage to Caddy's default serve directory
+COPY --from=builder /app/front/dist /usr/share/caddy/html
+
+# Expose ports for HTTP, HTTPS, and HTTP/3
+EXPOSE 80 443 443/udp
