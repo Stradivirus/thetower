@@ -1,5 +1,5 @@
-# For production domain with automatic HTTPS from Let's Encrypt
-thetower.kro.kr {
+# Production domain with automatic HTTPS
+towerreport.p-e.kr {
     handle /api/* {
         reverse_proxy backend:8000
     }
@@ -11,7 +11,7 @@ thetower.kro.kr {
     }
 }
 
-# Fallback for local/IP access on port 80 (HTTP)
+# Fallback for IP access
 :80 {
     handle /api/* {
         reverse_proxy backend:8000
