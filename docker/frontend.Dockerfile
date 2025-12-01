@@ -19,11 +19,8 @@ FROM caddy:2-alpine
 # Copy the Caddyfile. The build context is the project root.
 COPY docker/Caddyfile /etc/caddy/Caddyfile
 
-# Use sed to replace the production domain with "localhost" for local development
-RUN sed -i 's/thetower.kro.kr/localhost/' /etc/caddy/Caddyfile
-
 # Copy the built static files from the builder stage to Caddy's default serve directory
 COPY --from=builder /app/front/dist /usr/share/caddy/html
 
-# Expose ports for HTTP, HTTPS, and HTTP/3
+# Expose ports for Caddy to listen on (HTTP, HTTPS, HTTP/3)
 EXPOSE 80 443 443/udp

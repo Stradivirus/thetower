@@ -1,11 +1,25 @@
+# For production domain with automatic HTTPS from Let's Encrypt
 thetower.kro.kr {
     handle /api/* {
         reverse_proxy backend:8000
     }
-    
+
     handle {
         root * /usr/share/caddy/html
         try_files {path} /index.html
         file_server
     }
 }
+
+# Fallback for local/IP access on port 80 (HTTP)
+:80 {
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    handle {
+        root * /usr/share/caddy/html
+        try_files {path} /index.html
+        file_server
+    }
+}1
