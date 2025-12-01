@@ -1,7 +1,7 @@
 import type { BattleMain, FullReport } from '../types/report';
-import { API_BASE_URL } from '../utils/apiConfig'; // [New] 중앙 설정 임포트
+import { API_BASE_URL } from '../utils/apiConfig';
 
-const REPORTS_URL = `${API_BASE_URL}/reports`; // 리포트 엔드포인트
+const REPORTS_URL = `${API_BASE_URL}/reports`; // '/api/reports'
 
 const getAuthHeaders = (): HeadersInit => {
   const token = localStorage.getItem('access_token');
@@ -16,7 +16,7 @@ export const createReport = async (reportText: string, notes: string): Promise<B
   formData.append('report_text', reportText);
   if (notes) formData.append('notes', notes);
   
-  const response = await fetch(`${REPORTS_URL}/`, { // [Modified]
+  const response = await fetch(`${REPORTS_URL}/`, {
     method: 'POST',
     headers: getAuthHeaders(),
     body: formData,
@@ -31,7 +31,7 @@ export const createReport = async (reportText: string, notes: string): Promise<B
 };
 
 export const getReports = async (): Promise<BattleMain[]> => {
-  const response = await fetch(`${REPORTS_URL}/`, { // [Modified]
+  const response = await fetch(`${REPORTS_URL}/`, {
     headers: getAuthHeaders(),
   });
   
@@ -40,7 +40,7 @@ export const getReports = async (): Promise<BattleMain[]> => {
 };
 
 export const getFullReport = async (battleDate: string): Promise<FullReport> => {
-  const response = await fetch(`${REPORTS_URL}/${battleDate}`, { // [Modified]
+  const response = await fetch(`${REPORTS_URL}/${battleDate}`, {
     headers: getAuthHeaders(),
   });
   

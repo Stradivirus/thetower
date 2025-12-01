@@ -1,6 +1,6 @@
 import { API_BASE_URL } from '../utils/apiConfig';
 
-const AUTH_URL = `${API_BASE_URL}/auth`; // 인증 엔드포인트
+const AUTH_URL = `${API_BASE_URL}/auth`;
 
 const getAuthHeaders = (contentType: boolean = false) => {
   const token = localStorage.getItem('access_token');
@@ -12,13 +12,19 @@ const getAuthHeaders = (contentType: boolean = false) => {
 };
 
 export const loginUser = async (username: string, password: string) => {
-  const formData = new FormData();
-  formData.append('username', username);
-  formData.append('password', password);
-
+  // [CRITICAL FIX] URLSearchParams를 사용하여 body를 구성합니다.
+  const formBody = new URLSearchParams({
+    username: username,
+    password: password
+  });
+  
   const response = await fetch(`${AUTH_URL}/login`, {
     method: 'POST',
-    body: formData,
+    headers: {
+      // Content-Type을 정확히 지정합니다.
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: formBody, // URLSearchParams 객체를 body로 전달
   });
 
   if (!response.ok) {

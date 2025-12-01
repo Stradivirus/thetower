@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # --- 1. Backend Service (FastAPI) ---
+  backend:
+    build:
+      context: ../
+      dockerfile: docker/backend.Dockerfile
+    container_name: thetower_backend
+    # depends_on: # DB 서비스 제거로 인해 주석 처리
+    #   - db
+    
+    # .env 파일을 사용하며, DB 연결 주소는 기존 .env에 정의된 IP 주소를 사용합니다.
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_SERVER: ${POSTGRES_SERVER} # [Modified] 외부 DB IP 사용
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PORT: 5432
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+    # ports:
+      # - "8000:8000" # Caddy가 처리하므로 외부 노출은 선택 사항
+
+  # --- 2. Frontend Builder Service (React Build) ---
+  frontend_builder:
+    image: node:20-alpine
+    container_name: thetower_frontend_builder
+    working_dir: /app/front
+    volumes:
+      - ../front:/app/front
+      - front_dist:/app/front/dist
+    command: npm run build
+    profiles: ["build"]
+
+  # --- 3. Caddy Reverse Proxy / Frontend Server ---
+  caddy:
+    image: caddy:2-alpine
+    container_name: thetower_caddy
+    depends_on:
+      - backend
+    ports:
+      - "80:80"  # HTTP 노출
+      - "443:443" # HTTPS 노출
+    environment:
+      DOMAIN: localhost
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - front_dist:/usr/share/caddy/html:ro
+      - caddy_data:/data
+
+volumes:
+  front_dist: # 프론트엔드 빌드 결과물을 저장할 볼륨
+  caddy_data:
