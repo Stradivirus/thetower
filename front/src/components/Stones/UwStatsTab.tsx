@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import baseStats from '../../data/uw_base_stats.json';
 import plusStats from '../../data/uw_plus_stats.json';
 import { stoneStyles as styles, formatNum, ResetButton } from './StoneShared';
@@ -7,17 +7,20 @@ interface Props {
   category: 'base' | 'plus';
   progress: Record<string, number>;
   updateProgress: (key: string, level: number) => void;
+  // [New] 부모로부터 상태를 받아옴
+  selectedUw: string;
+  onSelectUw: (uw: string) => void;
 }
 
-export default function UwStatsTab({ category, progress, updateProgress }: Props) {
-  const [selectedUw, setSelectedUw] = useState<string>('death_wave');
+export default function UwStatsTab({ category, progress, updateProgress, selectedUw, onSelectUw }: Props) {
   const statsData = category === 'base' ? baseStats : plusStats;
 
   useEffect(() => {
+    // 데이터에 없는 무기가 선택되어 있다면 첫 번째로 리셋
     if (!Object.keys(statsData).includes(selectedUw)) {
-      setSelectedUw(Object.keys(statsData)[0]);
+      onSelectUw(Object.keys(statsData)[0]);
     }
-  }, [category, statsData, selectedUw]);
+  }, [category, statsData, selectedUw, onSelectUw]);
 
   const formatUwName = (name: string) => {
     return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -36,7 +39,7 @@ export default function UwStatsTab({ category, progress, updateProgress }: Props
           {Object.keys(statsData).map((uwKey) => (
             <button
               key={uwKey}
-              onClick={() => setSelectedUw(uwKey)}
+              onClick={() => onSelectUw(uwKey)} // [Updated] props 함수 호출
               className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                 selectedUw === uwKey 
                   ? 'bg-slate-800 text-white border-green-500 shadow-sm' 
@@ -81,21 +84,13 @@ export default function UwStatsTab({ category, progress, updateProgress }: Props
                      <span>{detail.name || statName} <span className="text-slate-500 normal-case font-normal">({detail.unit || 'Level'})</span></span>
                   </div>
                   
-                  {/* [Updated] 레벨 배지 디자인 개선 */}
                   <div className="flex items-center gap-2">
                     <div className="flex items-baseline gap-1 bg-black/40 px-2.5 py-1 rounded-lg border border-white/5">
-                        {/* 'Lv' 라벨 */}
                         <span className="text-[10px] text-slate-500 font-bold">Lv</span>
-                        
-                        {/* 현재 레벨 (Cyan 강조) */}
                         <span className="text-sm font-bold text-cyan-400">
                           {currentLevel === 0 ? '0' : currentLevel - 1}
                         </span>
-                        
-                        {/* 구분선 */}
                         <span className="text-[10px] text-slate-600">/</span>
-                        
-                        {/* 최대 레벨 */}
                         <span className="text-xs font-medium text-slate-400">
                           {detail.values.length - 1}
                         </span>
@@ -107,11 +102,7 @@ export default function UwStatsTab({ category, progress, updateProgress }: Props
                   </div>
                 </div>
                 
-                {detail.desc && (
-                    <div className={styles.descBox}>
-                        {detail.desc}
-                    </div>
-                )}
+                {detail.desc && <div className={styles.descBox}>{detail.desc}</div>}
                 
                 <div className={styles.tableContainer}>
                   <table className="w-full text-xs">
