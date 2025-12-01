@@ -100,7 +100,7 @@ export default function Dashboard({ reports }: Props) {
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-rose-500/10 group-hover:bg-rose-500/20"></div>
         <h3 className="text-slate-400 text-sm font-medium mb-3 flex items-center gap-2">
-          <Skull size={16} className="text-rose-500"/> 최근 3일간의 위협
+          <Skull size={16} className="text-rose-500"/> 3일간의 죽은 이유
         </h3>
         {recentKillers.length > 0 ? (
           <div className="space-y-3">
