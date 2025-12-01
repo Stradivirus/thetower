@@ -61,7 +61,7 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
         onClick={onClose} 
       />
       
-      {/* [핵심 수정] w-fit 적용: 내용물 크기에 딱 맞게 조절됨 (오른쪽 여백 제거) */}
+      {/* 모달 컨테이너 */}
       <div className={`relative w-fit h-full bg-[#0f172a] border-l border-slate-800 shadow-2xl transform transition-transform duration-300 ease-in-out pointer-events-auto flex flex-col min-w-[320px] ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         
         {/* 헤더 */}
@@ -107,8 +107,8 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                     {uw!.displayName}
                   </h3>
 
-                  {/* [핵심 수정] flex + flex-nowrap: 줄바꿈 없이 한 줄에 배치 & 컨테이너가 늘어남 */}
-                  <div className="flex flex-nowrap gap-2.5 w-full">
+                  {/* 카드 리스트 컨테이너 */}
+                  <div className="flex flex-nowrap gap-2.5 w-full select-none">
                     
                     {/* (1) Base Stats */}
                     {uw!.base.map(([statName, detail]: [string, any]) => {
@@ -120,27 +120,30 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                       const isMaxed = displayLevel >= displayMax;
 
                       return (
-                        <div key={statName} className="w-[140px] flex-shrink-0 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2.5 flex flex-col justify-between relative overflow-hidden group hover:border-slate-600 transition-colors shadow-sm min-h-[72px]">
-                          <div className="absolute -bottom-1 -left-1 p-1 opacity-5 group-hover:opacity-10 transition-opacity transform rotate-12 scale-125">
+                        <div key={statName} className="w-[150px] flex-shrink-0 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-slate-600 transition-colors shadow-sm min-h-[64px]">
+                          {/* 배경 장식 */}
+                          <div className="absolute -bottom-2 -right-2 p-1 opacity-5 group-hover:opacity-10 transition-opacity transform rotate-12 scale-150 pointer-events-none">
                              {getStatIcon(statName)}
                           </div>
 
-                          <div className="flex items-start justify-between z-10">
+                          {/* [1단] 이름 (좌) --- 값 (우) */}
+                          <div className="flex items-center justify-between z-10">
                             <div className="flex items-center gap-1.5 overflow-hidden">
                               <span className="flex-shrink-0">{getStatIcon(statName)}</span>
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{detail.name || statName}</span>
                             </div>
+                            <div className="text-base font-bold text-cyan-400 font-mono leading-none">
+                              {currentValue}<span className="text-[10px] text-slate-500 font-normal ml-0.5">{detail.unit}</span>
+                            </div>
                           </div>
                           
-                          <div className="flex items-end justify-between z-10 mt-1">
+                          {/* [2단] Lv (좌) --- 레벨 숫자 (우) */}
+                          <div className="flex items-end justify-between z-10 w-full">
+                            <span className="text-[10px] text-slate-500 font-bold leading-none">Lv</span>
                             <div className="flex items-baseline gap-0.5 font-mono leading-none">
-                              <span className="text-[10px] text-slate-500 font-bold">Lv</span>
                               <span className={`text-sm font-bold ${isMaxed ? 'text-yellow-400' : 'text-blue-400'}`}>{displayLevel}</span>
                               <span className="text-[10px] text-slate-600">/</span>
                               <span className={`text-[10px] font-bold ${isMaxed ? 'text-yellow-400' : 'text-slate-200'}`}>{displayMax}</span>
-                            </div>
-                            <div className="text-base font-bold text-cyan-400 font-mono leading-none ml-2">
-                              {currentValue}<span className="text-[10px] text-slate-500 font-normal ml-0.5 align-baseline">{detail.unit}</span>
                             </div>
                           </div>
                         </div>
@@ -157,27 +160,30 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                       const isMaxed = displayLevel >= displayMax;
 
                       return (
-                        <div key={statName} className="w-[140px] flex-shrink-0 bg-slate-900 border-2 border-pink-500/30 rounded-lg px-3 py-2.5 flex flex-col justify-between relative overflow-hidden group hover:border-pink-400 transition-all shadow-[0_0_10px_rgba(236,72,153,0.1)] hover:shadow-[0_0_15px_rgba(236,72,153,0.2)] min-h-[72px]">
-                          <div className="absolute -bottom-1 -left-1 p-1 opacity-10 group-hover:opacity-20 transition-opacity transform rotate-12 scale-125">
+                        <div key={statName} className="w-[150px] flex-shrink-0 bg-slate-900 border-2 border-pink-500/30 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-pink-400 transition-all shadow-[0_0_10px_rgba(236,72,153,0.1)] hover:shadow-[0_0_15px_rgba(236,72,153,0.2)] min-h-[64px]">
+                          {/* 배경 장식 */}
+                          <div className="absolute -bottom-2 -right-2 p-1 opacity-10 group-hover:opacity-20 transition-opacity transform rotate-12 scale-150 pointer-events-none">
                              <Sparkles size={16} className="text-pink-500" />
                           </div>
 
-                          <div className="flex items-start justify-between z-10">
+                          {/* [1단] 이름 (좌) --- 값 (우) */}
+                          <div className="flex items-center justify-between z-10">
                             <div className="flex items-center gap-1.5 overflow-hidden">
                               <span className="flex-shrink-0"><Sparkles size={12} className="text-pink-400 fill-pink-400/20" /></span>
                               <span className="text-[10px] font-bold text-pink-200 uppercase tracking-wider truncate">{detail.name || statName}</span>
                             </div>
+                            <div className="text-base font-bold text-pink-300 font-mono leading-none">
+                              {currentValue}<span className="text-[10px] text-pink-500/70 font-normal ml-0.5">{detail.unit}</span>
+                            </div>
                           </div>
                           
-                          <div className="flex items-end justify-between z-10 mt-1">
+                          {/* [2단] Lv (좌) --- 레벨 숫자 (우) */}
+                          <div className="flex items-end justify-between z-10 w-full">
+                            <span className="text-[10px] text-slate-500 font-bold leading-none">Lv</span>
                             <div className="flex items-baseline gap-0.5 font-mono leading-none">
-                              <span className="text-[10px] text-slate-500 font-bold">Lv</span>
                               <span className={`text-sm font-bold ${isMaxed ? 'text-yellow-400' : 'text-pink-400'}`}>{displayLevel}</span>
                               <span className="text-[10px] text-slate-600">/</span>
                               <span className={`text-[10px] font-bold ${isMaxed ? 'text-yellow-400' : 'text-slate-200'}`}>{displayMax}</span>
-                            </div>
-                            <div className="text-base font-bold text-pink-300 font-mono leading-none ml-2">
-                              {currentValue}<span className="text-[10px] text-pink-500/70 font-normal ml-0.5 align-baseline">{detail.unit}</span>
                             </div>
                           </div>
                         </div>
@@ -188,6 +194,7 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
               ))}
             </div>
           ) : (
+            // 데이터가 없을 때 표시
             completedCards.length > 0 ? (
                <div className="text-center py-20 text-slate-500 whitespace-nowrap">궁극 무기 데이터가 없습니다.</div>
             ) : (
