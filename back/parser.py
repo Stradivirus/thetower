@@ -13,17 +13,17 @@ def parse_number(value_str: str):
     
     multiplier = 1
     
-    # 게임 표기법에 따라 대소문자 구분하여 처리
-    if value_str.endswith('S'): # Septillion (10^24)
+    # 게임 표기법 처리
+    if value_str.endswith('S'): 
         multiplier = 1_000_000_000_000_000_000_000_000
         value_str = value_str[:-1]
-    elif value_str.endswith('s'): # Sextillion (10^21)
+    elif value_str.endswith('s'):
         multiplier = 1_000_000_000_000_000_000_000
         value_str = value_str[:-1]
-    elif value_str.endswith('Q'): # Quintillion (10^18)
+    elif value_str.endswith('Q'):
         multiplier = 1_000_000_000_000_000_000
         value_str = value_str[:-1]
-    elif value_str.endswith('q'): # Quadrillion (10^15)
+    elif value_str.endswith('q'):
         multiplier = 1_000_000_000_000_000
         value_str = value_str[:-1]
     elif value_str.endswith(('t', 'T')):
@@ -49,26 +49,24 @@ def parse_battle_report(text: str) -> dict:
     clean_text = text.replace('\r\n', '\n').replace('\r', '\n')
     lines = clean_text.split('\n')
     
-    # 2. 데이터를 담을 임시 저장소 (섹션별)
+    # 2. 데이터를 담을 임시 저장소
     sections = {
-        'report': {},   # 전투 보고 (메인)
+        'report': {},   # 전투 보고
         'combat': {},   # 전투
         'utility': {},  # 유틸리티
         'enemy': {},    # 적 파괴
-        'bot': {},      # 봇 + 가디언 (합쳐서 저장)
+        'bot': {},      # 봇 + 가디언
     }
     
-    # 현재 어떤 섹션을 읽고 있는지 추적 (기본값: report)
     current_section = 'report' 
     
-    # 섹션 헤더 매핑 (한글 제목 -> 저장소 키)
     section_map = {
         '전투 보고': 'report',
         '전투': 'combat',
         '유틸리티': 'utility',
         '적 파괴': 'enemy',
         '봇': 'bot',
-        '가디언': 'bot' # 가디언도 bot 섹션에 합침 (DB 구조상)
+        '가디언': 'bot'
     }
 
     print("--- [Section Parser] 시작 ---")
@@ -77,10 +75,9 @@ def parse_battle_report(text: str) -> dict:
         line = line.strip()
         if not line: continue
         
-        # 1) 섹션 헤더인지 확인 (정확히 일치하는 경우)
+        # 1) 섹션 헤더 확인
         if line in section_map:
             current_section = section_map[line]
-            print(f"👉 섹션 변경: [{line}] -> {current_section}")
             continue
             
         # 2) 데이터 파싱 (Key-Value 분리)
@@ -92,35 +89,35 @@ def parse_battle_report(text: str) -> dict:
             key = parts[0].strip()
             val = parts[-1].strip()
         else:
-            # 예외 처리: 날짜/시간 등 공백이 포함된 값
-            if current_section == 'report' and line.startswith("전투 날짜"):
-                key = "전투 날짜"
-                val = line.replace("전투 날짜", "", 1).strip()
-            elif current_section == 'report' and ("게임 시간" in line or "실시간" in line):
-                 if line.startswith("게임 시간"):
+            # 예외 처리: 공백이 포함된 키값들
+            if current_section == 'report':
+                if line.startswith("전투 날짜"):
+                    key = "전투 날짜"
+                    val = line.replace("전투 날짜", "", 1).strip()
+                elif line.startswith("게임 시간"):
                     key = "게임 시간"
                     val = line.replace("게임 시간", "", 1).strip()
-                 elif line.startswith("실시간"):
+                elif line.startswith("실시간"):
                     key = "실시간"
                     val = line.replace("실시간", "", 1).strip()
-            else:
-                # 일반적인 경우: 뒤에서 첫 공백 기준 분리
+                elif line.startswith("시간당 코인"):  # [New] 추가됨
+                    key = "시간당 코인"
+                    val = line.replace("시간당 코인", "", 1).strip()
+            
+            # 위 예외에 안 걸리면 일반 처리
+            if not key:
                 parts = line.rsplit(' ', 1)
                 if len(parts) == 2:
                     key = parts[0].strip()
                     val = parts[1].strip()
         
-        # 3) 현재 섹션 저장소에 데이터 넣기
         if key and val:
             sections[current_section][key] = val
 
-    # 3. 최종 데이터 조립 (DB 스키마에 맞게 매핑)
-    
-    # [Main Data] - '전투 보고' 섹션 + 일부 '전투' 섹션 데이터
+    # 3. 최종 데이터 조립
     repo = sections['report']
     comb = sections['combat']
     
-    # 날짜 파싱
     date_str = repo.get('전투 날짜', '')
     try:
         match = re.match(r'(\d+)월\s+(\d+),\s+(\d+)\s+(\d+):(\d+)', date_str)
@@ -140,16 +137,14 @@ def parse_battle_report(text: str) -> dict:
         'real_time': repo.get('실시간', ''),
         
         'coin_earned': parse_number(repo.get('코인 획득', '0')),
+        'coins_per_hour': parse_number(repo.get('시간당 코인', '0')), # [New] 매핑
         'cells_earned': parse_number(repo.get('획득한 셀', '0')),
         'reroll_shards_earned': parse_number(repo.get('다시 뽑기 파편 획득함', '0')),
         
         'killer': repo.get('처치자', ''),
-        'damage_dealt': comb.get('입힌 대미지', '0'), # 전투 섹션에서 가져옴
-        'damage_taken': comb.get('받은 대미지', '0'), # 전투 섹션에서 가져옴
+        'damage_dealt': comb.get('입힌 대미지', '0'),
+        'damage_taken': comb.get('받은 대미지', '0'),
     }
-
-    # [Detail Data] - 각 섹션 딕셔너리를 그대로 JSON으로 활용
-    # (필요 없는 메인 데이터 중복 제거는 선택사항)
     
     detail_data = {
         'combat_json': sections['combat'],

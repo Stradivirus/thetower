@@ -9,18 +9,21 @@ class BattleMainBase(BaseModel):
     wave: int
     game_time: str
     real_time: str
-    coin_earned: int      # BigInt -> int
+    
+    coin_earned: int
+    coins_per_hour: int   # [New] 시간당 코인 추가
     cells_earned: int
     reroll_shards_earned: int
+    
     killer: str
     damage_dealt: str
-    notes: Optional[str] = None # 메모
+    notes: Optional[str] = None
 
 class BattleMainResponse(BattleMainBase):
     class Config:
         from_attributes = True
 
-# [Detail] 상세 조회용 스키마 (JSON 포함)
+# [Detail] 상세 조회용 스키마
 class BattleDetailResponse(BaseModel):
     battle_date: datetime
     combat_json: Dict[str, Any]

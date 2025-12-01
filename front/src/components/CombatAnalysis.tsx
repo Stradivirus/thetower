@@ -1,4 +1,3 @@
-// src/components/CombatAnalysis.tsx
 import { Sword, ShieldAlert } from 'lucide-react';
 
 interface Props {
@@ -37,12 +36,12 @@ export default function CombatAnalysis({ combatJson }: Props) {
   // 3. 기타
   const miscStats = combatEntries.filter(([key]) => !key.includes('대미지') || key.includes('광전사'));
 
-  // 내부 렌더링 헬퍼
+  // [Updated] 그리드 컬럼 수 변경 (md:3 -> xl:5)
   const StatRow = ({ items }: { items: [string, any][] }) => (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-2">
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-y-6 gap-x-4">
       {items.map(([key, value]) => (
         <div key={key}>
-          <div className="text-xs text-slate-500 mb-0.5">{key}</div>
+          <div className="text-xs text-slate-500 mb-1">{key}</div>
           <div className="text-slate-200 font-medium font-mono text-sm truncate" title={String(value)}>
             {String(value)}
           </div>
