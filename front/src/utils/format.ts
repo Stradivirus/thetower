@@ -1,5 +1,7 @@
+// src/utils/format.ts
+
 export const formatNumber = (num: number): string => {
-  if (num === 0) return '0'; // 0일 경우 처리
+  if (num === 0) return '0';
   if (num >= 1e24) return (num / 1e24).toFixed(2) + 'S';
   if (num >= 1e21) return (num / 1e21).toFixed(2) + 's';
   if (num >= 1e18) return (num / 1e18).toFixed(2) + 'Q';
@@ -11,7 +13,6 @@ export const formatNumber = (num: number): string => {
   return num.toString();
 };
 
-// 상세 페이지용 (전체 날짜)
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleString('ko-KR', {
@@ -22,7 +23,6 @@ export const formatDate = (dateString: string): string => {
   });
 };
 
-// [New] 리스트 그룹 헤더용 (예: 2024년 11월 30일)
 export const formatDateHeader = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleDateString('ko-KR', {
@@ -33,7 +33,6 @@ export const formatDateHeader = (dateString: string): string => {
   });
 };
 
-// [New] 리스트 아이템용 (시간만 표시, 예: 14:30)
 export const formatTimeOnly = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toLocaleTimeString('ko-KR', {
@@ -41,4 +40,24 @@ export const formatTimeOnly = (dateString: string): string => {
     minute: '2-digit',
     hour12: false,
   });
+};
+
+// [New] 시간 문자열("2h 30m 10s")을 시간 단위 숫자(2.502...)로 변환
+export const parseDurationToHours = (timeStr: string): number => {
+  if (!timeStr) return 0;
+  
+  let hours = 0;
+  let minutes = 0;
+  let seconds = 0;
+
+  // 정규식으로 h, m, s 추출 (대소문자 무시)
+  const hMatch = timeStr.match(/(\d+)\s*h/i);
+  const mMatch = timeStr.match(/(\d+)\s*m/i);
+  const sMatch = timeStr.match(/(\d+)\s*s/i);
+
+  if (hMatch) hours = parseInt(hMatch[1], 10);
+  if (mMatch) minutes = parseInt(mMatch[1], 10);
+  if (sMatch) seconds = parseInt(sMatch[1], 10);
+
+  return hours + (minutes / 60) + (seconds / 3600);
 };
