@@ -1,37 +1,31 @@
-{
-  storage file_system {
-    root /data/caddy
-  }
-}
-
-http://towerreport.p-e.kr {
-  handle /api/* {
-    reverse_proxy backend:8000
-  }
-
-  handle {
-    root * /usr/share/caddy/html
-    try_files {path} /index.html
-    file_server
-
-    header {
-      Cache-Control "public, max-age=86400"
+towerreport.p-e.kr {
+    handle /api/* {
+        reverse_proxy backend:8000
     }
-  }
+
+    handle {
+        root * /usr/share/caddy/html
+        try_files {path} /index.html
+        file_server
+
+        header {
+            Cache-Control "public, max-age=86400"  # 24시간 캐시 유지
+        }
+    }
 }
 
 :80 {
-  handle /api/* {
-    reverse_proxy backend:8000
-  }
-
-  handle {
-    root * /usr/share/caddy/html
-    try_files {path} /index.html
-    file_server
-
-    header {
-      Cache-Control "public, max-age=86400"
+    handle /api/* {
+        reverse_proxy backend:8000
     }
-  }
+
+    handle {
+        root * /usr/share/caddy/html
+        try_files {path} /index.html
+        file_server
+
+        header {
+            Cache-Control "public, max-age=86400"
+        }
+    }
 }
