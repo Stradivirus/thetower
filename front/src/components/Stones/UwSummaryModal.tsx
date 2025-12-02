@@ -171,7 +171,7 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                     
                     {/* (1) Base Stats */}
                     {uw!.base.map((stat: any) => {
-                      const { statName, detail, displayLevel, displayMax, currentValue, isLabActive } = stat;
+                      const { statName, detail, displayLevel, displayMax, currentValue} = stat;
                       const isMaxed = displayLevel >= displayMax;
 
                       return (
