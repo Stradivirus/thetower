@@ -1,12 +1,12 @@
-import { X, Trophy, Zap, Clock, Hash, Target, Minimize, Maximize, Layers, Sparkles } from 'lucide-react';
+import { X, Trophy, Zap, Clock, Hash, Target, Minimize, Maximize, Layers, Sparkles } from 'lucide-react'; // [수정] FlaskConical 아이콘 임포트 제거
 import baseStats from '../../data/uw_base_stats.json';
 import plusStats from '../../data/uw_plus_stats.json';
 import cardCosts from '../../data/card_mastery_costs.json';
+import labConfig from '../../data/uw_lab_config.json'; 
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  // [수정] number -> any (배열 데이터가 포함될 수 있음)
   progress: Record<string, any>;
 }
 
@@ -24,6 +24,39 @@ const getStatIcon = (name: string, isPlus: boolean = false) => {
   return <Target size={size} className="text-red-500" />;
 };
 
+// 연구 효과를 합산하는 함수 (변화 없음)
+const applyLabEffect = (uwKey: string, statKey: string, currentValue: number, progress: Record<string, any>) => {
+    const labStats = (labConfig as any)[uwKey];
+    let addedValue = 0;
+    let isLabActive = false;
+    
+    if (!labStats) return { finalValue: currentValue, isLabActive };
+
+    // GT 지속시간, CF 지속시간, GT 보너스만 해당
+    if (statKey === 'duration') {
+        const labDurationKey = `${uwKey}_lab_duration_on`;
+        const labDurationInfo = labStats['lab_duration'];
+        
+        if (progress[labDurationKey] === 1 && labDurationInfo) {
+            addedValue += labDurationInfo.value;
+            isLabActive = true;
+        }
+    }
+    
+    if (statKey === 'bonus') {
+        const labBonusKey = `${uwKey}_lab_bonus_on`;
+        const labBonusInfo = labStats['lab_bonus'];
+        
+        if (progress[labBonusKey] === 1 && labBonusInfo) {
+            addedValue += labBonusInfo.value;
+            isLabActive = true;
+        }
+    }
+
+    // 값 합산 및 반환
+    return { finalValue: currentValue + addedValue, isLabActive };
+}
+
 export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
   if (!isOpen) return null;
 
@@ -35,22 +68,48 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
   
   const activeUws = allUwKeys.map(uwKey => {
     const baseData = (baseStats as any)[uwKey] || {};
-    const activeBaseStats = Object.entries(baseData).filter(([statKey]) => {
-      return (progress[`base_${uwKey}_${statKey}`] || 0) > 0;
-    });
+    
+    const activeBaseStats = Object.entries(baseData).map(([statName, detail]: [string, any]) => {
+      const progressKey = `base_${uwKey}_${statName}`;
+      const currentLevel = progress[progressKey] || 0;
+      
+      if (currentLevel === 0) return null;
+      
+      const displayLevel = currentLevel - 1;
+      const displayMax = detail.values.length - 1;
+      let currentValue = detail.values[displayLevel];
+
+      // [New] GT/CF의 duration/bonus에 연구 효과 합산
+      const { finalValue, isLabActive } = applyLabEffect(uwKey, statName, currentValue, progress);
+      currentValue = finalValue; 
+      
+      // [수정] isLabActive를 반환하여 렌더링 시 참고 가능하도록 합니다.
+      return { statName, detail, displayLevel, displayMax, currentValue, isLabActive };
+    }).filter(item => item !== null);
+
 
     const plusData = (plusStats as any)[uwKey] || {};
-    const activePlusStats = Object.entries(plusData).filter(([statKey]) => {
-      return (progress[`plus_${uwKey}_${statKey}`] || 0) > 0;
-    });
+    const activePlusStats = Object.entries(plusData).map(([statName, detail]: [string, any]) => {
+        const progressKey = `plus_${uwKey}_${statName}`;
+        const currentLevel = progress[progressKey] || 0;
+        
+        if (currentLevel === 0) return null;
+        
+        const displayLevel = currentLevel - 1;
+        const displayMax = detail.values.length - 1;
+        const currentValue = detail.values[displayLevel];
+        
+        return { statName, detail, displayLevel, displayMax, currentValue };
+    }).filter(item => item !== null);
 
     if (activeBaseStats.length === 0 && activePlusStats.length === 0) return null;
+
 
     return {
       key: uwKey,
       displayName: uwKey.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
       base: activeBaseStats,
-      plus: activePlusStats
+      plus: activePlusStats,
     };
   }).filter(item => item !== null);
 
@@ -111,12 +170,8 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                   <div className="flex flex-nowrap gap-2.5 w-full select-none">
                     
                     {/* (1) Base Stats */}
-                    {uw!.base.map(([statName, detail]: [string, any]) => {
-                      const progressKey = `base_${uw!.key}_${statName}`;
-                      const currentLevel = progress[progressKey] || 0;
-                      const displayLevel = currentLevel === 0 ? 0 : currentLevel - 1;
-                      const displayMax = detail.values.length - 1;
-                      const currentValue = detail.values[displayLevel];
+                    {uw!.base.map((stat: any) => {
+                      const { statName, detail, displayLevel, displayMax, currentValue, isLabActive } = stat;
                       const isMaxed = displayLevel >= displayMax;
 
                       return (
@@ -129,9 +184,11 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                             <div className="flex items-center gap-1.5 overflow-hidden">
                               <span className="flex-shrink-0">{getStatIcon(statName)}</span>
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{detail.name || statName}</span>
+                              {/* [수정] 연구소 모양 아이콘 제거 */}
                             </div>
                             <div className="text-base font-bold text-cyan-400 font-mono leading-none">
-                              {currentValue}<span className="text-[10px] text-slate-500 font-normal ml-0.5">{detail.unit}</span>
+                              {/* 합산된 값 표시, unit이 x면 소수점 2자리 */}
+                              {currentValue.toFixed(detail.unit === 'x' ? 2 : 0)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">{detail.unit}</span>
                             </div>
                           </div>
                           
@@ -148,12 +205,8 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
                     })}
 
                     {/* (2) Plus Stats */}
-                    {uw!.plus.map(([statName, detail]: [string, any]) => {
-                      const progressKey = `plus_${uw!.key}_${statName}`;
-                      const currentLevel = progress[progressKey] || 0;
-                      const displayLevel = currentLevel === 0 ? 0 : currentLevel - 1;
-                      const displayMax = detail.values.length - 1;
-                      const currentValue = detail.values[displayLevel];
+                    {uw!.plus.map((stat: any) => {
+                      const { statName, detail, displayLevel, displayMax, currentValue } = stat;
                       const isMaxed = displayLevel >= displayMax;
 
                       return (
