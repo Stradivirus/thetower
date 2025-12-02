@@ -1,6 +1,4 @@
-:80 {
-    # :80 블록 하나만 유지하여, HTTPS 자동 리디렉션 및 인증서 발급 시도를 방지합니다.
-
+towerreport.o-r.kr {
     handle /api/* {
         reverse_proxy backend:8000
     }
