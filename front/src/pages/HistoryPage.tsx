@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { Archive, Search, X, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import ReportList from '../components/Main/ReportList';
+import { formatNumber } from '../utils/format';
+
 
 interface HistoryPageProps {
   reports: BattleMain[];
@@ -165,13 +167,13 @@ export default function HistoryPage({ reports, onSelectReport }: HistoryPageProp
                     </span>
                     <div className="h-4 w-px bg-slate-800"></div>
                     <span className="text-yellow-500 font-mono font-bold">
-                      {(totalCoins / 1000000).toFixed(2)}M
+                        {formatNumber(totalCoins)} Coins
                     </span>
                     <span className="text-cyan-500 font-mono font-bold">
-                      {(totalCells / 1000).toFixed(1)}K Cells
+                      {formatNumber(totalCells)} Cells
                     </span>
                     <span className="text-green-500 font-mono font-bold">
-                      {(totalShards / 1000).toFixed(1)}K Shards
+                      {formatNumber(totalShards)} Shards
                     </span>
                   </div>
                 </div>
