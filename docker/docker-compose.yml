@@ -30,7 +30,7 @@ services:
     # Caddy 데이터 및 설정 볼륨 마운트 추가
     volumes:
       # Caddyfile 경로를 그대로 유지 (설정 파일)
-      - ./docker/Caddyfile:/etc/caddy/Caddyfile
+      - ./Caddyfile:/etc/caddy/Caddyfile
       # Let's Encrypt 인증서 및 데이터 영구 저장
       - caddy_data:/data/caddy
       # Caddy 설정 파일 영구 저장 (선택 사항이지만 권장)
