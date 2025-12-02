@@ -6,10 +6,11 @@ import { formatNumber, formatDateHeader, formatTimeOnly } from '../../utils/form
 interface Props {
   reports: BattleMain[];
   onSelectReport: (date: string) => void;
-  hideHeader?: boolean; // [New] 헤더 숨김 옵션 추가
+  hideHeader?: boolean;
+  collapseThresholdDays?: number; // 며칠 이상 지났을 때 아코디언으로 접을지 (기본값: 3)
 }
 
-export default function ReportList({ reports, onSelectReport, hideHeader = false }: Props) {
+export default function ReportList({ reports, onSelectReport, hideHeader = false, collapseThresholdDays = 3 }: Props) {
   // 아코디언 토글 상태 관리
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
 
@@ -120,8 +121,8 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           const diffTime = today.getTime() - reportDate.getTime();
           const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
           
-          // 3일이 지났는지(4일째부터) 확인: 0,1,2일차는 그대로, 3일차부터 접기
-          const isOld = diffDays >= 3;
+          // collapseThresholdDays를 기준으로 아코디언 여부 결정
+          const isOld = diffDays >= collapseThresholdDays;
           const isExpanded = expandedDates[dateHeader];
 
           // 요약 데이터 계산
@@ -129,7 +130,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           const totalCells = groupItems.reduce((acc, r) => acc + r.cells_earned, 0);
           const totalShards = groupItems.reduce((acc, r) => acc + r.reroll_shards_earned, 0);
 
-          // [Case 1] 최근 3일 이내 데이터: 기존 방식대로 펼쳐서 표시
+          // [Case 1] 기준일 미만: 펼쳐서 표시
           if (!isOld) {
             return (
               <div key={dateHeader} className="flex flex-col md:flex-row gap-6 border-b border-slate-800/50 py-6 last:border-0 animate-fade-in">
@@ -155,7 +156,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
             );
           }
 
-          // [Case 2] 오래된 데이터: 아코디언 요약 표시
+          // [Case 2] 기준일 이상: 아코디언 요약 표시
           return (
             <div key={dateHeader} className="border-b border-slate-800/50">
               <div 
@@ -196,7 +197,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                 </div>
               </div>
 
-              {/* 펼쳐졌을 때 내용물 */}
+              {/* 펼쳤을 때 내용물 */}
               {isExpanded && (
                 <div className="pl-4 pr-4 pb-6 pt-2 flex flex-col md:flex-row gap-6 bg-slate-950/30 animate-fade-in border-t border-slate-800/30">
                   <div className="hidden md:block w-32 flex-shrink-0"></div> {/* 여백 맞춤용 */}
