@@ -1,0 +1,24 @@
+{
+  "golden_tower": {
+    "lab_duration": {
+      "name": "GT Duration Lab",
+      "desc": "황금 타워 지속 시간 +20초",
+      "unit": "s",
+      "value": 20
+    },
+    "lab_bonus": {
+      "name": "GT Bonus Lab",
+      "desc": "황금 타워 보너스 +3.75x",
+      "unit": "x",
+      "value": 3.75
+    }
+  },
+  "chrono_field": {
+    "lab_duration": {
+      "name": "CF Duration Lab",
+      "desc": "크로노 필드 지속 시간 +30초",
+      "unit": "s",
+      "value": 30
+    }
+  }
+}
