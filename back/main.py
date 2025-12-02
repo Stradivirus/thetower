@@ -13,8 +13,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://towerreport.p-e.kr",  # 추가
-        "https://towerreport.p-e.kr", # 추가
+        "http://towerreport.o-r.kr",  # 추가
+        "https://towerreport.o-r.kr", # 추가
         "http://localhost",
         "http://frontend"  # Docker 내부 서비스 이름
     ],
