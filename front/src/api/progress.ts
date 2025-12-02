@@ -1,6 +1,6 @@
-import { API_BASE_URL } from '../utils/apiConfig';
+import { API_BASE_URL, fetchWithAuth } from '../utils/apiConfig'; // [Modified]
 
-const PROGRESS_URL = `${API_BASE_URL}/progress`; // '/api/progress'
+const PROGRESS_URL = `${API_BASE_URL}/progress`;
 
 const getAuthHeaders = (contentType: boolean = false) => {
   const token = localStorage.getItem('access_token');
@@ -13,7 +13,8 @@ const getAuthHeaders = (contentType: boolean = false) => {
 
 // 진행 상황 불러오기
 export const fetchProgress = async (): Promise<Record<string, any>> => {
-  const response = await fetch(`${PROGRESS_URL}/`, {
+  // [Modified] fetchWithAuth 사용
+  const response = await fetchWithAuth(`${PROGRESS_URL}/`, {
     headers: getAuthHeaders(),
   });
 
@@ -27,7 +28,8 @@ export const fetchProgress = async (): Promise<Record<string, any>> => {
 
 // 진행 상황 저장하기
 export const saveProgress = async (progress: Record<string, any>): Promise<void> => {
-  const response = await fetch(`${PROGRESS_URL}/`, {
+  // [Modified] fetchWithAuth 사용
+  const response = await fetchWithAuth(`${PROGRESS_URL}/`, {
     method: 'POST',
     headers: getAuthHeaders(true),
     body: JSON.stringify({ progress_json: progress }),
@@ -37,5 +39,4 @@ export const saveProgress = async (progress: Record<string, any>): Promise<void>
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || '진행 상황 저장 실패');
   }
-  // 성공 시 body를 반환하지 않으므로 void
 };

@@ -18,6 +18,30 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
 
+  // [Modified] 로그아웃 함수 (이벤트 핸들러에서도 쓰기 위해 useCallback 없이 정의)
+  const handleLogout = () => {
+    localStorage.removeItem('access_token');
+    setToken(null);
+    setReports([]);
+    setView('list');
+  };
+
+  // [New] 토큰 만료 이벤트 감지
+  useEffect(() => {
+    const handleAuthExpired = () => {
+      // 401 이벤트 발생 시 로그아웃 처리
+      handleLogout();
+      alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
+    };
+
+    window.addEventListener('auth:expired', handleAuthExpired);
+
+    // cleanup
+    return () => {
+      window.removeEventListener('auth:expired', handleAuthExpired);
+    };
+  }, []);
+
   useEffect(() => {
     if (token) {
         loadReports();
@@ -57,14 +81,6 @@ export default function App() {
     localStorage.setItem('access_token', accessToken);
     setToken(accessToken);
     setIsAuthModalOpen(false);
-  };
-
-  // [Modified] 로그아웃 시 confirm 제거
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    setToken(null);
-    setReports([]);
-    setView('list');
   };
 
   return (
