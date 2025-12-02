@@ -20,7 +20,6 @@ export default function StonesPage({ onBack, token }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('unlock');
   const [selectedUw, setSelectedUw] = useState<string>('death_wave');
   const [progress, setProgress] = useState<Record<string, any>>({});
-  // [NEW] 마지막으로 서버에 저장된 progress 상태를 추적합니다.
   const [lastSavedProgress, setLastSavedProgress] = useState<Record<string, any>>({});
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -55,7 +54,6 @@ export default function StonesPage({ onBack, token }: Props) {
       }
       
       setProgress(dataToLoad);
-      // [NEW] 로드된 데이터를 마지막 저장 상태로 설정합니다.
       setLastSavedProgress(dataToLoad); 
       localStorage.setItem('thetower_progress', JSON.stringify(dataToLoad));
     };
@@ -82,7 +80,6 @@ export default function StonesPage({ onBack, token }: Props) {
     const newProg = { ...progress };
     Object.keys(newProg).forEach(k => { if(k.startsWith('card_')) delete newProg[k]; });
     setProgress(newProg);
-    // [MODIFIED] lastSavedProgress도 업데이트하여 변경 사항이 감지되도록 합니다.
     setLastSavedProgress(newProg); 
     localStorage.setItem('thetower_progress', JSON.stringify(newProg));
   };
@@ -90,25 +87,26 @@ export default function StonesPage({ onBack, token }: Props) {
   // 전체 리셋
   const resetAll = () => {
     setProgress({});
-    // [MODIFIED] lastSavedProgress를 빈 객체로 업데이트합니다.
     setLastSavedProgress({});
     localStorage.removeItem('thetower_progress');
-    // 서버에 빈 객체 저장 (선택 사항, 리셋 버튼에 명시된 경우)
     if (token) saveProgress({});
   };
 
-  // [NEW] progress가 lastSavedProgress와 다른지 확인
+  // progress가 lastSavedProgress와 다른지 확인
   const isProgressChanged = JSON.stringify(progress) !== JSON.stringify(lastSavedProgress);
 
-  // 저장 및 요약 버튼 핸들러
-  const handleSaveAndSummary = async () => {
+  // [NEW] 요약 모달 열기 전용 핸들러
+  const handleSummary = () => {
     setIsSummaryOpen(true);
-    
+  }
+
+  // [NEW] 저장 전용 핸들러
+  const handleSaveProgress = async () => {
     if (!token) {
+      alert("로그인이 필요합니다.");
       return;
     }
 
-    // [MODIFIED] 변경 사항이 없을 경우 저장 로직을 건너뜁니다.
     if (!isProgressChanged) {
         console.log("Progress is unchanged, skipping server save.");
         return;
@@ -118,7 +116,6 @@ export default function StonesPage({ onBack, token }: Props) {
     saveProgress(progress)
       .then(() => {
         console.log("Progress saved successfully in the background.");
-        // [NEW] 저장 성공 시, 마지막 저장 상태를 현재 progress로 업데이트합니다.
         setLastSavedProgress(progress);
       })
       .catch((e) => {
@@ -129,6 +126,16 @@ export default function StonesPage({ onBack, token }: Props) {
         setIsSaving(false);
       });
   };
+
+  // [NEW] 데스크톱용: 저장 후 요약 모달 열기
+  const handleSaveAndSummary = async () => {
+    // 변경 사항이 있다면 저장 로직 실행
+    if (isProgressChanged && token) {
+      await handleSaveProgress();
+    }
+    // 요약 모달은 항상 엽니다.
+    handleSummary();
+  }
 
   const tabs = [
     { id: 'unlock', icon: Lock, label: 'Unlock' },
@@ -155,7 +162,7 @@ export default function StonesPage({ onBack, token }: Props) {
               <div className="text-xs text-slate-400 font-medium ml-7 flex items-center gap-1">
                   Total Stones Used: 
                   <span className="text-yellow-400 font-bold font-mono ml-1">{formatNum(totalStonesUsed)}</span>
-                  {/* [NEW] 변경 상태 표시 */}
+                  {/* 변경 상태 표시 */}
                   {isProgressChanged && <span className="text-rose-400 ml-2 font-bold">(Unsaved Changes)</span>}
               </div>
             </h1>
@@ -163,10 +170,9 @@ export default function StonesPage({ onBack, token }: Props) {
 
           {/* 모바일 저장 및 요약 버튼 */}
           <button 
-            onClick={handleSaveAndSummary}
+            onClick={handleSaveAndSummary} // 데스크톱과 동일하게 저장 + 요약 실행
             className="md:hidden p-2 text-cyan-400 hover:bg-slate-800 rounded-full border border-cyan-500/30 bg-cyan-500/10 disabled:opacity-50"
-            // [MODIFIED] 토큰이 없거나 변경 사항이 없으면 비활성화
-            disabled={isSaving || !token || !isProgressChanged}
+            disabled={isSaving} // 요약은 항상 가능하지만, 저장 중일 때는 비활성화
           >
             <List size={20} />
           </button>
@@ -199,8 +205,7 @@ export default function StonesPage({ onBack, token }: Props) {
           <button 
             onClick={handleSaveAndSummary}
             className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            // [MODIFIED] 토큰이 없거나 변경 사항이 없으면 비활성화
-            disabled={isSaving || !token || !isProgressChanged}
+            disabled={isSaving || !token} // 저장 중이거나 토큰이 없으면 비활성화 (요약 기능은 항상 활성화)
           >
             <List size={16} /> {isSaving ? '저장 중...' : (isProgressChanged ? '저장 및 요약*' : '저장 및 요약')}
           </button>
