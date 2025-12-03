@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function Dashboard({ reports }: Props) {
-  // === 1. 날짜 및 통계 계산 로직 (변경 없음) ===
+  // === 1. 날짜 및 통계 계산 로직 ===
   const todayDate = new Date();
   const todayStr = todayDate.toDateString();
   
@@ -38,13 +38,15 @@ export default function Dashboard({ reports }: Props) {
   const todayShards = todayStats.reduce((acc, cur) => acc + cur.reroll_shards_earned, 0);
   const yesterdayShards = yesterdayStats.reduce((acc, cur) => acc + cur.reroll_shards_earned, 0);
 
-  // 최근 위협 (죽은 이유) - 3일치 데이터 기준
-  const threeDaysAgoTimestamp = twoDaysAgoDate.setHours(0,0,0,0);
+  // [Modified] 최근 위협 (죽은 이유) - 1주일치 데이터 기준
+  const oneWeekAgoDate = new Date(todayDate);
+  oneWeekAgoDate.setDate(oneWeekAgoDate.getDate() - 7); // 7일 전으로 설정
+  const oneWeekAgoTimestamp = oneWeekAgoDate.setHours(0,0,0,0);
   
   const recentKillers = useMemo(() => {
     const recentReports = reports.filter(r => {
       const reportDate = new Date(r.battle_date).setHours(0,0,0,0);
-      return reportDate >= threeDaysAgoTimestamp;
+      return reportDate >= oneWeekAgoTimestamp; // 1주일 전 데이터부터 포함
     });
 
     const counts: Record<string, number> = {};
@@ -60,31 +62,26 @@ export default function Dashboard({ reports }: Props) {
       count,
       percent: (count / total) * 100
     }));
-  }, [reports, threeDaysAgoTimestamp]);
+  }, [reports, oneWeekAgoTimestamp]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       
       {/* 1. 최근 코인 획득 흐름 */}
-      {/* justify-center 제거, 내부 콘텐츠를 flex-1로 감싸서 정렬 */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-40 h-40 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 transition-all group-hover:bg-yellow-500/10"></div>
         
-        {/* 제목: mb-3 추가로 높이 통일 */}
         <h3 className="text-slate-400 text-base font-bold flex items-center justify-center gap-2 z-10 mb-3">
           <CalendarDays size={14} className="text-yellow-500" /> 최근 코인 획득
         </h3>
 
-        {/* 콘텐츠 영역: 남은 공간 차지하며 중앙 정렬 */}
         <div className="flex-1 flex items-center justify-center gap-0.5 z-10 w-full">
-          
           {/* 2일 전 */}
           <div className="flex flex-col gap-0.5 items-center opacity-60">
             <span className="text-[10px] text-slate-500 font-medium">2일 전</span>
             <span className="text-lg text-slate-400 font-mono font-bold leading-none">{formatNumber(twoDaysAgoCoins)}</span>
           </div>
 
-          {/* 화살표 */}
           <div className="text-slate-700 opacity-60 px-1">
             <ChevronRight size={20} />
           </div>
@@ -95,7 +92,6 @@ export default function Dashboard({ reports }: Props) {
             <span className="text-xl text-slate-300 font-mono font-bold leading-none">{formatNumber(yesterdayCoins)}</span>
           </div>
 
-          {/* 화살표 */}
           <div className="text-slate-600 px-1">
             <ChevronRight size={20} />
           </div>
@@ -107,21 +103,17 @@ export default function Dashboard({ reports }: Props) {
               {formatNumber(todayCoins)}
             </div>
           </div>
-
         </div>
       </div>
 
       {/* 2. 오늘 주요 자원 */}
-      {/* justify-center 제거 */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-cyan-500/10 group-hover:bg-cyan-500/20"></div>
         
-        {/* 제목 */}
         <h3 className="text-slate-400 text-base font-bold mb-3 flex items-center justify-center gap-2 z-10">
           오늘 주요 자원
         </h3>
         
-        {/* 콘텐츠 영역 */}
         <div className="flex-1 flex items-center justify-center w-full z-10">
           <div className="grid grid-cols-2 gap-4 w-full">
             <div className="flex flex-col items-center gap-1">
@@ -145,17 +137,16 @@ export default function Dashboard({ reports }: Props) {
         </div>
       </div>
 
-      {/* 3. 최근 위협 */}
-      {/* justify-center 제거 */}
+      {/* 3. 최근 위협 (1주일) */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-rose-500/10 group-hover:bg-rose-500/20"></div>
         
-        {/* 제목 */}
+        {/* [Modified] 제목 변경 및 스타일 적용 */}
         <h3 className="text-slate-400 text-base font-bold mb-3 flex items-center justify-center gap-2 z-10">
-          <Skull size={14} className="text-rose-500"/> 3일간의 죽은 이유
+          <Skull size={14} className="text-rose-500"/> 
+          <span>죽은 이유 <span className="text-slate-600 font-normal text-xs">(최근 1주일)</span></span>
         </h3>
         
-        {/* 콘텐츠 영역 */}
         <div className="flex-1 flex flex-col justify-center w-full z-10">
           {recentKillers.length > 0 ? (
             <div className="space-y-3 px-2 w-full">

@@ -17,7 +17,8 @@ export default function HistoryPage({ reports, onSelectReport }: HistoryPageProp
   // 리포트를 최근/월별로 분류
   const categorizedReports = useMemo(() => {
     const now = new Date();
-    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    // [Modified] 2주(14일) -> 1주(7일)로 변경
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     const recent: BattleMain[] = [];
     const byMonth: Map<string, BattleMain[]> = new Map();
@@ -25,7 +26,8 @@ export default function HistoryPage({ reports, onSelectReport }: HistoryPageProp
     reports.forEach(report => {
       const reportDate = new Date(report.battle_date);
       
-      if (reportDate > twoWeeksAgo) {
+      // [Modified] 비교 기준을 oneWeekAgo로 변경
+      if (reportDate > oneWeekAgo) {
         recent.push(report);
       } else {
         const monthKey = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
@@ -125,7 +127,7 @@ export default function HistoryPage({ reports, onSelectReport }: HistoryPageProp
         </div>
       </div>
 
-      {/* 최근 2주 (3일~2주 사이): 날짜별 아코디언 */}
+      {/* [Modified] 최근 1주: 날짜별 아코디언 */}
       {filteredData.recent.length > 0 && (
         <div className="mb-8">
           <ReportList 
@@ -137,7 +139,7 @@ export default function HistoryPage({ reports, onSelectReport }: HistoryPageProp
         </div>
       )}
 
-      {/* 월별 아카이브 (2주 이상) */}
+      {/* 월별 아카이브 (1주 이상) */}
       {Array.from(filteredData.byMonth.entries())
         .sort(([a], [b]) => b.localeCompare(a))
         .map(([monthKey, monthReports]) => {

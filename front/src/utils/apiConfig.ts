@@ -1,5 +1,5 @@
-export const API_BASE_URL = '/api';
-// export const API_BASE_URL = 'http://localhost:8000/api';
+// export const API_BASE_URL = '/api';
+export const API_BASE_URL = 'http://localhost:8000/api';
 
 // [New] 401(토큰 만료) 감지용 래퍼 함수
 export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
