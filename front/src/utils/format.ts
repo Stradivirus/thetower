@@ -61,3 +61,24 @@ export const parseDurationToHours = (timeStr: string): number => {
 
   return hours + (minutes / 60) + (seconds / 3600);
 };
+
+// [New] 게임 숫자 문자열 파싱 (정렬용)
+export const parseGameNumber = (str: string | number): number => {
+  if (typeof str === 'number') return str;
+  if (!str) return 0;
+  
+  const clean = str.replace(/[$,x]/g, '').trim();
+  const match = clean.match(/^([\d.]+)([a-zA-Z]*)$/);
+  if (!match) return 0;
+  
+  const val = parseFloat(match[1]);
+  const suffix = match[2]; // 대소문자 구분 있음 (s vs S 등)
+
+  const powers: Record<string, number> = {
+    'k': 3, 'K': 3, 'm': 6, 'M': 6, 'b': 9, 'B': 9, 't': 12, 'T': 12,
+    'q': 15, 'Q': 18, 's': 21, 'S': 24, 'o': 27, 'O': 27, 'n': 30, 'N': 30, 'd': 33, 'D': 33
+  };
+  
+  // suffix가 없으면 powers[suffix]는 undefined -> 0승(1배)
+  return val * Math.pow(10, powers[suffix] || 0);
+};

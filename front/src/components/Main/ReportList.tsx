@@ -125,7 +125,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
       <div className="space-y-0">
         {groupedReports.map(([dateHeader, groupItems]) => {
-          // ... (기존 로직 동일)
           const reportDate = new Date(groupItems[0].battle_date);
           reportDate.setHours(0, 0, 0, 0);
           const diffTime = today.getTime() - reportDate.getTime();
@@ -171,23 +170,32 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                       {dateHeader.split(' ').slice(0, 3).join(' ')}
                     </h3>
                   </div>
-                  {/* 요약 줄도 중앙 정렬 느낌을 위해 gap 조정 */}
+                  {/* 요약 줄 수정: Total 제거 및 폰트 크기 확대 (text-base) */}
                   <div className="flex items-center gap-4 text-xs">
                     <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700 font-medium">
                       {groupItems.length} Games
                     </span>
                     <div className="h-4 w-px bg-slate-800"></div>
+                    
                     <span className="flex items-center gap-1.5 text-slate-400">
-                      <Coins size={12} className="text-yellow-500"/> 
-                      <span className="text-yellow-500 font-mono font-bold">{formatNumber(totalCoins)}</span> Total
+                      <Coins size={14} className="text-yellow-500"/> 
+                      <span className="text-yellow-500 font-mono font-bold text-base">
+                        {formatNumber(totalCoins)}
+                      </span>
                     </span>
+
                     <span className="flex items-center gap-1.5 text-slate-400">
-                      <Zap size={12} className="text-cyan-500"/> 
-                      <span className="text-cyan-500 font-mono font-bold">{formatNumber(totalCells)}</span>
+                      <Zap size={14} className="text-cyan-500"/> 
+                      <span className="text-cyan-500 font-mono font-bold text-base">
+                        {formatNumber(totalCells)}
+                      </span>
                     </span>
+
                     <span className="flex items-center gap-1.5 text-slate-400">
-                      <Layers size={12} className="text-green-500"/> 
-                      <span className="text-green-500 font-mono font-bold">{formatNumber(totalShards)}</span>
+                      <Layers size={14} className="text-green-500"/> 
+                      <span className="text-green-500 font-mono font-bold text-base">
+                        {formatNumber(totalShards)}
+                      </span>
                     </span>
                   </div>
                 </div>

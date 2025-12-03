@@ -1,25 +1,9 @@
 import { Sword, ShieldAlert } from 'lucide-react';
+import { parseGameNumber } from '../../utils/format'; // [Modified] import 추가
 
 interface Props {
   combatJson: Record<string, any>;
 }
-
-// 단위 파싱 함수
-const parseGameNumber = (str: string): number => {
-  if (!str) return 0;
-  const clean = str.replace(/[$,x]/g, '').trim();
-  const match = clean.match(/^([\d.]+)([a-zA-Z]*)$/);
-  if (!match) return 0;
-  
-  const val = parseFloat(match[1]);
-  const suffix = match[2];
-
-  const powers: Record<string, number> = {
-    'k': 3, 'K': 3, 'm': 6, 'M': 6, 'b': 9, 'B': 9, 't': 12, 'T': 12,
-    'q': 15, 'Q': 18, 's': 21, 'S': 24, 'o': 27, 'O': 27, 'n': 30, 'N': 30, 'd': 33, 'D': 33
-  };
-  return val * Math.pow(10, powers[suffix] || 0);
-};
 
 export default function CombatAnalysis({ combatJson }: Props) {
   const combatEntries = Object.entries(combatJson);
@@ -28,15 +12,24 @@ export default function CombatAnalysis({ combatJson }: Props) {
   const incomingKeys = ['받은 대미지', '장벽이 받은 대미지'];
   const incomingStats = combatEntries.filter(([key]) => incomingKeys.includes(key));
 
-  // 2. 공격(입힌 대미지 - 정렬됨)
+  // 2. 공격 (입힌 대미지 + 전자 손상 추가)
+  // [Modified] 필터 조건에 '전자 손상' 추가
   const outgoingStats = combatEntries
-    .filter(([key]) => key.includes('대미지') && !key.includes('광전사') && !incomingKeys.includes(key))
+    .filter(([key]) => {
+      const isDamage = key.includes('대미지') || key === '전자 손상';
+      const isBerserk = key.includes('광전사'); // 광전사는 별도 표기
+      return isDamage && !isBerserk && !incomingKeys.includes(key);
+    })
     .sort(([, valA], [, valB]) => parseGameNumber(String(valB)) - parseGameNumber(String(valA)));
 
-  // 3. 기타
-  const miscStats = combatEntries.filter(([key]) => !key.includes('대미지') || key.includes('광전사'));
+  // 3. 기타 (나머지 항목들)
+  // [Modified] 전자 손상이 기타에 포함되지 않도록 제외 조건 추가
+  const miscStats = combatEntries.filter(([key]) => {
+    const isDamage = key.includes('대미지') || key === '전자 손상';
+    const isBerserk = key.includes('광전사');
+    return (!isDamage || isBerserk) && !incomingKeys.includes(key);
+  });
 
-  // [Updated] 그리드 컬럼 수 변경 (md:3 -> xl:5)
   const StatRow = ({ items }: { items: [string, any][] }) => (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-y-6 gap-x-4">
       {items.map(([key, value]) => (
