@@ -1,4 +1,3 @@
-import { X, Trophy } from 'lucide-react';
 import { SummaryModules } from './SummaryModules';
 import { SummaryCards } from './SummaryCards';
 import { SummaryWeapons } from './SummaryWeapons';

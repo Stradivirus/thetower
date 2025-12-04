@@ -8,6 +8,7 @@ import UwSummaryModal from '../components/Modal/SummaryModal';
 import { fetchProgress, saveProgress } from '../api/progress';
 import { formatNum } from '../components/Stones/StoneShared';
 import { useTotalStones } from '../utils/stoneCalculations';
+import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig'; // [Fix] Import 추가
 
 interface Props {
   onBack: () => void;
@@ -34,7 +35,8 @@ export default function StonesPage({ onBack, token }: Props) {
 
       if (token) {
         try {
-          const serverData = await fetchProgress(token);
+          // [Fix] fetchProgress는 인자를 받지 않습니다. (내부에서 localStorage 사용)
+          const serverData = await fetchProgress();
           if (serverData && typeof serverData === 'object') {
             dataToLoad = serverData;
           }
@@ -68,13 +70,15 @@ export default function StonesPage({ onBack, token }: Props) {
       // [New] 서버에서 모듈 데이터 로드 (로그인 시)
       if (token) {
         try {
+          // [Fix] fetchWithAuth와 API_BASE_URL을 사용하여 API 호출
           const response = await fetchWithAuth(`${API_BASE_URL}/modules/`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
           });
-          if (response.modules_json) {
-            setModulesState(response.modules_json);
-            localStorage.setItem('thetower_modules', JSON.stringify(response.modules_json));
+          const data = await response.json(); // response.json() 호출 필요
+          if (data.modules_json) {
+            setModulesState(data.modules_json);
+            localStorage.setItem('thetower_modules', JSON.stringify(data.modules_json));
           }
         } catch (e) {
           console.error("Failed to fetch modules", e);
