@@ -15,17 +15,32 @@ class User(Base):
     # 1:N 관계 (리포트)
     reports = relationship("BattleMain", back_populates="owner")
     
-    # 1:1 관계 (진행 상황)
+    # 1:1 관계 (진행 상황 - 스톤 등)
     progress = relationship("UserProgress", back_populates="user", uselist=False, cascade="all, delete-orphan")
+
+    # 1:1 관계 (모듈) [New]
+    modules = relationship("UserModules", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class UserProgress(Base):
     __tablename__ = "user_progress"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    progress_json = Column(JSONB) # 프론트의 progress 객체를 통째로 저장
+    progress_json = Column(JSONB) 
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="progress")
+
+# [New] 모듈 데이터 저장용 테이블
+class UserModules(Base):
+    __tablename__ = "user_modules"
+
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    # 보유 현황 + 장착 현황을 모두 이 JSON에 저장
+    # 예: { "아스트랄 구조": 1, "equipped_cannon": "아스트랄 구조" }
+    modules_json = Column(JSONB, default={}) 
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="modules")
 
 class BattleMain(Base):
     __tablename__ = "battle_mains"
@@ -33,7 +48,6 @@ class BattleMain(Base):
     battle_date = Column(DateTime, primary_key=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # 소유자 연결
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="reports")
 

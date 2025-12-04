@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import reports, auth, progress
+from routers import reports, auth, progress, modules # modules 추가
 
 # 테이블 생성
 Base.metadata.create_all(bind=engine)
@@ -13,10 +13,10 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://towerreport.o-r.kr",  # 추가
-        "https://towerreport.o-r.kr", # 추가
+        "http://towerreport.o-r.kr",
+        "https://towerreport.o-r.kr",
         "http://localhost",
-        "http://frontend"  # Docker 내부 서비스 이름
+        "http://frontend"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -26,6 +26,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(reports.router)
 app.include_router(progress.router)
+app.include_router(modules.router) # 등록
 
 @app.get("/")
 def root():

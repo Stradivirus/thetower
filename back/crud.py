@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models import BattleMain, BattleDetail, User, UserProgress
+from models import BattleMain, BattleDetail, User, UserProgress, UserModules
 from datetime import datetime
 import schemas
 
@@ -28,6 +28,22 @@ def update_user_progress(db: Session, user_id: int, progress_data: dict):
     db.commit()
     db.refresh(db_progress)
     return db_progress
+
+# --- [New] Modules ---
+def get_user_modules(db: Session, user_id: int):
+    return db.query(UserModules).filter(UserModules.user_id == user_id).first()
+
+def update_user_modules(db: Session, user_id: int, modules_data: dict):
+    db_modules = get_user_modules(db, user_id)
+    if db_modules:
+        db_modules.modules_json = modules_data
+    else:
+        db_modules = UserModules(user_id=user_id, modules_json=modules_data)
+        db.add(db_modules)
+    
+    db.commit()
+    db.refresh(db_modules)
+    return db_modules
 
 # --- Report ---
 def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: str = None):

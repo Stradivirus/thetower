@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, User } from 'lucide-react';
+import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, User, Box } from 'lucide-react';
 import { getReports } from './api/reports';
 import type { BattleMain } from './types/report';
 import ReportDetail from './pages/ReportDetail';
@@ -8,9 +8,10 @@ import AuthModal from './components/Auth/AuthModal';
 import MainPage from './pages/MainPage';
 import HistoryPage from './pages/HistoryPage';
 import StonesPage from './pages/StonesPage';
+import ModulesInfoPage from './pages/ModulesInfoPage';
 
 export default function App() {
-  const [view, setView] = useState<'list' | 'history' | 'detail' | 'stones'>('list');
+  const [view, setView] = useState<'list' | 'history' | 'detail' | 'stones' | 'modules'>('list');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [reports, setReports] = useState<BattleMain[]>([]);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -18,7 +19,6 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
 
-  // [Modified] 로그아웃 함수 (이벤트 핸들러에서도 쓰기 위해 useCallback 없이 정의)
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     setToken(null);
@@ -26,17 +26,14 @@ export default function App() {
     setView('list');
   };
 
-  // [New] 토큰 만료 이벤트 감지
   useEffect(() => {
     const handleAuthExpired = () => {
-      // 401 이벤트 발생 시 로그아웃 처리
       handleLogout();
       alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
     };
 
     window.addEventListener('auth:expired', handleAuthExpired);
 
-    // cleanup
     return () => {
       window.removeEventListener('auth:expired', handleAuthExpired);
     };
@@ -114,6 +111,13 @@ export default function App() {
             </button>
 
             <button 
+              onClick={() => setView('modules')}
+              className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all border ${view === 'modules' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/50' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
+            >
+              <Box size={16} /> <span className="hidden md:inline">Modules</span>
+            </button>
+
+            <button 
               onClick={() => setView('stones')}
               className={`flex items-center gap-2 px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all border ${view === 'stones' ? 'bg-green-500/10 text-green-400 border-green-500/50' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'}`}
             >
@@ -179,6 +183,10 @@ export default function App() {
         
         {view === 'stones' && (
           <StonesPage onBack={() => setView('list')} token={token} /> 
+        )}
+
+        {view === 'modules' && (
+          <ModulesInfoPage />
         )}
       </main>
 

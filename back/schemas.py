@@ -31,6 +31,15 @@ class ProgressResponse(ProgressBase):
     class Config:
         from_attributes = True
 
+# --- [New] Modules ---
+class UserModulesBase(BaseModel):
+    modules_json: Dict[str, Any]
+
+class UserModulesResponse(UserModulesBase):
+    updated_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
+
 # --- Reports ---
 class BattleMainBase(BaseModel):
     battle_date: datetime
