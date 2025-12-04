@@ -1,4 +1,3 @@
-// [Fixed] type 키워드 추가
 import { RARITIES, type EquippedModule } from './ModuleConstants';
 
 interface ModuleItem {
@@ -12,16 +11,29 @@ interface Props {
   activeTab: string;
   rarity: number;
   onToggle: (name: string) => void;
+  progress: Record<string, any>; // [New]
 }
 
-export default function ModuleList({ currentModules, modulesState, activeTab, rarity, onToggle }: Props) {
+export default function ModuleList({ currentModules, modulesState, activeTab, rarity, onToggle, progress }: Props) {
   
+  const slotIdMap: Record<string, string> = {
+    'cannon': 'attack',
+    'armor': 'defense',
+    'generator': 'generator',
+    'core': 'core'
+  };
+
+  // 등급에 따라 텍스트 파싱 및 색상 적용
   const parseDescription = (text: string, rarityIdx: number) => {
+    // 예: 20/40/60/80% 패턴 찾기
     const pattern = /([x+\-]?\d+(?:\.\d+)?(?:[%msx])?(?:\/[x+\-]?\d+(?:\.\d+)?[%msx]?)+)/g;
     return text.split(pattern).map((part, idx) => {
       if (pattern.test(part)) {
         const values = part.split('/');
+        // 해당 등급의 값 가져오기
         let val = values[rarityIdx] || values[values.length - 1];
+        
+        // 단위(%, s, x) 유지 로직
         const lastVal = values[values.length - 1];
         const suffixMatch = lastVal.match(/[%smsx]+$/);
         const globalSuffix = suffixMatch ? suffixMatch[0] : '';
@@ -36,15 +48,31 @@ export default function ModuleList({ currentModules, modulesState, activeTab, ra
   return (
     <div className="w-[480px] max-w-md flex-shrink-0 flex flex-col overflow-y-auto custom-scrollbar pr-2 space-y-3 pb-4">
       {currentModules.map((module, idx) => {
-        // 타입으로 사용
-        const mainModule = modulesState[`equipped_${activeTab}_main`] as EquippedModule | undefined;
-        const subModule = modulesState[`equipped_${activeTab}_sub`] as EquippedModule | undefined;
+        const mainKey = `equipped_${activeTab}_main`;
+        const subKey = `equipped_${activeTab}_sub`;
+        const mainModule = modulesState[mainKey] as EquippedModule | undefined;
+        const subModule = modulesState[subKey] as EquippedModule | undefined;
         
         const isMain = mainModule?.name === module.name;
         const isSub = subModule?.name === module.name;
         const isSelected = isMain || isSub;
 
-        const previewRarity = isMain ? mainModule!.rarity : (isSub ? subModule!.rarity : rarity);
+        // [New] 미리보기용 등급 계산
+        let previewRarity = rarity; // 기본은 상단 헤더에서 선택한 등급
+
+        if (isMain) {
+            // 메인 슬롯에 장착된 경우, 해당 모듈의 등급 그대로 사용
+            previewRarity = mainModule!.rarity;
+        } else if (isSub) {
+            // 어시스트 슬롯에 장착된 경우, 스톤 해금 상태에 따라 등급 제한
+            const unlockKey = `module_unlock_${slotIdMap[activeTab]}`;
+            const unlockLevel = progress[unlockKey] || 0; 
+            const maxRarityIndex = Math.max(0, unlockLevel - 1);
+            
+            // (내 아이템 등급 vs 슬롯 제한 등급) 중 낮은 쪽 적용
+            previewRarity = Math.min(subModule!.rarity, maxRarityIndex);
+        }
+
         const activeRarity = RARITIES[previewRarity];
 
         return (
@@ -76,8 +104,8 @@ export default function ModuleList({ currentModules, modulesState, activeTab, ra
                   {isSub && (
                     <>
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white shadow-sm">ASSIST</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${RARITIES[subModule!.rarity].color} ${RARITIES[subModule!.rarity].border} ${RARITIES[subModule!.rarity].bg}`}>
-                        {RARITIES[subModule!.rarity].short}
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${activeRarity.color} ${activeRarity.border} ${activeRarity.bg}`}>
+                        {activeRarity.short}
                       </span>
                     </>
                   )}
@@ -86,6 +114,7 @@ export default function ModuleList({ currentModules, modulesState, activeTab, ra
             </div>
 
             <p className={`text-xs leading-relaxed break-keep group-hover:text-slate-300 ${isSelected ? 'text-white' : 'text-slate-400'}`}>
+              {/* 계산된 previewRarity를 전달하여 텍스트 색상과 수치를 동적으로 변경 */}
               {parseDescription(module.desc, previewRarity)}
             </p>
           </div>

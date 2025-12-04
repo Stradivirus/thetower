@@ -1,4 +1,4 @@
-import { ToggleLeft, ToggleRight, Save, List } from 'lucide-react';
+import { Save } from 'lucide-react';
 import { MODULE_TYPES, RARITIES } from './ModuleConstants';
 
 interface Props {
@@ -6,15 +6,14 @@ interface Props {
   setActiveTab: (tab: any) => void;
   rarity: number;
   setRarity: (r: number) => void;
-  isAssistMode: boolean;
-  toggleAssistMode: () => void;
   handleSave: () => void;
   isChanged: boolean;
+  token: string | null;
 }
 
 export default function ModuleHeader({ 
   activeTab, setActiveTab, rarity, setRarity, 
-  isAssistMode, toggleAssistMode, handleSave, isChanged 
+  handleSave, isChanged, token
 }: Props) {
   return (
     <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 border-b border-slate-800 shrink-0">
@@ -35,8 +34,9 @@ export default function ModuleHeader({
         ))}
       </div>
 
-      {/* 중앙 컨트롤: 등급 & 어시스트 */}
-      <div className="flex items-center gap-6 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
+      {/* 중앙 컨트롤: 등급 선택 */}
+      <div className="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
+        <span className="text-xs font-bold text-slate-500 mr-2">Preview Rarity</span>
         <div className="flex gap-1">
           {RARITIES.map((r) => (
             <button
@@ -49,30 +49,20 @@ export default function ModuleHeader({
             </button>
           ))}
         </div>
-        
-        <div className="w-px h-4 bg-slate-700"></div>
-
-        <button 
-          onClick={toggleAssistMode}
-          className={`flex items-center gap-2 text-sm font-bold transition-colors ${isAssistMode ? 'text-blue-400' : 'text-slate-500'}`}
-        >
-          {isAssistMode ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-          <span>Assist Slot</span>
-        </button>
       </div>
 
-      {/* 저장 버튼 */}
+      {/* 저장 및 요약 버튼 */}
       <button 
         onClick={handleSave}
-        disabled={!isChanged}
+        disabled={!token}
         className={`
           flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all border
-          ${isChanged 
-            ? 'bg-blue-600 hover:bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/20' 
+          ${token
+            ? 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border-cyan-500/30' 
             : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
         `}
       >
-        <Save size={18} /> 저장 및 요약
+        <Save size={18} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
       </button>
     </div>
   );

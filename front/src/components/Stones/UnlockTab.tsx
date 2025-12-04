@@ -23,7 +23,6 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
   const unlockedBase: string[] = Array.isArray(progress['unlocked_weapons']) ? progress['unlocked_weapons'] : [];
   const unlockedPlus: string[] = Array.isArray(progress['unlocked_plus_weapons']) ? progress['unlocked_plus_weapons'] : [];
 
-  // 모듈 슬롯 정의
   const moduleSlots = [
     { id: 'attack', label: 'Attack', icon: Sword, color: 'text-rose-400' },
     { id: 'defense', label: 'Defense', icon: Shield, color: 'text-blue-400' },
@@ -31,7 +30,6 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
     { id: 'core', label: 'Core', icon: Box, color: 'text-purple-400' },
   ];
 
-  // [New] 모듈 등급 및 비용 정의
   const moduleRarities = [
     { level: 0, label: 'Locked', color: 'text-slate-600', nextCost: 1000 },
     { level: 1, label: 'Epic', color: 'text-purple-400', nextCost: 1000 },
@@ -67,8 +65,8 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
     setSelectingState(null);
   };
 
+  // [Modified] 확인 창 없이 바로 리셋
   const handleReset = (type: 'base' | 'plus') => {
-    if (!window.confirm("해금 상태를 초기화하시겠습니까?")) return;
     const updates: Record<string, any> = {};
     const targetList = type === 'base' ? unlockedBase : unlockedPlus;
 
@@ -91,20 +89,15 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
     updateBatch(updates);
   };
 
-  // [New] 모듈 업그레이드 핸들러
   const handleModuleUpgrade = (moduleId: string) => {
     const key = `module_unlock_${moduleId}`;
     const currentLevel = progress[key] || 0;
-    
-    // 최대 레벨(4: Ancestral)이면 더 이상 증가 안 함
     if (currentLevel >= 4) return;
-
     updateProgress(key, currentLevel + 1);
   };
 
-  // [New] 모듈 전체 리셋
+  // [Modified] 확인 창 없이 바로 리셋
   const resetModules = () => {
-    if (!window.confirm("모듈 슬롯 해금 상태를 초기화하시겠습니까?")) return;
     const updates: Record<string, any> = {};
     moduleSlots.forEach(mod => {
       updates[`module_unlock_${mod.id}`] = 0;
@@ -152,15 +145,12 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
     );
   };
 
-  // 모듈의 남은 총 비용 계산
   const moduleTotalRemaining = moduleSlots.reduce((acc, mod) => {
     const currentLevel = progress[`module_unlock_${mod.id}`] || 0;
-    // 현재 레벨 이후의 모든 비용 합산
     const remainingCost = moduleRarities.slice(currentLevel).reduce((sum, r) => sum + r.nextCost, 0);
     return acc + remainingCost;
   }, 0);
 
-  // 모듈이 하나라도 해금되었는지 체크 (리셋 버튼 표시용)
   const isAnyModuleUnlocked = moduleSlots.some(mod => (progress[`module_unlock_${mod.id}`] || 0) > 0);
 
   return (
@@ -169,7 +159,6 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
         {renderTable("Ultimate Weapon Unlock", unlockCosts.unlock_costs, "base")}
         {renderTable("UW+ Unlock", unlockCosts.plus_unlock_costs, "plus")}
 
-        {/* 3. Module Slot Unlock (Updated) */}
         <div className={styles.card + " h-fit"}>
           <div className={styles.uwHeader}>
             <span>Module Slots</span>
@@ -186,7 +175,7 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
             <tbody>
               {moduleSlots.map((mod) => {
                 const key = `module_unlock_${mod.id}`;
-                const currentLevel = progress[key] || 0; // 0 ~ 4
+                const currentLevel = progress[key] || 0; 
                 const rarity = moduleRarities[currentLevel];
                 const isMaxed = currentLevel >= 4;
 
@@ -197,22 +186,17 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
                     className={`border-b border-slate-800/50 transition-colors ${!isMaxed ? 'cursor-pointer hover:bg-slate-800/30' : 'cursor-default'}`}
                     title={!isMaxed ? 'Click to Upgrade' : 'Max Level'}
                   >
-                    {/* 모듈 이름 & 아이콘 */}
                     <td className={styles.td}>
                       <div className="flex items-center gap-2">
                         <mod.icon size={14} className={currentLevel > 0 ? mod.color : 'text-slate-500'} />
                         <span className={currentLevel > 0 ? 'text-slate-200 font-bold' : 'text-slate-500'}>{mod.label}</span>
                       </div>
                     </td>
-                    
-                    {/* 현재 등급 */}
                     <td className={styles.td}>
                       <span className={`font-bold ${rarity.color}`}>
                         {rarity.label}
                       </span>
                     </td>
-
-                    {/* 업그레이드 비용 */}
                     <td className={styles.td}>
                       {isMaxed ? (
                         <span className="text-slate-600 font-mono">-</span>
@@ -227,7 +211,6 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
                 );
               })}
             </tbody>
-            {/* 모듈 총 남은 비용 */}
             <tfoot>
               <tr>
                 <td className={styles.tfootTd} colSpan={2}>Remaining Total</td>
@@ -238,7 +221,6 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
         </div>
       </div>
 
-      {/* 무기 선택 모달 (기존 유지) */}
       {selectingState && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
           <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[80vh]">

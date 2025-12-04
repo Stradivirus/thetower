@@ -1,51 +1,80 @@
 import { useState, useEffect } from 'react';
 import moduleData from '../data/module_list.json';
 import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
-// [Fixed] type 키워드 추가
+import { fetchProgress } from '../api/progress';
 import { type EquippedModule } from '../components/Modules/ModuleConstants';
 import ModuleHeader from '../components/Modules/ModuleHeader';
 import EquippedView from '../components/Modules/EquippedView';
 import ModuleList from '../components/Modules/ModuleList';
+import UwSummaryModal from '../components/Modal/SummaryModal';
 
 export default function ModulesInfoPage() {
   const [activeTab, setActiveTab] = useState<'cannon' | 'armor' | 'generator' | 'core'>('cannon');
   const [rarity, setRarity] = useState<number>(3); 
   const [modulesState, setModulesState] = useState<Record<string, any>>({});
+  const [progress, setProgress] = useState<Record<string, any>>({});
   const [isChanged, setIsChanged] = useState(false);
-  const [isAssistMode, setIsAssistMode] = useState(false); 
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
   const token = localStorage.getItem('access_token');
 
+  const slotIdMap: Record<string, string> = {
+    'cannon': 'attack',
+    'armor': 'defense',
+    'generator': 'generator',
+    'core': 'core'
+  };
+
   useEffect(() => {
-    const loadModules = async () => {
-      const localSaved = localStorage.getItem('thetower_modules');
-      if (localSaved) {
-        try { setModulesState(JSON.parse(localSaved)); } catch {}
+    const loadData = async () => {
+      // 1. 로컬 스토리지 데이터 로드 (빠른 렌더링)
+      const localModules = localStorage.getItem('thetower_modules');
+      if (localModules) {
+        try { setModulesState(JSON.parse(localModules)); } catch {}
+      }
+      const localProgress = localStorage.getItem('thetower_progress');
+      if (localProgress) {
+        try { setProgress(JSON.parse(localProgress)); } catch {}
       }
 
+      // 2. 서버 데이터 로드 (로그인 시)
       if (token) {
         try {
-          const response = await fetchWithAuth(`${API_BASE_URL}/modules/`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-              const data = await response.json();
-              if (Object.keys(data.modules_json).length > 0) {
-                  setModulesState(data.modules_json);
-                  localStorage.setItem('thetower_modules', JSON.stringify(data.modules_json));
-              }
+          const [moduleRes, progressData] = await Promise.all([
+            fetchWithAuth(`${API_BASE_URL}/modules/`, { headers: { 'Authorization': `Bearer ${token}` } }),
+            fetchProgress().catch(() => ({})) 
+          ]);
+
+          if (moduleRes.ok) {
+            const data = await moduleRes.json();
+            if (Object.keys(data.modules_json).length > 0) {
+              setModulesState(data.modules_json);
+              localStorage.setItem('thetower_modules', JSON.stringify(data.modules_json));
+            }
           }
+          
+          if (Object.keys(progressData).length > 0) {
+            setProgress(progressData);
+            localStorage.setItem('thetower_progress', JSON.stringify(progressData));
+          }
+
         } catch (e) {
-          console.error("Failed to fetch modules", e);
+          console.error("Failed to fetch data", e);
         }
       }
     };
-    loadModules();
+    loadData();
   }, [token]);
 
-  const handleSave = async () => {
+  // [Modified] 저장만 하는 함수
+  const handleSaveProgress = async () => {
     if (!token) {
         alert("로그인이 필요합니다.");
+        return;
+    }
+    
+    if (!isChanged) {
+        console.log("변경사항이 없어 서버 저장을 건너뜁니다.");
         return;
     }
     
@@ -61,31 +90,20 @@ export default function ModulesInfoPage() {
         
         localStorage.setItem('thetower_modules', JSON.stringify(modulesState));
         setIsChanged(false);
-        alert("저장되었습니다.");
     } catch (e) {
         console.error("Save failed", e);
         alert("저장에 실패했습니다.");
     }
   };
 
-  const toggleAssistMode = () => {
-    const newMode = !isAssistMode;
-    setIsAssistMode(newMode);
-
-    if (!newMode) {
-        const newState = { ...modulesState };
-        let hasChanges = false;
-        Object.keys(newState).forEach(key => {
-            if (key.endsWith('_sub')) {
-                delete newState[key];
-                hasChanges = true;
-            }
-        });
-        if (hasChanges) {
-            setModulesState(newState);
-            setIsChanged(true);
-        }
+  // [NEW] 저장 + 요약 통합 함수
+  const handleSaveAndSummary = async () => {
+    // 변경사항이 있다면 저장 로직 실행
+    if (isChanged && token) {
+      await handleSaveProgress();
     }
+    // 요약 모달은 항상 열기
+    setIsSummaryOpen(true);
   };
 
   const handleRemoveEquip = (key: string) => {
@@ -99,26 +117,37 @@ export default function ModulesInfoPage() {
     const mainKey = `equipped_${activeTab}_main`;
     const subKey = `equipped_${activeTab}_sub`;
     
-    // 타입으로 사용
+    const unlockKey = `module_unlock_${slotIdMap[activeTab]}`;
+    const unlockLevel = progress[unlockKey] || 0; 
+    const isAssistUnlocked = unlockLevel > 0;
+
     const currentMain = modulesState[mainKey] as EquippedModule | undefined;
     const currentSub = modulesState[subKey] as EquippedModule | undefined;
     
     let newState = { ...modulesState };
     const newModuleData: EquippedModule = { name: moduleName, rarity: rarity };
 
+    // 1. 이미 장착된 모듈을 클릭하면 해제
     if (currentMain?.name === moduleName) {
         delete newState[mainKey];
     } else if (currentSub?.name === moduleName) {
         delete newState[subKey];
     } else {
-        if (!isAssistMode) {
+        // 2. 새로운 모듈 장착 시도
+        if (!currentMain) {
+            // 메인이 비었으면 메인에 장착
             newState[mainKey] = newModuleData;
-        } else {
-            if (!currentMain) {
-                newState[mainKey] = newModuleData;
-            } else if (!currentSub) {
+        } else if (!currentSub) {
+            // 메인이 찼고 서브가 비었으면 -> 해금 여부 확인 후 장착
+            if (isAssistUnlocked) {
                 newState[subKey] = newModuleData;
             } else {
+                alert("Assist 슬롯이 잠겨있습니다. Stone 탭에서 해금해주세요.");
+                return; 
+            }
+        } else {
+            // 둘 다 찼으면 -> 서브 교체 (역시 해금 여부 확인)
+            if (isAssistUnlocked) {
                 newState[subKey] = newModuleData;
             }
         }
@@ -137,17 +166,16 @@ export default function ModulesInfoPage() {
         setActiveTab={setActiveTab}
         rarity={rarity}
         setRarity={setRarity}
-        isAssistMode={isAssistMode}
-        toggleAssistMode={toggleAssistMode}
-        handleSave={handleSave}
+        handleSave={handleSaveAndSummary}
         isChanged={isChanged}
+        token={token}
       />
 
       <div className="flex flex-1 gap-6 mt-6 overflow-hidden min-h-0">
         <EquippedView 
           modulesState={modulesState}
-          isAssistMode={isAssistMode}
           onRemove={handleRemoveEquip}
+          progress={progress} 
         />
         
         <ModuleList 
@@ -156,8 +184,16 @@ export default function ModulesInfoPage() {
           activeTab={activeTab}
           rarity={rarity}
           onToggle={toggleSelection}
+          progress={progress} 
         />
       </div>
+
+      <UwSummaryModal 
+        isOpen={isSummaryOpen}
+        onClose={() => setIsSummaryOpen(false)}
+        progress={progress}
+        modulesState={modulesState}
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import UnlockTab from '../components/Stones/UnlockTab';
 import UwStatsTab from '../components/Stones/UwStatsTab';
 import CardTab from '../components/Stones/CardTab';
 import ModuleTab from '../components/Stones/ModuleTab';
-import UwSummaryModal from '../components/Stones/UwSummaryModal';
+import UwSummaryModal from '../components/Modal/SummaryModal';
 import { fetchProgress, saveProgress } from '../api/progress';
 import { formatNum } from '../components/Stones/StoneShared';
 import { useTotalStones } from '../utils/stoneCalculations';
@@ -23,6 +23,7 @@ export default function StonesPage({ onBack, token }: Props) {
   const [lastSavedProgress, setLastSavedProgress] = useState<Record<string, any>>({});
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [modulesState, setModulesState] = useState<Record<string, any>>({}); // [New] 모듈 상태 추가
 
   const totalStonesUsed = useTotalStones(progress);
 
@@ -33,13 +34,12 @@ export default function StonesPage({ onBack, token }: Props) {
 
       if (token) {
         try {
-          const serverData = await fetchProgress();
-          if (Object.keys(serverData).length > 0) {
+          const serverData = await fetchProgress(token);
+          if (serverData && typeof serverData === 'object') {
             dataToLoad = serverData;
-            console.log("Stones data loaded from server.");
           }
         } catch (e) {
-          console.error("Server Progress fetch failed, falling back to local.", e);
+          console.error("Failed to fetch progress", e);
         }
       }
 
@@ -47,15 +47,39 @@ export default function StonesPage({ onBack, token }: Props) {
       if (Object.keys(dataToLoad).length === 0 && saved) {
         try {
           dataToLoad = JSON.parse(saved);
-          console.log("Stones data loaded from local storage.");
         } catch (e) {
-          console.error("데이터 파싱 오류", e);
+          console.error("Failed to parse saved progress", e);
         }
       }
       
       setProgress(dataToLoad);
-      setLastSavedProgress(dataToLoad); 
-      localStorage.setItem('thetower_progress', JSON.stringify(dataToLoad));
+      setLastSavedProgress(dataToLoad);
+      
+      // [New] 모듈 데이터 로드
+      const localModules = localStorage.getItem('thetower_modules');
+      if (localModules) {
+        try {
+          setModulesState(JSON.parse(localModules));
+        } catch (e) {
+          console.error("Failed to parse modules", e);
+        }
+      }
+
+      // [New] 서버에서 모듈 데이터 로드 (로그인 시)
+      if (token) {
+        try {
+          const response = await fetchWithAuth(`${API_BASE_URL}/modules/`, {
+            method: 'GET',
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.modules_json) {
+            setModulesState(response.modules_json);
+            localStorage.setItem('thetower_modules', JSON.stringify(response.modules_json));
+          }
+        } catch (e) {
+          console.error("Failed to fetch modules", e);
+        }
+      }
     };
     
     loadData();
@@ -251,6 +275,7 @@ export default function StonesPage({ onBack, token }: Props) {
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
         progress={progress}
+        modulesState={modulesState} // [Modified] 실제 모듈 데이터 전달
       />
     </div>
   );
