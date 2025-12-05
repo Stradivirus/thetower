@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom'; // [Added]
 import { Archive, Search, X, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import ReportList from '../components/Main/ReportList';
@@ -7,12 +8,17 @@ import { formatNumber } from '../utils/format';
 
 interface HistoryPageProps {
   reports: BattleMain[];
-  onSelectReport: (date: string) => void;
+  // onSelectReport prop 제거됨
 }
 
-export default function HistoryPage({ reports, onSelectReport }: HistoryPageProps) {
+export default function HistoryPage({ reports }: HistoryPageProps) {
+  const navigate = useNavigate(); // [Added]
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+
+  const handleSelectReport = (date: string) => {
+    navigate(`/report/${date}`);
+  };
 
   // 리포트를 최근/월별로 분류
   const categorizedReports = useMemo(() => {
@@ -132,7 +138,7 @@ export default function HistoryPage({ reports, onSelectReport }: HistoryPageProp
         <div className="mb-8">
           <ReportList 
             reports={filteredData.recent} 
-            onSelectReport={onSelectReport}
+            onSelectReport={handleSelectReport}
             hideHeader={true}
             collapseThresholdDays={3}
           />
@@ -190,7 +196,7 @@ export default function HistoryPage({ reports, onSelectReport }: HistoryPageProp
                 <div className="mt-2 pl-4">
                   <ReportList 
                     reports={monthReports} 
-                    onSelectReport={onSelectReport}
+                    onSelectReport={handleSelectReport}
                     hideHeader={true}
                     collapseThresholdDays={0}
                   />

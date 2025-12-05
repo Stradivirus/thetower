@@ -53,7 +53,7 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
             <thead>
               <tr>
                 <th className={styles.th}>Card Name</th>
-                <th className={styles.th}>Mastery Cost (Gems)</th>
+                <th className={styles.th}>Stone Cost</th>
                 <th className={styles.th}>Description</th>
               </tr>
             </thead>

@@ -1,11 +1,11 @@
 import { useState, useEffect, Suspense, lazy, useMemo } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
 import { getReports } from './api/reports';
 import type { BattleMain } from './types/report';
 import ReportInputModal from './components/Detail/ReportInputModal';
 import AuthModal from './components/Auth/AuthModal';
-import NavBar from './components/Layout/NavBar'; // [New] 분리된 컴포넌트 import
+import NavBar from './components/Layout/NavBar'; 
 
 // [Optimization] 페이지 Lazy Loading
 const MainPage = lazy(() => import('./pages/MainPage'));
@@ -14,7 +14,7 @@ const ReportDetail = lazy(() => import('./pages/ReportDetail'));
 const StonesPage = lazy(() => import('./pages/StonesPage'));
 const ModulesInfoPage = lazy(() => import('./pages/ModulesInfoPage'));
 
-// 로딩 중 표시 컴포넌트 (이것도 나중에 common으로 빼도 됨)
+// 로딩 중 표시 컴포넌트
 const LoadingFallback = () => (
   <div className="flex justify-center items-center h-[50vh] text-slate-500">
     <div className="animate-pulse">페이지 로딩 중...</div>
@@ -29,6 +29,14 @@ const LoginRequired = ({ onOpenAuth }: { onOpenAuth: () => void }) => (
      <button onClick={onOpenAuth} className="mt-4 text-blue-400 hover:underline">로그인 하러가기</button>
   </div>
 );
+
+// [New] URL 파라미터를 받아 ReportDetail에 넘겨주는 래퍼 컴포넌트
+const ReportDetailWrapper = () => {
+  const { date } = useParams();
+  const navigate = useNavigate();
+  // date가 없으면 빈 문자열 처리, 뒤로가기 버튼(-1) 연결
+  return <ReportDetail battleDate={date || ""} onBack={() => navigate(-1)} />;
+};
 
 export default function App() {
   const [reports, setReports] = useState<BattleMain[]>([]);
@@ -94,7 +102,6 @@ export default function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
         
-        {/* [New] 분리된 NavBar 사용 */}
         <NavBar 
           token={token} 
           onLogout={handleLogout} 
@@ -107,15 +114,16 @@ export default function App() {
             <Routes>
               <Route path="/" element={
                 token ? (
-                  <MainPage 
-                    reports={recentReports} 
-                    onSelectReport={(date) => { window.location.hash = `/report/${date}`; }} 
-                  />
+                  // onSelectReport 제거 (MainPage 내부에서 useNavigate 사용)
+                  <MainPage reports={recentReports} />
                 ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
               } />
 
               <Route path="/history" element={
-                token ? <HistoryPage reports={pastReports} onSelectReport={() => {}} /> : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
+                token ? (
+                  // onSelectReport 제거 (HistoryPage 내부에서 useNavigate 사용)
+                  <HistoryPage reports={pastReports} /> 
+                ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
               } />
 
               <Route path="/modules" element={<ModulesInfoPage />} />
@@ -124,9 +132,8 @@ export default function App() {
                 <StonesPage onBack={() => window.history.back()} token={token} />
               } />
 
-              <Route path="/report/:date" element={
-                <ReportDetail battleDate={window.location.hash.split('/')[2] || ""} onBack={() => window.history.back()} />
-              } />
+              {/* [Fix] URL 파라미터 라우팅 설정 */}
+              <Route path="/report/:date" element={<ReportDetailWrapper />} />
             </Routes>
           </Suspense>
         </main>

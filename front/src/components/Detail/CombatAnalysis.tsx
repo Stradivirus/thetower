@@ -1,5 +1,5 @@
 import { Sword, ShieldAlert } from 'lucide-react';
-import { parseGameNumber } from '../../utils/format'; // [Modified] import 추가
+import { parseGameNumber } from '../../utils/format'; 
 
 interface Props {
   combatJson: Record<string, any>;
@@ -8,22 +8,24 @@ interface Props {
 export default function CombatAnalysis({ combatJson }: Props) {
   const combatEntries = Object.entries(combatJson);
   
-  // 1. 방어(수비)
-  const incomingKeys = ['받은 대미지', '장벽이 받은 대미지'];
-  const incomingStats = combatEntries.filter(([key]) => incomingKeys.includes(key));
+  // 1. 방어(수비) - [수정] 원하는 순서대로 배열 정의 (2 -> 4 -> 1 -> 3)
+  const incomingKeys = ['받은 대미지', '장벽이 받은 대미지', '죽음 저항', '생명력 흡수'];
+  
+  // [수정] filter 후 sort를 사용하여 incomingKeys 순서대로 강제 정렬
+  const incomingStats = combatEntries
+    .filter(([key]) => incomingKeys.includes(key))
+    .sort((a, b) => incomingKeys.indexOf(a[0]) - incomingKeys.indexOf(b[0]));
 
   // 2. 공격 (입힌 대미지 + 전자 손상 추가)
-  // [Modified] 필터 조건에 '전자 손상' 추가
   const outgoingStats = combatEntries
     .filter(([key]) => {
       const isDamage = key.includes('대미지') || key === '전자 손상';
-      const isBerserk = key.includes('광전사'); // 광전사는 별도 표기
+      const isBerserk = key.includes('광전사'); 
       return isDamage && !isBerserk && !incomingKeys.includes(key);
     })
     .sort(([, valA], [, valB]) => parseGameNumber(String(valB)) - parseGameNumber(String(valA)));
 
   // 3. 기타 (나머지 항목들)
-  // [Modified] 전자 손상이 기타에 포함되지 않도록 제외 조건 추가
   const miscStats = combatEntries.filter(([key]) => {
     const isDamage = key.includes('대미지') || key === '전자 손상';
     const isBerserk = key.includes('광전사');
