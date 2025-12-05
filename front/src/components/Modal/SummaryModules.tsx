@@ -57,7 +57,6 @@ export function SummaryModules({ modulesState, progress }: Props) {
     };
   });
 
-  // 장착된 모듈이 하나도 없는지 확인
   const hasAnyEquipped = equippedModules.some(m => m.hasEquipped);
 
   return (
@@ -126,15 +125,17 @@ export function SummaryModules({ modulesState, progress }: Props) {
 
                   {/* 3. Efficiency Stats (Bottom Area) */}
                   <div>
-                    {/* Main Stat */}
-                    <div className="flex justify-between items-center px-1">
-                        <span className="text-[10px] font-bold text-slate-200 flex items-center gap-1.5">
-                          <Star size={10} className="text-yellow-500/50"/> Main Stat
-                        </span>
-                        <span className="text-xs font-bold text-yellow-500 font-mono">+{mod.mainEffVal}%</span>
-                    </div>
+                    {/* [Updated] Main Stat: 이제 어시스트 슬롯이 해금되었을 때만 표시됩니다. */}
+                    {mod.isUnlocked && (
+                      <div className="flex justify-between items-center px-1">
+                          <span className="text-[10px] font-bold text-slate-200 flex items-center gap-1.5">
+                            <Star size={10} className="text-yellow-500/50"/> Main Stat
+                          </span>
+                          <span className="text-xs font-bold text-yellow-500 font-mono">+{mod.mainEffVal}%</span>
+                      </div>
+                    )}
 
-                    {/* Sub Stat (Only if unlocked) */}
+                    {/* Sub Stat (Already handled, but logic consistent now) */}
                     {mod.isUnlocked && (
                         <div className="flex justify-between items-center px-1">
                             <span className="text-[10px] font-bold text-slate-200 flex items-center gap-1.5">
