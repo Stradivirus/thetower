@@ -7,7 +7,6 @@ interface Props {
   progress: Record<string, any>;
 }
 
-// 스탯 이름에 따른 아이콘 매핑
 const getStatIcon = (name: string, isPlus: boolean = false) => {
   if (isPlus) return <Sparkles size={12} className="text-pink-400" />;
 
@@ -21,7 +20,6 @@ const getStatIcon = (name: string, isPlus: boolean = false) => {
   return <Target size={size} className="text-red-500" />;
 };
 
-// 연구 효과를 합산하는 함수
 const applyLabEffect = (uwKey: string, statKey: string, currentValue: number, progress: Record<string, any>) => {
     const labStats = (labConfig as any)[uwKey];
     let addedValue = 0;
@@ -51,6 +49,10 @@ const applyLabEffect = (uwKey: string, statKey: string, currentValue: number, pr
 
     return { finalValue: currentValue + addedValue, isLabActive };
 }
+
+// [New] 숫자 포맷팅 헬퍼 함수
+// 정수면 정수 그대로, 소수면 최대 2자리까지 표시하되 불필요한 0은 제거 (예: 27.50 -> 27.5, 27.00 -> 27)
+const formatValue = (num: number) => parseFloat(num.toFixed(2));
 
 export function SummaryWeapons({ progress }: Props) {
   const allUwKeys = Array.from(new Set([...Object.keys(baseStats), ...Object.keys(plusStats)]));
@@ -130,9 +132,10 @@ export function SummaryWeapons({ progress }: Props) {
                           <span className="flex-shrink-0">{getStatIcon(statName)}</span>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{detail.name || statName}</span>
                         </div>
-                        {/* [Modified] 만렙일 때 수치 색상도 노란색으로 변경 */}
+                        
+                        {/* [Modified] formatValue 사용으로 소수점 버그 수정 및 색상 로직 적용 */}
                         <div className={`text-base font-bold font-mono leading-none ${isMaxed ? 'text-yellow-400' : 'text-cyan-400'}`}>
-                          {currentValue.toFixed(detail.unit === 'x' ? 2 : 0)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">{detail.unit}</span>
+                          {formatValue(currentValue)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">{detail.unit}</span>
                         </div>
                       </div>
                       
@@ -164,9 +167,10 @@ export function SummaryWeapons({ progress }: Props) {
                           <span className="flex-shrink-0"><Sparkles size={12} className="text-pink-400 fill-pink-400/20" /></span>
                           <span className="text-[10px] font-bold text-pink-200 uppercase tracking-wider truncate">{detail.name || statName}</span>
                         </div>
-                        {/* [Modified] 만렙일 때 수치 색상도 노란색으로 변경 */}
+                        
+                        {/* [Modified] formatValue 사용으로 소수점 버그 수정 및 색상 로직 적용 */}
                         <div className={`text-base font-bold font-mono leading-none ${isMaxed ? 'text-yellow-400' : 'text-pink-300'}`}>
-                          {currentValue}<span className="text-[10px] text-pink-500/70 font-normal ml-0.5">{detail.unit}</span>
+                          {formatValue(currentValue)}<span className="text-[10px] text-pink-500/70 font-normal ml-0.5">{detail.unit}</span>
                         </div>
                       </div>
                       
