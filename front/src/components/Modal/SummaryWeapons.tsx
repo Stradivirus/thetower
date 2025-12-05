@@ -130,7 +130,8 @@ export function SummaryWeapons({ progress }: Props) {
                           <span className="flex-shrink-0">{getStatIcon(statName)}</span>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{detail.name || statName}</span>
                         </div>
-                        <div className="text-base font-bold text-cyan-400 font-mono leading-none">
+                        {/* [Modified] 만렙일 때 수치 색상도 노란색으로 변경 */}
+                        <div className={`text-base font-bold font-mono leading-none ${isMaxed ? 'text-yellow-400' : 'text-cyan-400'}`}>
                           {currentValue.toFixed(detail.unit === 'x' ? 2 : 0)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">{detail.unit}</span>
                         </div>
                       </div>
@@ -163,7 +164,8 @@ export function SummaryWeapons({ progress }: Props) {
                           <span className="flex-shrink-0"><Sparkles size={12} className="text-pink-400 fill-pink-400/20" /></span>
                           <span className="text-[10px] font-bold text-pink-200 uppercase tracking-wider truncate">{detail.name || statName}</span>
                         </div>
-                        <div className="text-base font-bold text-pink-300 font-mono leading-none">
+                        {/* [Modified] 만렙일 때 수치 색상도 노란색으로 변경 */}
+                        <div className={`text-base font-bold font-mono leading-none ${isMaxed ? 'text-yellow-400' : 'text-pink-300'}`}>
                           {currentValue}<span className="text-[10px] text-pink-500/70 font-normal ml-0.5">{detail.unit}</span>
                         </div>
                       </div>
