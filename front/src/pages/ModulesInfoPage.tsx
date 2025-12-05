@@ -1,22 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react'; // useEffect 제거
 import moduleData from '../data/module_list.json';
 import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
-import { fetchProgress } from '../api/progress';
 import { type EquippedModule } from '../components/Modules/ModuleConstants';
 import ModuleHeader from '../components/Modules/ModuleHeader';
 import EquippedView from '../components/Modules/EquippedView';
 import ModuleList from '../components/Modules/ModuleList';
 import UwSummaryModal from '../components/Modal/SummaryModal';
+import { useGameData } from '../contexts/GameDataContext'; // [New]
 
 export default function ModulesInfoPage() {
   const [activeTab, setActiveTab] = useState<'cannon' | 'armor' | 'generator' | 'core'>('cannon');
   const [rarity, setRarity] = useState<number>(3); 
-  const [modulesState, setModulesState] = useState<Record<string, any>>({});
-  const [progress, setProgress] = useState<Record<string, any>>({});
   const [isChanged, setIsChanged] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
+  // [New] Context 사용
+  const { modules, progress, setModules } = useGameData();
   const token = localStorage.getItem('access_token');
+
+  // modulesState 대신 modules 사용 (Context 데이터)
+  // setModulesState 대신 setModules 사용
 
   const slotIdMap: Record<string, string> = {
     'cannon': 'attack',
@@ -25,44 +28,7 @@ export default function ModulesInfoPage() {
     'core': 'core'
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      const localModules = localStorage.getItem('thetower_modules');
-      if (localModules) {
-        try { setModulesState(JSON.parse(localModules)); } catch {}
-      }
-      const localProgress = localStorage.getItem('thetower_progress');
-      if (localProgress) {
-        try { setProgress(JSON.parse(localProgress)); } catch {}
-      }
-
-      if (token) {
-        try {
-          const [moduleRes, progressData] = await Promise.all([
-            fetchWithAuth(`${API_BASE_URL}/modules/`, { headers: { 'Authorization': `Bearer ${token}` } }),
-            fetchProgress().catch(() => ({})) 
-          ]);
-
-          if (moduleRes.ok) {
-            const data = await moduleRes.json();
-            if (Object.keys(data.modules_json).length > 0) {
-              setModulesState(data.modules_json);
-              localStorage.setItem('thetower_modules', JSON.stringify(data.modules_json));
-            }
-          }
-          
-          if (Object.keys(progressData).length > 0) {
-            setProgress(progressData);
-            localStorage.setItem('thetower_progress', JSON.stringify(progressData));
-          }
-
-        } catch (e) {
-          console.error("Failed to fetch data", e);
-        }
-      }
-    };
-    loadData();
-  }, [token]);
+  // [Optimization] useEffect 초기 로딩 로직 삭제 (Context가 알아서 함)
 
   const handleSaveProgress = async () => {
     if (!token) {
@@ -82,10 +48,10 @@ export default function ModulesInfoPage() {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ modules_json: modulesState })
+            body: JSON.stringify({ modules_json: modules })
         });
         
-        localStorage.setItem('thetower_modules', JSON.stringify(modulesState));
+        localStorage.setItem('thetower_modules', JSON.stringify(modules));
         setIsChanged(false);
     } catch (e) {
         console.error("Save failed", e);
@@ -101,9 +67,9 @@ export default function ModulesInfoPage() {
   };
 
   const handleRemoveEquip = (key: string) => {
-    const newState = { ...modulesState };
+    const newState = { ...modules };
     delete newState[key];
-    setModulesState(newState);
+    setModules(newState); // Context 업데이트
     setIsChanged(true);
   };
 
@@ -115,10 +81,10 @@ export default function ModulesInfoPage() {
     const unlockLevel = progress[unlockKey] || 0; 
     const isAssistUnlocked = unlockLevel > 0;
 
-    const currentMain = modulesState[mainKey] as EquippedModule | undefined;
-    const currentSub = modulesState[subKey] as EquippedModule | undefined;
+    const currentMain = modules[mainKey] as EquippedModule | undefined;
+    const currentSub = modules[subKey] as EquippedModule | undefined;
     
-    let newState = { ...modulesState };
+    let newState = { ...modules };
     const newModuleData: EquippedModule = { name: moduleName, rarity: rarity };
 
     if (currentMain?.name === moduleName) {
@@ -142,14 +108,13 @@ export default function ModulesInfoPage() {
         }
     }
 
-    setModulesState(newState);
+    setModules(newState); // Context 업데이트
     setIsChanged(true);
   };
 
   const currentModules = moduleData[activeTab];
 
   return (
-    // [Modified] 고정 높이(h-[calc...])와 overflow-hidden 제거 -> 페이지 전체 스크롤 허용
     <div className="max-w-[1600px] mx-auto px-4 pb-20 animate-fade-in flex flex-col min-h-screen">
       <ModuleHeader 
         activeTab={activeTab}
@@ -161,11 +126,10 @@ export default function ModulesInfoPage() {
         token={token}
       />
 
-      {/* [Modified] flex-1 overflow-hidden 제거, items-start 추가 (내용물만큼 높이 늘어남) */}
       <div className="flex flex-col lg:flex-row items-start gap-6 mt-6">
         <div className="flex-1 w-full">
             <EquippedView 
-            modulesState={modulesState}
+            modulesState={modules} // Context state 전달
             onRemove={handleRemoveEquip}
             progress={progress} 
             />
@@ -173,7 +137,7 @@ export default function ModulesInfoPage() {
         
         <ModuleList 
           currentModules={currentModules}
-          modulesState={modulesState}
+          modulesState={modules} // Context state 전달
           activeTab={activeTab}
           rarity={rarity}
           onToggle={toggleSelection}
@@ -185,7 +149,7 @@ export default function ModulesInfoPage() {
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
         progress={progress}
-        modulesState={modulesState}
+        modulesState={modules} // Context state 전달
       />
     </div>
   );
