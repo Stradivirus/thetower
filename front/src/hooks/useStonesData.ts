@@ -1,71 +1,24 @@
-import { useState, useEffect, useMemo } from 'react';
-import { fetchProgress, saveProgress } from '../api/progress';
-import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
+// front/src/hooks/useStonesData.ts
+import { useState, useMemo, useEffect } from 'react';
+import { saveProgress } from '../api/progress';
 import { useTotalStones } from '../utils/stoneCalculations';
+import { useGameData } from '../contexts/GameDataContext';
 
 export function useStonesData(token: string | null) {
-  const [progress, setProgress] = useState<Record<string, any>>({});
+  // [Fix] refreshData 제거 (사용하지 않음)
+  const { progress, modules, setProgress } = useGameData();
+  
   const [lastSavedProgress, setLastSavedProgress] = useState<Record<string, any>>({});
-  const [modulesState, setModulesState] = useState<Record<string, any>>({});
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (Object.keys(progress).length > 0 && Object.keys(lastSavedProgress).length === 0) {
+      setLastSavedProgress(progress);
+    }
+  }, [progress, lastSavedProgress]);
 
   const totalStonesUsed = useTotalStones(progress);
 
-  // 1. 초기 데이터 로드
-  useEffect(() => {
-    const loadData = async () => {
-      let dataToLoad: Record<string, any> = {};
-
-      if (token) {
-        try {
-          const serverData = await fetchProgress();
-          if (serverData && typeof serverData === 'object') {
-            dataToLoad = serverData;
-          }
-        } catch (e) {
-          console.error("Failed to fetch progress", e);
-        }
-      }
-
-      const saved = localStorage.getItem('thetower_progress');
-      if (Object.keys(dataToLoad).length === 0 && saved) {
-        try {
-          dataToLoad = JSON.parse(saved);
-        } catch (e) {
-          console.error("Failed to parse saved progress", e);
-        }
-      }
-      
-      setProgress(dataToLoad);
-      setLastSavedProgress(dataToLoad);
-      
-      // 모듈 데이터 로드
-      const localModules = localStorage.getItem('thetower_modules');
-      if (localModules) {
-        try { setModulesState(JSON.parse(localModules)); } catch (e) { console.error(e); }
-      }
-
-      if (token) {
-        try {
-          const response = await fetchWithAuth(`${API_BASE_URL}/modules/`, {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await response.json();
-          if (data.modules_json) {
-            setModulesState(data.modules_json);
-            localStorage.setItem('thetower_modules', JSON.stringify(data.modules_json));
-          }
-        } catch (e) {
-          console.error("Failed to fetch modules", e);
-        }
-      }
-    };
-    
-    loadData();
-  }, [token]);
-
-  // 2. 헬퍼 함수들
   const updateProgress = (key: string, value: any) => {
     const newProgress = { ...progress, [key]: value };
     setProgress(newProgress);
@@ -82,7 +35,6 @@ export function useStonesData(token: string | null) {
     const newProg = { ...progress };
     Object.keys(newProg).forEach(k => { if(k.startsWith('card_')) delete newProg[k]; });
     setProgress(newProg);
-    setLastSavedProgress(newProg); 
     localStorage.setItem('thetower_progress', JSON.stringify(newProg));
   };
 
@@ -114,7 +66,7 @@ export function useStonesData(token: string | null) {
 
   return {
     progress,
-    modulesState,
+    modulesState: modules,
     totalStonesUsed,
     isSaving,
     isProgressChanged,

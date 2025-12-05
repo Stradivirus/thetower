@@ -1,3 +1,4 @@
+// front/src/App.tsx
 import { useState, useEffect, Suspense, lazy, useMemo } from 'react';
 import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
@@ -5,7 +6,8 @@ import { getReports } from './api/reports';
 import type { BattleMain } from './types/report';
 import ReportInputModal from './components/Detail/ReportInputModal';
 import AuthModal from './components/Auth/AuthModal';
-import NavBar from './components/Layout/NavBar'; 
+import NavBar from './components/Layout/NavBar';
+import { GameDataProvider } from './contexts/GameDataContext'; // [New] Provider Import
 
 // [Optimization] 페이지 Lazy Loading
 const MainPage = lazy(() => import('./pages/MainPage'));
@@ -100,52 +102,52 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
-        
-        <NavBar 
-          token={token} 
-          onLogout={handleLogout} 
-          onOpenAuth={() => setIsAuthModalOpen(true)}
-          onOpenReport={() => setIsReportModalOpen(true)}
-        />
+      {/* [New] GameDataProvider로 감싸기 */}
+      <GameDataProvider token={token}>
+        <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
+          
+          <NavBar 
+            token={token} 
+            onLogout={handleLogout} 
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onOpenReport={() => setIsReportModalOpen(true)}
+          />
 
-        <main className="max-w-6xl mx-auto px-4 md:px-6 py-8">
-          <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-              <Route path="/" element={
-                token ? (
-                  // onSelectReport 제거 (MainPage 내부에서 useNavigate 사용)
-                  <MainPage reports={recentReports} />
-                ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
-              } />
+          <main className="max-w-6xl mx-auto px-4 md:px-6 py-8">
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/" element={
+                  token ? (
+                    <MainPage reports={recentReports} />
+                  ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
+                } />
 
-              <Route path="/history" element={
-                token ? (
-                  // onSelectReport 제거 (HistoryPage 내부에서 useNavigate 사용)
-                  <HistoryPage reports={pastReports} /> 
-                ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
-              } />
+                <Route path="/history" element={
+                  token ? (
+                    <HistoryPage reports={pastReports} /> 
+                  ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
+                } />
 
-              <Route path="/modules" element={<ModulesInfoPage />} />
+                <Route path="/modules" element={<ModulesInfoPage />} />
 
-              <Route path="/stones" element={
-                <StonesPage onBack={() => window.history.back()} token={token} />
-              } />
+                <Route path="/stones" element={
+                  <StonesPage onBack={() => window.history.back()} token={token} />
+                } />
 
-              {/* [Fix] URL 파라미터 라우팅 설정 */}
-              <Route path="/report/:date" element={<ReportDetailWrapper />} />
-            </Routes>
-          </Suspense>
-        </main>
+                <Route path="/report/:date" element={<ReportDetailWrapper />} />
+              </Routes>
+            </Suspense>
+          </main>
 
-        {isReportModalOpen && (
-          <ReportInputModal onClose={() => setIsReportModalOpen(false)} onSuccess={loadReports} />
-        )}
+          {isReportModalOpen && (
+            <ReportInputModal onClose={() => setIsReportModalOpen(false)} onSuccess={loadReports} />
+          )}
 
-        {isAuthModalOpen && (
-          <AuthModal onClose={() => setIsAuthModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
-        )}
-      </div>
+          {isAuthModalOpen && (
+            <AuthModal onClose={() => setIsAuthModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
+          )}
+        </div>
+      </GameDataProvider>
     </BrowserRouter>
   );
 }

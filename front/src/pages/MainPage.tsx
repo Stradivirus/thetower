@@ -1,25 +1,22 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom'; // [Added]
+import { useNavigate } from 'react-router-dom';
 import { Calendar, Search, X, List } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import Dashboard from '../components/Main/Dashboard';
 import ReportList from '../components/Main/ReportList';
 import UwSummaryModal from '../components/Modal/SummaryModal';
-import { fetchProgress } from '../api/progress';
-import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
+import { useGameData } from '../contexts/GameDataContext'; // [New]
 
 interface MainPageProps {
   reports: BattleMain[];
-  // onSelectReport prop 제거됨 (내부에서 처리)
 }
 
 export default function MainPage({ reports }: MainPageProps) {
-  const navigate = useNavigate(); // [Added]
-  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+  const { progress, modules } = useGameData(); // [New] 데이터 즉시 가져오기
   
+  const [searchTerm, setSearchTerm] = useState('');
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
-  const [summaryData, setSummaryData] = useState<{progress: any, modules: any}>({ progress: {}, modules: {} });
-  const [loadingSummary, setLoadingSummary] = useState(false);
 
   // 리포트 클릭 시 상세 페이지로 이동
   const handleSelectReport = (date: string) => {
@@ -46,39 +43,14 @@ export default function MainPage({ reports }: MainPageProps) {
     });
   }, [reports, searchTerm]);
 
-  const handleOpenSummary = async () => {
+  const handleOpenSummary = () => {
     const token = localStorage.getItem('access_token');
     if (!token) {
         alert("로그인이 필요합니다.");
         return;
     }
-
-    setLoadingSummary(true);
-    try {
-        const [prog, modRes] = await Promise.all([
-            fetchProgress().catch(() => ({})),
-            fetchWithAuth(`${API_BASE_URL}/modules/`, { 
-                headers: { 'Authorization': `Bearer ${token}` } 
-            }).catch(() => null)
-        ]);
-
-        let modData = {};
-        if (modRes && modRes.ok) {
-            const json = await modRes.json();
-            modData = json.modules_json || {};
-        }
-
-        setSummaryData({
-            progress: prog,
-            modules: modData
-        });
-        setIsSummaryOpen(true);
-    } catch (e) {
-        console.error("Failed to load summary data", e);
-        alert("데이터를 불러오는데 실패했습니다.");
-    } finally {
-        setLoadingSummary(false);
-    }
+    // [Optimization] 서버 요청 로직 제거 -> 즉시 오픈
+    setIsSummaryOpen(true);
   };
 
   return (
@@ -115,18 +87,11 @@ export default function MainPage({ reports }: MainPageProps) {
 
           <button 
             onClick={handleOpenSummary}
-            disabled={loadingSummary}
             className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20 whitespace-nowrap"
             title="내 궁극 무기 및 모듈 세팅 보기"
           >
-            {loadingSummary ? (
-                <span className="animate-pulse">Loading...</span>
-            ) : (
-                <>
-                    <List size={16} /> 
-                    <span className="hidden sm:inline">궁무 및 모듈</span>
-                </>
-            )}
+            <List size={16} /> 
+            <span className="hidden sm:inline">궁무 및 모듈</span>
           </button>
         </div>
       </div>
@@ -142,8 +107,8 @@ export default function MainPage({ reports }: MainPageProps) {
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
-        progress={summaryData.progress}
-        modulesState={summaryData.modules}
+        progress={progress}
+        modulesState={modules} 
       />
     </>
   );
