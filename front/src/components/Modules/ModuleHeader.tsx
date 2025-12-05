@@ -1,4 +1,4 @@
-import { Save } from 'lucide-react';
+import { List } from 'lucide-react'; // 아이콘 추가
 import { MODULE_TYPES, RARITIES } from './ModuleConstants';
 
 interface Props {
@@ -51,18 +51,18 @@ export default function ModuleHeader({
         </div>
       </div>
 
-      {/* 저장 및 요약 버튼 */}
+      {/* [수정] 저장 및 요약 버튼: Stones 페이지와 동일한 Cyan 스타일로 변경 */}
       <button 
         onClick={handleSave}
         disabled={!token}
         className={`
-          flex items-center gap-2 px-6 py-2 rounded-lg font-bold transition-all border
+          flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm
           ${token
-            ? 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border-cyan-500/30' 
+            ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20' 
             : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
         `}
       >
-        <Save size={18} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
+        <List size={16} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
       </button>
     </div>
   );
