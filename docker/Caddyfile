@@ -1,15 +1,28 @@
 towerreport.o-r.kr {
+    # 1. API 요청은 백엔드로 전달
     handle /api/* {
         reverse_proxy backend:8000
     }
 
+    # 2. 정적 파일들 (JS, CSS, 이미지 등) - 1년 캐시 (Vite가 파일명에 해시를 붙이므로 길어도 안전)
+    # Vite 기본 빌드 폴더인 /assets/ 경로와 일반적인 정적 파일 확장자를 매칭합니다.
+    @static_assets {
+        path /assets/*
+        path *.js *.css *.png *.jpg *.jpeg *.svg *.ico *.woff *.woff2
+    }
+    handle @static_assets {
+        root * /usr/share/caddy/html
+        file_server
+        header Cache-Control "public, max-age=31536000, immutable"
+    }
+
+    # 3. 그 외 요청 (index.html 및 라우팅) - 2시간 캐시
     handle {
         root * /usr/share/caddy/html
         try_files {path} /index.html
         file_server
 
-        header {
-            Cache-Control "public, max-age=86400"
-        }
+        # 요청하신 대로 index.html은 2시간(7200초)만 캐시
+        header Cache-Control "public, max-age=7200"
     }
 }
