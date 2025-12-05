@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom'; // [Added]
 import { Calendar, Search, X, List } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import Dashboard from '../components/Main/Dashboard';
@@ -9,15 +10,21 @@ import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
 
 interface MainPageProps {
   reports: BattleMain[];
-  onSelectReport: (date: string) => void;
+  // onSelectReport prop 제거됨 (내부에서 처리)
 }
 
-export default function MainPage({ reports, onSelectReport }: MainPageProps) {
+export default function MainPage({ reports }: MainPageProps) {
+  const navigate = useNavigate(); // [Added]
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [summaryData, setSummaryData] = useState<{progress: any, modules: any}>({ progress: {}, modules: {} });
   const [loadingSummary, setLoadingSummary] = useState(false);
+
+  // 리포트 클릭 시 상세 페이지로 이동
+  const handleSelectReport = (date: string) => {
+    navigate(`/report/${date}`);
+  };
 
   const filteredReports = useMemo(() => {
     if (!searchTerm.trim()) return reports;
@@ -106,7 +113,6 @@ export default function MainPage({ reports, onSelectReport }: MainPageProps) {
             )}
           </div>
 
-          {/* [Updated] 버튼 디자인 통일 (Cyan Style) 및 텍스트 변경 */}
           <button 
             onClick={handleOpenSummary}
             disabled={loadingSummary}
@@ -126,7 +132,7 @@ export default function MainPage({ reports, onSelectReport }: MainPageProps) {
       </div>
 
       {filteredReports.length > 0 ? (
-        <ReportList reports={filteredReports} onSelectReport={onSelectReport} />
+        <ReportList reports={filteredReports} onSelectReport={handleSelectReport} />
       ) : (
         <div className="text-center py-20 text-slate-500 bg-slate-900/30 rounded-xl border border-slate-800 border-dashed">
           <p>검색 결과가 없습니다.</p>
