@@ -4,43 +4,33 @@ from datetime import datetime
 def parse_number(value_str: str):
     """
     '5.42B', '1.2T', '500' 등을 실제 숫자(int)로 변환
+    (딕셔너리 매핑 방식 적용)
     """
     if not value_str:
         return 0
     
-    # 공백 제거, $와 x 제거
-    value_str = value_str.strip().replace('$', '').replace('X', '')
+    # 공백, $, x 등 불필요한 문자 제거
+    clean_str = value_str.strip().replace('$', '').replace('X', '').replace('x', '')
     
+    # 단위 매핑 (대소문자 구분 - 게임 특화 단위)
+    multipliers = {
+        'S': 10**24, 's': 10**21, 'Q': 10**18, 'q': 10**15,
+        'T': 10**12, 't': 10**12, 'B': 10**9, 'b': 10**9, 
+        'M': 10**6, 'm': 10**6, 'K': 10**3, 'k': 10**3
+    }
+
     multiplier = 1
     
-    # 게임 표기법 처리
-    if value_str.endswith('S'): 
-        multiplier = 1_000_000_000_000_000_000_000_000
-        value_str = value_str[:-1]
-    elif value_str.endswith('s'):
-        multiplier = 1_000_000_000_000_000_000_000
-        value_str = value_str[:-1]
-    elif value_str.endswith('Q'):
-        multiplier = 1_000_000_000_000_000_000
-        value_str = value_str[:-1]
-    elif value_str.endswith('q'):
-        multiplier = 1_000_000_000_000_000
-        value_str = value_str[:-1]
-    elif value_str.endswith(('t', 'T')):
-        multiplier = 1_000_000_000_000
-        value_str = value_str[:-1]
-    elif value_str.endswith(('b', 'B')):
-        multiplier = 1_000_000_000
-        value_str = value_str[:-1]
-    elif value_str.endswith(('m', 'M')):
-        multiplier = 1_000_000
-        value_str = value_str[:-1]
-    elif value_str.endswith(('k', 'K')):
-        multiplier = 1_000
-        value_str = value_str[:-1]
+    # 딕셔너리를 순회하며 접미사 체크
+    for suffix, mult in multipliers.items():
+        if clean_str.endswith(suffix):
+            multiplier = mult
+            clean_str = clean_str[:-len(suffix)] # 접미사 제거
+            break
 
     try:
-        return int(float(value_str.replace(',', '')) * multiplier)
+        # 쉼표 제거 후 변환
+        return int(float(clean_str.replace(',', '')) * multiplier)
     except ValueError:
         return 0
 
@@ -91,18 +81,11 @@ def parse_battle_report(text: str) -> dict:
         else:
             # 예외 처리: 공백이 포함된 키값들
             if current_section == 'report':
-                if line.startswith("전투 날짜"):
-                    key = "전투 날짜"
-                    val = line.replace("전투 날짜", "", 1).strip()
-                elif line.startswith("게임 시간"):
-                    key = "게임 시간"
-                    val = line.replace("게임 시간", "", 1).strip()
-                elif line.startswith("실시간"):
-                    key = "실시간"
-                    val = line.replace("실시간", "", 1).strip()
-                elif line.startswith("시간당 코인"):  # [New] 추가됨
-                    key = "시간당 코인"
-                    val = line.replace("시간당 코인", "", 1).strip()
+                for special_key in ["전투 날짜", "게임 시간", "실시간", "시간당 코인"]:
+                    if line.startswith(special_key):
+                        key = special_key
+                        val = line.replace(special_key, "", 1).strip()
+                        break
             
             # 위 예외에 안 걸리면 일반 처리
             if not key:
@@ -137,7 +120,7 @@ def parse_battle_report(text: str) -> dict:
         'real_time': repo.get('실시간', ''),
         
         'coin_earned': parse_number(repo.get('코인 획득', '0')),
-        'coins_per_hour': parse_number(repo.get('시간당 코인', '0')), # [New] 매핑
+        'coins_per_hour': parse_number(repo.get('시간당 코인', '0')),
         'cells_earned': parse_number(repo.get('획득한 셀', '0')),
         'reroll_shards_earned': parse_number(repo.get('다시 뽑기 파편 획득함', '0')),
         
