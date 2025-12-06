@@ -37,7 +37,7 @@ def get_reports(
 @router.get("/{battle_date}", response_model=FullReportResponse)
 def get_report_detail(
     battle_date: str, 
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
     current_user: User = Depends(get_current_user)
 ):
     try:
