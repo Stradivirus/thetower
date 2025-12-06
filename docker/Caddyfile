@@ -1,4 +1,4 @@
-towerreport.o-r.kr {
+towerreport.o-r.kr, origin.towerreport.o-r.kr {
     # 1. API 요청은 백엔드로 전달
     handle /api/* {
         reverse_proxy backend:8000
