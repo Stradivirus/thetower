@@ -5,6 +5,7 @@ services:
       context: ../
       dockerfile: docker/backend.Dockerfile
     container_name: thetower_backend
+    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -21,6 +22,7 @@ services:
       context: ../
       dockerfile: docker/frontend.Dockerfile
     container_name: thetower_frontend
+    restart: always
     depends_on:
       - backend
     ports:
