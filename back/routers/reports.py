@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Form
 from sqlalchemy.orm import Session
-from database import get_db
+from database import get_db, get_db_read
 from schemas import BattleMainResponse, FullReportResponse
 import crud
 from parser import parse_battle_report
@@ -37,7 +37,7 @@ def get_reports(
 @router.get("/{battle_date}", response_model=FullReportResponse)
 def get_report_detail(
     battle_date: str, 
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
     current_user: User = Depends(get_current_user)
 ):
     try:
