@@ -1,4 +1,5 @@
-import { List, Layers, Box } from 'lucide-react';
+// src/components/Modules/ModuleHeader.tsx 수정
+import { List, Layers, Box, Dices } from 'lucide-react'; // Dices 추가
 import { RARITIES } from './ModuleConstants';
 
 interface Props {
@@ -7,8 +8,9 @@ interface Props {
   handleSave: () => void;
   isChanged: boolean;
   token: string | null;
-  viewMode: 'equipped' | 'inventory';
-  setViewMode: (mode: 'equipped' | 'inventory') => void;
+  // viewMode 타입에 'reroll' 추가
+  viewMode: 'equipped' | 'inventory' | 'reroll';
+  setViewMode: (mode: 'equipped' | 'inventory' | 'reroll') => void;
 }
 
 export default function ModuleHeader({ 
@@ -19,7 +21,7 @@ export default function ModuleHeader({
   return (
     <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 border-b border-slate-800 shrink-0 sticky top-0 bg-slate-950/95 backdrop-blur z-50 shadow-md">
       
-      {/* 좌측: 보기 모드 탭 (장착 관리 / 보유 현황) */}
+      {/* 탭 버튼 그룹 */}
       <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800">
         <button
           onClick={() => setViewMode('equipped')}
@@ -41,10 +43,21 @@ export default function ModuleHeader({
         >
           <Box size={16} /> 보유 현황
         </button>
+        {/* [추가] 부옵션 리롤 탭 */}
+        <button
+          onClick={() => setViewMode('reroll')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+            viewMode === 'reroll' 
+              ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30 shadow-sm' 
+              : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <Dices size={16} /> 부옵션 리롤
+        </button>
       </div>
 
       <div className="flex items-center gap-4">
-        {/* 중앙: 등급 선택 컨트롤 (보유 현황 모드에서는 숨김) */}
+        {/* 장착 모드일 때만 등급 선택 표시 */}
         {viewMode === 'equipped' && (
           <div className="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800 animate-fade-in">
             <span className="text-xs font-bold text-slate-500 mr-2">
@@ -65,19 +78,21 @@ export default function ModuleHeader({
           </div>
         )}
 
-        {/* 우측: 저장 및 요약 버튼 */}
-        <button 
-          onClick={handleSave}
-          disabled={!token}
-          className={`
-            flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm
-            ${token
-              ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20' 
-              : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
-          `}
-        >
-          <List size={16} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
-        </button>
+        {/* 리롤 모드가 아닐 때만 저장 버튼 표시 */}
+        {viewMode !== 'reroll' && (
+          <button 
+            onClick={handleSave}
+            disabled={!token}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm
+              ${token
+                ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20' 
+                : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
+            `}
+          >
+            <List size={16} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
+          </button>
+        )}
       </div>
     </div>
   );
