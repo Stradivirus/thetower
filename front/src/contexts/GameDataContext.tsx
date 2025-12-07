@@ -1,6 +1,6 @@
 // front/src/contexts/GameDataContext.tsx
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { ReactNode } from 'react'; // [Fix] type import 분리
+import type { ReactNode } from 'react';
 import { fetchProgress } from '../api/progress';
 import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
 import type { UserProgress, UserModules } from '../types/gameData';
@@ -55,7 +55,20 @@ export function GameDataProvider({ children, token }: ProviderProps) {
 
       if (modulesRes && modulesRes.ok) {
         const modData = await modulesRes.json();
-        setModules(modData.modules_json || {});
+        
+        // [Modified] 백엔드 데이터(분리형) -> 프론트엔드 상태(병합형) 변환
+        // equipped_json은 그대로 사용
+        const mergedModules: any = { ...(modData.equipped_json || {}) };
+        
+        // inventory_json은 키 앞에 'owned_'를 붙여서 병합
+        const inventory = modData.inventory_json || {};
+        Object.entries(inventory).forEach(([name, data]: [string, any]) => {
+            // 백엔드는 { rarity: 3, ... } 객체로 저장하므로, 프론트는 숫자만 쓰거나 객체 그대로 쓸 수 있음
+            // 여기서는 기존 로직(숫자)에 맞춘다고 가정: data.rarity 사용
+            mergedModules[`owned_${name}`] = data.rarity; 
+        });
+
+        setModules(mergedModules);
       }
 
       setIsLoaded(true);

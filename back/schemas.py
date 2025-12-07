@@ -31,9 +31,11 @@ class ProgressResponse(ProgressBase):
     class Config:
         from_attributes = True
 
-# --- [New] Modules ---
+# --- [Modified] Modules ---
+# 보유와 장착을 분리하여 요청/응답 처리
 class UserModulesBase(BaseModel):
-    modules_json: Dict[str, Any]
+    inventory_json: Dict[str, Any]
+    equipped_json: Dict[str, Any]
 
 class UserModulesResponse(UserModulesBase):
     updated_at: Optional[datetime] = None

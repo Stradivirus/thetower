@@ -14,7 +14,8 @@ def get_my_modules(
 ):
     modules = crud.get_user_modules(db, current_user.id)
     if not modules:
-        return {"modules_json": {}}
+        # 데이터가 없을 경우 빈 객체 반환
+        return {"inventory_json": {}, "equipped_json": {}}
     return modules
 
 @router.post("/", response_model=schemas.UserModulesResponse)
@@ -23,4 +24,9 @@ def save_my_modules(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    return crud.update_user_modules(db, current_user.id, data.modules_json)
+    return crud.update_user_modules(
+        db, 
+        current_user.id, 
+        data.inventory_json, 
+        data.equipped_json
+    )

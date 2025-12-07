@@ -18,7 +18,7 @@ class User(Base):
     # 1:1 관계 (진행 상황 - 스톤 등)
     progress = relationship("UserProgress", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
-    # 1:1 관계 (모듈) [New]
+    # 1:1 관계 (모듈)
     modules = relationship("UserModules", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class UserProgress(Base):
@@ -30,14 +30,20 @@ class UserProgress(Base):
 
     user = relationship("User", back_populates="progress")
 
-# [New] 모듈 데이터 저장용 테이블
+# [Modified] 모듈 데이터 저장용 테이블 (컬럼 분리)
 class UserModules(Base):
     __tablename__ = "user_modules"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    # 보유 현황 + 장착 현황을 모두 이 JSON에 저장
-    # 예: { "아스트랄 구조": 1, "equipped_cannon": "아스트랄 구조" }
-    modules_json = Column(JSONB, default={}) 
+    
+    # [변경] 보유 현황 (Inventory) - 레벨, 조각 등 확장 가능
+    # 예: { "아스트랄 구조": { "rarity": 1, "level": 10 } }
+    inventory_json = Column(JSONB, default={}) 
+    
+    # [추가] 장착 현황 (Loadout)
+    # 예: { "cannon_main": { "name": "아스트랄 구조", "rarity": 1 } }
+    equipped_json = Column(JSONB, default={})
+
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("User", back_populates="modules")
