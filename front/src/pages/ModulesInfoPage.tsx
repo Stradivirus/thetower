@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
-import { type EquippedModule, MODULE_TYPES, RARITIES } from '../components/Modules/ModuleConstants';
+import { type EquippedModule, MODULE_TYPES } from '../components/Modules/ModuleConstants';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
 import ModuleColumn from '../components/Modules/ModuleColumn';
@@ -19,36 +19,49 @@ export default function ModulesInfoPage() {
     'cannon': 'attack', 'armor': 'defense', 'generator': 'generator', 'core': 'core'
   };
 
+  // [저장 로직 검토 완료]
+  // modules 상태에는 'equipped_...'와 'owned_...' 키가 섞여 있습니다.
+  // 이를 분리하여 백엔드 스키마(inventory_json, equipped_json)에 맞춰 전송합니다.
   const handleSaveProgress = async () => {
     if (!token) { alert("로그인이 필요합니다."); return; }
-    if (!isChanged) return;
     
-    try {
-        const inventory_json: Record<string, any> = {};
-        const equipped_json: Record<string, any> = {};
+    // 변경사항이 없어도 요약창을 보고 싶을 수 있으므로 강제 리턴은 제거하거나,
+    // 저장만 안 하고 요약창을 띄우는 로직으로 분리할 수 있습니다.
+    // 여기서는 변경사항이 있을 때만 서버 저장을 수행하도록 합니다.
+    
+    if (isChanged) {
+      try {
+          const inventory_json: Record<string, any> = {};
+          const equipped_json: Record<string, any> = {};
 
-        Object.entries(modules).forEach(([key, value]) => {
-            if (key.startsWith('equipped_')) {
-                equipped_json[key] = value;
-            } else if (key.startsWith('owned_')) {
-                const realName = key.replace('owned_', '');
-                inventory_json[realName] = { rarity: value };
-            }
-        });
+          Object.entries(modules).forEach(([key, value]) => {
+              if (key.startsWith('equipped_')) {
+                  equipped_json[key] = value;
+              } else if (key.startsWith('owned_')) {
+                  const realName = key.replace('owned_', '');
+                  // 백엔드 스키마: { "모듈이름": { "rarity": 숫자 } }
+                  inventory_json[realName] = { rarity: value };
+              }
+          });
 
-        await fetchWithAuth(`${API_BASE_URL}/modules/`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ inventory_json, equipped_json })
-        });
-        
-        localStorage.setItem('thetower_modules', JSON.stringify(modules));
-        setIsChanged(false);
-    } catch (e) { console.error("Save failed", e); alert("저장에 실패했습니다."); }
-  };
-
-  const handleSaveAndSummary = async () => {
-    if (isChanged && token) await handleSaveProgress();
+          await fetchWithAuth(`${API_BASE_URL}/modules/`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ inventory_json, equipped_json })
+          });
+          
+          // 로컬 스토리지 백업 업데이트 (선택 사항)
+          localStorage.setItem('thetower_modules', JSON.stringify(modules));
+          setIsChanged(false);
+          console.log("Modules saved successfully");
+      } catch (e) { 
+          console.error("Save failed", e); 
+          alert("저장에 실패했습니다."); 
+          return; // 저장 실패 시 요약창 안 띄움
+      }
+    }
+    
+    // 저장 성공 혹은 변경사항 없을 시 요약창 오픈
     setIsSummaryOpen(true);
   };
 
@@ -56,7 +69,7 @@ export default function ModulesInfoPage() {
     let newState = { ...modules };
 
     if (viewMode === 'inventory') {
-        // [Inventory Logic] 클릭 시 등급 역순 순환 (없음 -> 3 -> 2 -> 1 -> 0 -> 없음)
+        // [Inventory Logic] 클릭 시 등급 역순 순환 (없음 -> 3:Ancestral -> 2:Mythic -> 1:Legendary -> 0:Epic -> 없음)
         const ownedKey = `owned_${moduleName}`;
         const currentRarity = newState[ownedKey]; // undefined or 0~3 number
 
@@ -104,7 +117,7 @@ export default function ModulesInfoPage() {
       <ModuleHeader 
         rarity={rarity}
         setRarity={setRarity}
-        handleSave={handleSaveAndSummary}
+        handleSave={handleSaveProgress}
         isChanged={isChanged}
         token={token}
         viewMode={viewMode}

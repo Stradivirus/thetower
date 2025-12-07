@@ -44,26 +44,28 @@ export default function ModuleHeader({
       </div>
 
       <div className="flex items-center gap-4">
-        {/* 중앙: 등급 선택 컨트롤 */}
-        <div className="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800">
-          <span className="text-xs font-bold text-slate-500 mr-2">
-            {viewMode === 'inventory' ? 'Add Rarity' : 'Preview Rarity'}
-          </span>
-          <div className="flex gap-1">
-            {RARITIES.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setRarity(r.id)}
-                className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold border transition-all ${rarity === r.id ? `${r.bg} ${r.color} ${r.border}` : 'border-transparent text-slate-600 hover:bg-slate-800'}`}
-                title={r.label}
-              >
-                {r.short}
-              </button>
-            ))}
+        {/* 중앙: 등급 선택 컨트롤 (보유 현황 모드에서는 숨김) */}
+        {viewMode === 'equipped' && (
+          <div className="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800 animate-fade-in">
+            <span className="text-xs font-bold text-slate-500 mr-2">
+              Preview Rarity
+            </span>
+            <div className="flex gap-1">
+              {RARITIES.map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => setRarity(r.id)}
+                  className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold border transition-all ${rarity === r.id ? `${r.bg} ${r.color} ${r.border}` : 'border-transparent text-slate-600 hover:bg-slate-800'}`}
+                  title={r.label}
+                >
+                  {r.short}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 우측: 저장 버튼 */}
+        {/* 우측: 저장 및 요약 버튼 */}
         <button 
           onClick={handleSave}
           disabled={!token}
@@ -74,7 +76,7 @@ export default function ModuleHeader({
               : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
           `}
         >
-          <List size={16} /> {isChanged ? '저장*' : '저장'}
+          <List size={16} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
         </button>
       </div>
     </div>
