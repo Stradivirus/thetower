@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
-import { type EquippedModule, MODULE_TYPES, RARITIES } from '../components/Modules/ModuleConstants';
+import { type EquippedModule, MODULE_TYPES } from '../components/Modules/ModuleConstants';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
 import ModuleColumn from '../components/Modules/ModuleColumn';
