@@ -1,18 +1,16 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom'; // [Added]
+import { useNavigate } from 'react-router-dom';
 import { Archive, Search, X, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import ReportList from '../components/Main/ReportList';
 import { formatNumber } from '../utils/format';
 
-
 interface HistoryPageProps {
   reports: BattleMain[];
-  // onSelectReport prop 제거됨
 }
 
 export default function HistoryPage({ reports }: HistoryPageProps) {
-  const navigate = useNavigate(); // [Added]
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
 
@@ -23,8 +21,13 @@ export default function HistoryPage({ reports }: HistoryPageProps) {
   // 리포트를 최근/월별로 분류
   const categorizedReports = useMemo(() => {
     const now = new Date();
-    // [Modified] 2주(14일) -> 1주(7일)로 변경
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    // [Fix] 기준일 설정 로직 변경
+    // 기존: const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // 변경: 7일 전 날짜를 구한 뒤, 시간을 00:00:00으로 초기화하여 같은 날짜가 나뉘지 않도록 함
+    const cutoffDate = new Date(now);
+    cutoffDate.setDate(now.getDate() - 7);
+    cutoffDate.setHours(0, 0, 0, 0);
     
     const recent: BattleMain[] = [];
     const byMonth: Map<string, BattleMain[]> = new Map();
@@ -32,8 +35,8 @@ export default function HistoryPage({ reports }: HistoryPageProps) {
     reports.forEach(report => {
       const reportDate = new Date(report.battle_date);
       
-      // [Modified] 비교 기준을 oneWeekAgo로 변경
-      if (reportDate > oneWeekAgo) {
+      // [Fix] 비교 기준을 cutoffDate로 변경 (>= 사용)
+      if (reportDate >= cutoffDate) {
         recent.push(report);
       } else {
         const monthKey = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
@@ -133,7 +136,7 @@ export default function HistoryPage({ reports }: HistoryPageProps) {
         </div>
       </div>
 
-      {/* [Modified] 최근 1주: 날짜별 아코디언 */}
+      {/* 최근 1주: 날짜별 아코디언 */}
       {filteredData.recent.length > 0 && (
         <div className="mb-8">
           <ReportList 

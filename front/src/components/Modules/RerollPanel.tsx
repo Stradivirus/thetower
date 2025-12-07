@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { Info, BarChart3, Target, Shield, Zap, Cpu } from 'lucide-react';
-import { RARITY, MODULE_TYPES } from '../../../data/module_reroll_data'; 
+import { RARITY, MODULE_TYPES } from '../../data/module_reroll_data'; 
 
 // Custom Hook Import
-import { useRerollSimulation } from '../../../hooks/useRerollSimulation';
+import { useRerollSimulation } from '../../hooks/useRerollSimulation';
 
-import RerollControls from './RerollControls';
-import WishlistSelector from './WishlistSelector';
-import SlotViewer from './SlotViewer';
-import RerollSidebar from './RerollSidebar'; 
+import RerollControls from './Reroll/RerollControls';
+import WishlistSelector from './Reroll/WishlistSelector';
+import SlotViewer from './Reroll/SlotViewer';
+import RerollSidebar from './Reroll/RerollSidebar'; 
 
 const MODULE_ICONS = {
   cannon: { icon: Target, label: 'Cannon', color: 'text-rose-400', bg: 'bg-rose-500/10' },

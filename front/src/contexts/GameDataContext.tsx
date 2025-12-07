@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { fetchProgress } from '../api/progress';
-import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
+import { fetchModules } from '../api/modules'; // [Modified] API 함수 import
 import type { UserProgress, UserModules } from '../types/gameData';
 
 interface GameDataContextType {
@@ -36,14 +36,13 @@ export function GameDataProvider({ children, token }: ProviderProps) {
 
     setIsLoading(true);
     try {
-      const [progressData, modulesRes] = await Promise.all([
+      const [progressData, modulesData] = await Promise.all([
         fetchProgress().catch((err) => {
           console.error("Progress fetch error:", err);
           return {};
         }),
-        fetchWithAuth(`${API_BASE_URL}/modules/`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }).catch((err) => {
+        // [Modified] fetchWithAuth 직접 호출 대신 fetchModules 사용
+        fetchModules().catch((err) => {
           console.error("Modules fetch error:", err);
           return null;
         })
@@ -53,15 +52,13 @@ export function GameDataProvider({ children, token }: ProviderProps) {
         setProgress(progressData);
       }
 
-      if (modulesRes && modulesRes.ok) {
-        const modData = await modulesRes.json();
-        
+      if (modulesData) {
         // [Modified] 백엔드 데이터(분리형) -> 프론트엔드 상태(병합형) 변환
         // equipped_json은 그대로 사용
-        const mergedModules: any = { ...(modData.equipped_json || {}) };
+        const mergedModules: any = { ...(modulesData.equipped_json || {}) };
         
         // inventory_json은 키 앞에 'owned_'를 붙여서 병합
-        const inventory = modData.inventory_json || {};
+        const inventory = modulesData.inventory_json || {};
         Object.entries(inventory).forEach(([name, data]: [string, any]) => {
             // 백엔드는 { rarity: 3, ... } 객체로 저장하므로, 프론트는 숫자만 쓰거나 객체 그대로 쓸 수 있음
             // 여기서는 기존 로직(숫자)에 맞춘다고 가정: data.rarity 사용

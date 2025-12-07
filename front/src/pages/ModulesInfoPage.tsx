@@ -1,19 +1,18 @@
 // src/pages/ModulesInfoPage.tsx
 import { useState } from 'react';
-import { fetchWithAuth, API_BASE_URL } from '../utils/apiConfig';
+import { saveModules } from '../api/modules'; // [Modified] API 함수 import
 import { type EquippedModule, MODULE_TYPES } from '../components/Modules/ModuleConstants';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
 import ModuleColumn from '../components/Modules/ModuleColumn';
 import ModuleHeader from '../components/Modules/ModuleHeader';
-import ModuleRerollView from '../components/Modules/Reroll/RerollPanel'; // [New] 새로 만든 컴포넌트 import
+import ModuleRerollView from '../components/Modules/RerollPanel';
 
 export default function ModulesInfoPage() {
   const [rarity, setRarity] = useState<number>(3); 
   const [isChanged, setIsChanged] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
-  // [Modified] 뷰 모드에 'reroll' 추가
   const [viewMode, setViewMode] = useState<'equipped' | 'inventory' | 'reroll'>('equipped');
 
   const { modules, progress, setModules } = useGameData();
@@ -40,11 +39,8 @@ export default function ModulesInfoPage() {
               }
           });
 
-          await fetchWithAuth(`${API_BASE_URL}/modules/`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ inventory_json, equipped_json })
-          });
+          // [Modified] 직접 fetch 호출 대신 saveModules 사용
+          await saveModules({ inventory_json, equipped_json });
           
           localStorage.setItem('thetower_modules', JSON.stringify(modules));
           setIsChanged(false);
@@ -117,7 +113,6 @@ export default function ModulesInfoPage() {
         setViewMode={setViewMode}
       />
 
-      {/* [Modified] 뷰 모드에 따른 조건부 렌더링 */}
       {viewMode === 'reroll' ? (
         <div className="flex-1 min-h-0 mt-4">
           <ModuleRerollView />
