@@ -10,7 +10,6 @@ export interface SimulationSlot {
   isLocked: boolean;
 }
 
-// [수정] 데이터 인터페이스
 interface EffectData {
   id: string;
   name: string;
@@ -19,10 +18,11 @@ interface EffectData {
 interface Props {
   slots: SimulationSlot[];
   isSimulating: boolean;
-  availableEffects: EffectData[]; // [수정] 리스트를 props로 받음
+  availableEffects: EffectData[];
+  activeCount: number; // [New] 활성 슬롯 개수
 }
 
-export default function SlotViewer({ slots, isSimulating, availableEffects }: Props) {
+export default function SlotViewer({ slots, isSimulating, availableEffects, activeCount }: Props) {
   
   const getRarityColor = (r: number) => {
     switch (r) {
@@ -40,14 +40,18 @@ export default function SlotViewer({ slots, isSimulating, availableEffects }: Pr
     <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
       <div className="flex flex-col space-y-2">
         {slots.map((slot, idx) => {
-          // [수정] props로 받은 availableEffects에서 이름 찾기
           const effectName = availableEffects.find(e => e.id === slot.effectId)?.name || 'Empty Slot';
           
+          // [New] 활성 여부 체크
+          const isActive = idx < activeCount;
+
           return (
             <div key={idx} className={`relative px-3 py-2 rounded-lg border transition-all h-14 flex items-center justify-between ${
-              slot.isLocked 
-                ? 'bg-slate-900 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
-                : 'bg-slate-950/50 border-slate-800'
+              !isActive 
+                ? 'bg-slate-950/30 border-slate-900 opacity-30' // 비활성 스타일
+                : slot.isLocked 
+                  ? 'bg-slate-900 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
+                  : 'bg-slate-950/50 border-slate-800'
             }`}>
               
               {/* Left: Slot Info */}
@@ -56,15 +60,19 @@ export default function SlotViewer({ slots, isSimulating, availableEffects }: Pr
                     {slot.isLocked ? (
                       <Lock size={14} className="text-blue-400" />
                     ) : (
-                      <span className="text-[10px] text-slate-600 font-mono">{idx + 1}</span>
+                      <span className={`text-[10px] font-mono ${isActive ? 'text-slate-600' : 'text-slate-800'}`}>
+                        {idx + 1}
+                      </span>
                     )}
                 </div>
 
                 <div className="flex flex-col min-w-0">
-                  <span className={`text-sm font-bold truncate ${slot.isLocked ? 'text-white' : 'text-slate-600'}`}>
+                  <span className={`text-sm font-bold truncate ${
+                    !isActive ? 'text-slate-700' : slot.isLocked ? 'text-white' : 'text-slate-600'
+                  }`}>
                     {effectName}
                   </span>
-                  {slot.effectId && (
+                  {isActive && slot.effectId && (
                     <span className={`text-[10px] leading-none font-bold ${getRarityColor(slot.rarity)}`}>
                       {RARITY_LABELS[slot.rarity]}
                     </span>
@@ -74,13 +82,17 @@ export default function SlotViewer({ slots, isSimulating, availableEffects }: Pr
 
               {/* Right: Value Display */}
               <div className="text-right pl-2">
-                {slot.effectId ? (
-                  <span className={`text-base font-mono font-bold leading-none ${slot.isLocked ? 'text-blue-400' : 'text-slate-500'}`}>
-                    {typeof slot.value === 'number' ? `+${slot.value}` : slot.value}
-                    <span className="text-xs ml-0.5">{slot.unit}</span>
-                  </span>
+                {isActive ? (
+                  slot.effectId ? (
+                    <span className={`text-base font-mono font-bold leading-none ${slot.isLocked ? 'text-blue-400' : 'text-slate-500'}`}>
+                      {typeof slot.value === 'number' ? `+${slot.value}` : slot.value}
+                      <span className="text-xs ml-0.5">{slot.unit}</span>
+                    </span>
+                  ) : (
+                    <Zap size={14} className={`text-slate-800 ${isSimulating ? 'animate-pulse text-slate-700' : ''}`} />
+                  )
                 ) : (
-                  <Zap size={14} className={`text-slate-800 ${isSimulating ? 'animate-pulse text-slate-700' : ''}`} />
+                  <span className="text-slate-800 text-xs">Disabled</span>
                 )}
               </div>
             </div>

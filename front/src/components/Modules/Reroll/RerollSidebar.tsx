@@ -7,12 +7,12 @@ import {
   REROLL_COSTS 
 } from '../../../data/module_reroll_data';
 
-// 모듈 타입 정의 (사이드바 전용)
+// ... (MODULE_CATS, RARITY_COLORS 등 상수는 그대로 유지) ...
 const MODULE_CATS = [
-  { id: 'cannon', label: 'Cannon', icon: Target, color: 'text-rose-400', border: 'border-rose-500/50', bg: 'bg-rose-500/10' },
-  { id: 'armor', label: 'Armor', icon: Shield, color: 'text-blue-400', border: 'border-blue-500/50', bg: 'bg-blue-500/10' },
-  { id: 'generator', label: 'Generator', icon: Zap, color: 'text-yellow-400', border: 'border-yellow-500/50', bg: 'bg-yellow-500/10' },
-  { id: 'core', label: 'Core', icon: Cpu, color: 'text-purple-400', border: 'border-purple-500/50', bg: 'bg-purple-500/10' },
+  { id: 'cannon', label: 'Cannon', icon: Target, color: 'text-rose-400', border: 'border-rose-500/50' },
+  { id: 'armor', label: 'Armor', icon: Shield, color: 'text-blue-400', border: 'border-blue-500/50' },
+  { id: 'generator', label: 'Generator', icon: Zap, color: 'text-yellow-400', border: 'border-yellow-500/50' },
+  { id: 'core', label: 'Core', icon: Cpu, color: 'text-purple-400', border: 'border-purple-500/50' },
 ];
 
 const RARITY_COLORS = {
@@ -22,17 +22,18 @@ const RARITY_COLORS = {
   [RARITY.ANCESTRAL]: "text-green-400"
 };
 
+// [수정 포인트] 인터페이스 이름을 targetRarityCap으로 변경해야 합니다.
 interface Props {
   selectedModuleType: string;
   onModuleChange: (typeId: string) => void;
-  minTargetRarity: number;
+  targetRarityCap: number; // 여기가 minTargetRarity로 되어 있었다면 이걸로 바꿔주세요!
   lockedCount: number;
 }
 
 export default function RerollSidebar({ 
   selectedModuleType, 
   onModuleChange, 
-  minTargetRarity, 
+  targetRarityCap, // 여기도 minTargetRarity 대신 targetRarityCap으로 받기
   lockedCount 
 }: Props) {
 
@@ -45,7 +46,7 @@ export default function RerollSidebar({
   return (
     <div className="w-72 flex-shrink-0 flex flex-col gap-4 overflow-hidden">
       
-      {/* 1. 모듈 타입 선택기 (4개 버튼) */}
+      {/* 1. 모듈 타입 선택기 */}
       <div className="grid grid-cols-2 gap-2 shrink-0">
         {MODULE_CATS.map((cat) => {
           const isSelected = selectedModuleType === cat.id;
@@ -68,7 +69,7 @@ export default function RerollSidebar({
         })}
       </div>
 
-      {/* 2. 통계 패널 (확률 + 비용) */}
+      {/* 2. 통계 패널 */}
       <div className="flex-1 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col min-h-0 overflow-hidden">
         
         {/* (A) 확률표 */}
@@ -81,10 +82,12 @@ export default function RerollSidebar({
               {visibleChances.map(([rIdx, chance]) => {
                 const idx = parseInt(rIdx);
                 const colorClass = RARITY_COLORS[idx as keyof typeof RARITY_COLORS] || "text-slate-400";
-                const isActive = idx >= minTargetRarity;
+                
+                // [사용] targetRarityCap 변수 사용
+                const isAvailable = idx <= targetRarityCap;
                 
                 return (
-                  <tr key={idx} className={`border-b border-slate-800/30 last:border-0 ${isActive ? '' : 'opacity-30'}`}>
+                  <tr key={idx} className={`border-b border-slate-800/30 last:border-0 ${isAvailable ? '' : 'opacity-20 blur-[0.5px]'}`}>
                     <td className={`py-1.5 font-bold ${colorClass}`}>
                       {RARITY_LABELS[idx]}
                     </td>

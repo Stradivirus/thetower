@@ -1,4 +1,4 @@
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, FlaskConical } from 'lucide-react';
 import { RARITY, RARITY_LABELS } from '../../../data/module_reroll_data';
 
 interface Props {
@@ -7,7 +7,10 @@ interface Props {
   isSimulating: boolean;
   toggleSimulation: () => void;
   canRoll: boolean;
-  onReset: () => void; // 리셋 함수 추가
+  onReset: () => void;
+  banCount: number;
+  setBanCount: (n: number) => void;
+  maxBans: number;
 }
 
 export default function RerollControls({ 
@@ -16,7 +19,10 @@ export default function RerollControls({
   isSimulating, 
   toggleSimulation,
   canRoll,
-  onReset
+  onReset,
+  banCount,
+  setBanCount,
+  maxBans
 }: Props) {
   
   const targetRarities = [RARITY.EPIC, RARITY.LEGENDARY, RARITY.MYTHIC, RARITY.ANCESTRAL];
@@ -24,7 +30,6 @@ export default function RerollControls({
   const getRarityBtnStyle = (targetRarity: number) => {
     const isSelected = minTargetRarity === targetRarity;
     let baseStyle = "border-slate-800 bg-slate-900/50 text-slate-500 hover:bg-slate-800";
-    
     if (isSelected) {
       switch(targetRarity) {
         case RARITY.EPIC: return "border-purple-500 bg-purple-500/20 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)]";
@@ -37,50 +42,65 @@ export default function RerollControls({
   };
 
   return (
-    // [수정] 6칸 그리드로 변경 (등급4 + Roll + Reset)
-    <div className="w-full grid grid-cols-6 gap-2 mb-3 shrink-0 h-10">
+    <div className="w-full flex flex-col gap-3 mb-3 shrink-0">
       
-      {/* 1~4. 등급 버튼 */}
-      {targetRarities.map((r) => (
+      {/* 1. Rarity & Actions */}
+      <div className="w-full grid grid-cols-6 gap-2 h-10">
+        {targetRarities.map((r) => (
+          <button
+            key={r}
+            onClick={() => setMinTargetRarity(r)}
+            disabled={isSimulating}
+            className={`rounded flex items-center justify-center text-[10px] font-bold uppercase transition-all border ${getRarityBtnStyle(r)} disabled:opacity-30 disabled:cursor-not-allowed`}
+          >
+            {RARITY_LABELS[r]}
+          </button>
+        ))}
+
         <button
-          key={r}
-          onClick={() => setMinTargetRarity(r)}
-          disabled={isSimulating}
-          className={`
-            rounded flex items-center justify-center text-[10px] font-bold uppercase transition-all border
-            ${getRarityBtnStyle(r)}
-            disabled:opacity-30 disabled:cursor-not-allowed
-          `}
+          onClick={toggleSimulation}
+          disabled={!canRoll && !isSimulating}
+          className={`rounded flex items-center justify-center font-bold text-xs transition-all border ${isSimulating ? 'bg-rose-500 border-rose-600 text-white' : 'bg-green-500 border-green-600 text-slate-900'} disabled:opacity-30`}
         >
-          {RARITY_LABELS[r]}
+          {isSimulating ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5"/>}
         </button>
-      ))}
 
-      {/* 5. Roll Button */}
-      <button
-        onClick={toggleSimulation}
-        disabled={!canRoll && !isSimulating}
-        className={`
-          rounded flex items-center justify-center font-bold text-xs transition-all border
-          ${isSimulating 
-            ? 'bg-rose-500 border-rose-600 text-white hover:bg-rose-600 shadow-[0_0_10px_rgba(244,63,94,0.4)]' 
-            : 'bg-green-500 border-green-600 text-slate-900 hover:bg-green-400 shadow-[0_0_10px_rgba(34,197,94,0.3)]'
-          }
-          disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none
-        `}
-      >
-        {isSimulating ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5"/>}
-      </button>
+        <button
+          onClick={onReset}
+          disabled={isSimulating}
+          className="rounded flex items-center justify-center font-bold text-xs transition-all border border-slate-700 bg-slate-800 text-slate-400 hover:text-white"
+        >
+          <RotateCcw size={14} />
+        </button>
+      </div>
 
-      {/* 6. Reset Button (NEW) */}
-      <button
-        onClick={onReset}
-        disabled={isSimulating}
-        className="rounded flex items-center justify-center font-bold text-xs transition-all border border-slate-700 bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-30"
-        title="Reset All"
-      >
-        <RotateCcw size={14} />
-      </button>
+      {/* 2. Lab: Ban Selection */}
+      <div className="flex items-center gap-2 bg-slate-950/30 border border-slate-800/50 rounded-lg p-2">
+        <div className="flex items-center gap-1.5 text-slate-500 mr-2 shrink-0">
+          <FlaskConical size={14} className="text-cyan-400" />
+          <span className="text-[10px] font-bold uppercase">Lab: Ban</span>
+        </div>
+        
+        <div className="flex-1 flex gap-1">
+          {Array.from({ length: maxBans + 1 }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setBanCount(i)}
+              disabled={isSimulating}
+              className={`
+                flex-1 h-6 rounded text-[10px] font-bold transition-all border
+                ${banCount === i
+                  ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
+                  : 'bg-slate-800/50 border-transparent text-slate-500 hover:bg-slate-800 hover:text-slate-300'
+                }
+                disabled:opacity-30
+              `}
+            >
+              {i === 0 ? '-' : i}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

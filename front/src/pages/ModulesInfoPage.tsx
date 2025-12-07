@@ -6,7 +6,7 @@ import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
 import ModuleColumn from '../components/Modules/ModuleColumn';
 import ModuleHeader from '../components/Modules/ModuleHeader';
-import ModuleRerollView from '../components/Modules/Reroll/ModuleRerollView'; // [New] 새로 만든 컴포넌트 import
+import ModuleRerollView from '../components/Modules/Reroll/RerollPanel'; // [New] 새로 만든 컴포넌트 import
 
 export default function ModulesInfoPage() {
   const [rarity, setRarity] = useState<number>(3); 
