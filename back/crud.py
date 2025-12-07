@@ -29,16 +29,21 @@ def update_user_progress(db: Session, user_id: int, progress_data: dict):
     db.refresh(db_progress)
     return db_progress
 
-# --- [New] Modules ---
+# --- [Modified] Modules ---
 def get_user_modules(db: Session, user_id: int):
     return db.query(UserModules).filter(UserModules.user_id == user_id).first()
 
-def update_user_modules(db: Session, user_id: int, modules_data: dict):
+def update_user_modules(db: Session, user_id: int, inventory_data: dict, equipped_data: dict):
     db_modules = get_user_modules(db, user_id)
     if db_modules:
-        db_modules.modules_json = modules_data
+        db_modules.inventory_json = inventory_data
+        db_modules.equipped_json = equipped_data
     else:
-        db_modules = UserModules(user_id=user_id, modules_json=modules_data)
+        db_modules = UserModules(
+            user_id=user_id, 
+            inventory_json=inventory_data, 
+            equipped_json=equipped_data
+        )
         db.add(db_modules)
     
     db.commit()
