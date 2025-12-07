@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
 import crud
-import schemas
 from database import get_db
 
 load_dotenv()
