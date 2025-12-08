@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Zap, Layers, ChevronDown, ChevronUp, Sword, Skull, TrendingUp, TrendingDown } from 'lucide-react';
+import { Zap, Layers, ChevronDown, ChevronUp, Skull} from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber, formatDateHeader, formatTimeOnly, parseDurationToHours } from '../../utils/format';
 
