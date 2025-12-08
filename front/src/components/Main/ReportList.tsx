@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Zap, Layers, ChevronDown, ChevronUp, Skull } from 'lucide-react';
+import { Zap, Layers, ChevronDown, ChevronUp, Sword, Skull, TrendingUp, TrendingDown } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber, formatDateHeader, formatTimeOnly, parseDurationToHours } from '../../utils/format';
 
@@ -9,6 +9,22 @@ interface Props {
   hideHeader?: boolean;
   collapseThresholdDays?: number;
 }
+
+// [New] 증감률 표시 컴포넌트 (심플 버전)
+const TrendIndicator = ({ current, previous }: { current: number, previous: number }) => {
+  if (!previous || previous === 0) return null;
+  const diff = current - previous;
+  const percent = (diff / previous) * 100;
+  const isPositive = diff > 0;
+  
+  if (diff === 0) return null;
+
+  return (
+    <span className={`text-[10px] font-bold ml-1.5 flex items-center ${isPositive ? 'text-green-500' : 'text-rose-500'}`}>
+      {isPositive ? '▲' : '▼'} {Math.abs(percent).toFixed(1)}%
+    </span>
+  );
+};
 
 export default function ReportList({ reports, onSelectReport, hideHeader = false, collapseThresholdDays = 3 }: Props) {
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
@@ -24,6 +40,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(report);
     });
+    // 날짜 내림차순 정렬
     return Object.entries(groups).sort(([, a], [, b]) => 
       new Date(b[0].battle_date).getTime() - new Date(a[0].battle_date).getTime()
     );
@@ -36,7 +53,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
     const durationHours = parseDurationToHours(report.real_time);
     const cellsPerHour = durationHours > 0 ? report.cells_earned / durationHours : 0;
 
-    // 오브/블랙홀 분리 로직
     const utilityKeywords = ['오브', '블랙홀'];
     const mainDamages = (report.top_damages || [])
       .filter(d => !utilityKeywords.includes(d.name))
@@ -92,6 +108,9 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
         {/* 6. Damage & Killer (3칸) */}
         <div className="md:col-span-3 flex flex-col justify-center border-l border-slate-800/50 pl-4 h-full py-0.5 min-w-0">
+          <div className="text-[9px] text-slate-600 mb-1.5 h-3 flex items-center">
+             (오브, 블랙홀 제외)
+          </div>
           {mainDamages.length > 0 ? (
             <div className="grid grid-cols-3 gap-2 mb-1.5">
               {mainDamages.map((dmg, idx) => (
@@ -105,7 +124,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           ) : (
             <div className="text-xs text-slate-500 mb-1.5">No Data</div>
           )}
-
           <div className="flex items-center gap-1.5 text-xs">
              <Skull size={10} className="text-slate-500" />
              <span className="text-slate-500 text-[10px]">Killed by</span>
@@ -136,18 +154,16 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           <div className="col-span-1 text-xs font-bold text-slate-400">Coin/h</div>
           <div className="col-span-1 text-xs font-bold text-cyan-400">Cell/h</div>
           <div className="col-span-1 text-xs font-bold text-slate-400">Res.</div>
-          
           <div className="col-span-3 text-left pl-4">
             <span className="text-xs font-bold text-rose-400">Damage & Killer</span>
             <span className="text-[10px] text-slate-500 font-normal ml-1 block leading-none mt-0.5">(오브, 블랙홀 제외)</span>
           </div>
-          
           <div className="col-span-2 text-xs font-bold text-slate-400">Memo</div>
         </div>
       )}
 
       <div className="space-y-6 mt-4">
-        {groupedReports.map(([dateHeader, groupItems]) => {
+        {groupedReports.map(([dateHeader, groupItems], index) => {
           const reportDate = new Date(groupItems[0].battle_date);
           reportDate.setHours(0, 0, 0, 0);
           const diffTime = today.getTime() - reportDate.getTime();
@@ -155,12 +171,23 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           const isOld = diffDays >= collapseThresholdDays;
           const isExpanded = expandedDates[dateHeader];
           
+          // [New] 현재 날짜의 합계 계산
+          const totalCoins = groupItems.reduce((acc, r) => acc + r.coin_earned, 0);
+          const totalCells = groupItems.reduce((acc, r) => acc + r.cells_earned, 0);
+          const totalShards = groupItems.reduce((acc, r) => acc + r.reroll_shards_earned, 0);
+
+          // [New] 전일 데이터 가져오기 (groupedReports가 내림차순이므로 index+1이 과거)
+          const prevGroup = groupedReports[index + 1];
+          let prevCoins = 0;
+          let prevCells = 0;
+          
+          if (prevGroup) {
+            const prevItems = prevGroup[1];
+            prevCoins = prevItems.reduce((acc, r) => acc + r.coin_earned, 0);
+            prevCells = prevItems.reduce((acc, r) => acc + r.cells_earned, 0);
+          }
+
           if (isOld) {
-             // [Modified] 합계 계산에 Cells 추가
-             const totalCoins = groupItems.reduce((acc, r) => acc + r.coin_earned, 0);
-             const totalCells = groupItems.reduce((acc, r) => acc + r.cells_earned, 0);
-             const totalShards = groupItems.reduce((acc, r) => acc + r.reroll_shards_earned, 0);
-             
              return (
               <div key={dateHeader} className="border-b border-slate-800/50">
                 <div 
@@ -179,19 +206,21 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                       </span>
                       <div className="h-4 w-px bg-slate-800"></div>
                       
-                      {/* Coins */}
+                      {/* Coins + Trend */}
                       <span className="flex items-center gap-1.5 text-slate-400">
                         <span className="text-yellow-500 font-mono font-bold text-base">{formatNumber(totalCoins)}</span>
+                        <TrendIndicator current={totalCoins} previous={prevCoins} />
                       </span>
 
-                      {/* [New] Cells */}
-                      <span className="flex items-center gap-1.5 text-slate-400">
-                        <Zap size={14} className="text-cyan-500"/>
+                      {/* Cells + Trend */}
+                      <span className="flex items-center gap-1.5 text-slate-400 ml-2">
+                        <Zap size={14} className="text-cyan-500"/> 
                         <span className="text-cyan-500 font-mono font-bold text-base">{formatNumber(totalCells)}</span>
+                        <TrendIndicator current={totalCells} previous={prevCells} />
                       </span>
 
                       {/* Shards */}
-                      <span className="flex items-center gap-1.5 text-slate-400">
+                      <span className="flex items-center gap-1.5 text-slate-400 ml-2">
                         <Layers size={14} className="text-green-500"/> 
                         <span className="text-green-500 font-mono font-bold text-base">{formatNumber(totalShards)}</span>
                       </span>
@@ -210,19 +239,37 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
              );
           }
 
+          // [Modified] 최근 일별 리스트에도 헤더 정보(합계+증감률) 표시
           return (
             <div key={dateHeader} className="animate-fade-in">
-              <div className="flex items-center gap-4 mb-3 px-2">
-                <h3 className="text-white font-bold text-base whitespace-nowrap">
-                  {dateHeader.split(' ').slice(0, 3).join(' ')}
-                  <span className="text-slate-500 text-xs font-normal ml-2">
-                    {dateHeader.split(' ').slice(3).join(' ')}
-                  </span>
-                </h3>
+              <div className="flex items-center justify-between gap-4 mb-3 px-2">
+                <div className="flex items-center gap-4">
+                    <h3 className="text-white font-bold text-base whitespace-nowrap">
+                        {dateHeader.split(' ').slice(0, 3).join(' ')}
+                        <span className="text-slate-500 text-xs font-normal ml-2">
+                            {dateHeader.split(' ').slice(3).join(' ')}
+                        </span>
+                    </h3>
+                    
+                    <span className="text-xs text-slate-500 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                        {groupItems.length} Games
+                    </span>
+
+                    {/* 일별 헤더에도 증감률 표시 (최근 리스트용) */}
+                    <div className="hidden sm:flex items-center gap-3 text-xs ml-2 border-l border-slate-800 pl-3">
+                         <span className="flex items-center gap-1">
+                            <span className="text-yellow-500 font-mono font-bold">{formatNumber(totalCoins)}</span>
+                            <TrendIndicator current={totalCoins} previous={prevCoins} />
+                         </span>
+                         <span className="flex items-center gap-1">
+                            <Zap size={12} className="text-cyan-500"/>
+                            <span className="text-cyan-500 font-mono font-bold">{formatNumber(totalCells)}</span>
+                            <TrendIndicator current={totalCells} previous={prevCells} />
+                         </span>
+                    </div>
+                </div>
+                
                 <div className="h-px bg-slate-800 flex-1"></div>
-                <span className="text-xs text-slate-500 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                  {groupItems.length} Games
-                </span>
               </div>
 
               <div className="flex flex-col gap-1">

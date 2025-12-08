@@ -39,7 +39,7 @@ def get_recent_reports(
 def get_history_reports(
     skip: int = 0, 
     limit: int = 100, 
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     return crud.get_history_reports(db, current_user.id, skip=skip, limit=limit)

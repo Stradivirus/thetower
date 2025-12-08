@@ -1,14 +1,13 @@
 import { useMemo } from 'react';
-import { Zap, Layers, Skull, CalendarDays, ChevronRight, Sword } from 'lucide-react'; // Sword 추가
+import { Zap, Layers, Skull, CalendarDays, Sword } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
-import { formatNumber, parseGameNumber } from '../../utils/format'; // parseGameNumber 추가
+import { formatNumber, parseGameNumber } from '../../utils/format';
 
 interface Props {
   reports: BattleMain[];
 }
 
 export default function Dashboard({ reports }: Props) {
-  // === 1. 날짜 및 통계 계산 로직 (기존 유지) ===
   const todayDate = new Date();
   const todayStr = todayDate.toDateString();
   
@@ -43,7 +42,6 @@ export default function Dashboard({ reports }: Props) {
     return reportDate >= oneWeekAgoTimestamp;
   });
 
-  // [Killer 통계]
   const recentKillers = useMemo(() => {
     const counts: Record<string, number> = {};
     recentReports.forEach(r => {
@@ -52,58 +50,53 @@ export default function Dashboard({ reports }: Props) {
     return Object.entries(counts).sort(([, a], [, b]) => b - a).slice(0, 3).map(([name, count]) => ({ name, count }));
   }, [recentReports]);
 
-  // [New] 주간 딜 순위 (Top Damage)
   const topDamages = useMemo(() => {
     const damageMap: Record<string, number> = {};
     const utilityKeywords = ['오브', '블랙홀'];
 
     recentReports.forEach(r => {
-      // 각 리포트의 top_damages 배열을 순회
       (r.top_damages || []).forEach(dmg => {
-        // 오브/블랙홀 제외
         if (utilityKeywords.includes(dmg.name)) return;
-        
-        // 값 파싱 (123.45T -> 숫자) 및 누적
         const val = parseGameNumber(dmg.value);
         damageMap[dmg.name] = (damageMap[dmg.name] || 0) + val;
       });
     });
 
-    // 내림차순 정렬 후 상위 3개
     return Object.entries(damageMap)
       .sort(([, a], [, b]) => b - a)
       .slice(0, 3)
       .map(([name], idx) => ({ rank: idx + 1, name }));
   }, [recentReports]);
 
-
   return (
-    // [Modified] 3열 -> 4열 그리드 (lg 기준)
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       
-      {/* 1. 최근 코인 획득 흐름 */}
+      {/* 1. 최근 코인 획득 흐름 - 세로 배치 */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-40 h-40 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 transition-all group-hover:bg-yellow-500/10"></div>
         <h3 className="text-slate-400 text-base font-bold flex items-center justify-center gap-2 z-10 mb-3">
           <CalendarDays size={14} className="text-yellow-500" /> 최근 코인 획득
         </h3>
-        <div className="flex-1 flex items-center justify-center gap-0.5 z-10 w-full">
-          {/* ... (코인 표시 로직 기존 유지) ... */}
-          <div className="flex flex-col gap-0.5 items-center opacity-60">
-            <span className="text-[10px] text-slate-500 font-medium">2일 전</span>
-            <span className="text-lg text-slate-400 font-mono font-bold leading-none">{formatNumber(twoDaysAgoCoins)}</span>
-          </div>
-          <div className="text-slate-700 opacity-60 px-1"><ChevronRight size={20} /></div>
-          <div className="flex flex-col gap-0.5 items-center opacity-80">
-            <span className="text-[10px] text-slate-400 font-medium">어제</span>
-            <span className="text-xl text-slate-300 font-mono font-bold leading-none">{formatNumber(yesterdayCoins)}</span>
-          </div>
-          <div className="text-slate-600 px-1"><ChevronRight size={20} /></div>
-          <div className="flex flex-col gap-0.5 items-center">
-            <span className="text-xs text-yellow-500 font-bold drop-shadow-sm">Today</span>
-            <div className="text-3xl font-bold text-white tracking-tight leading-none drop-shadow-md font-mono">
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 z-10 w-full">
+          {/* Today */}
+          <div className="flex items-center justify-between w-full px-4">
+            <span className="text-xs text-yellow-500 font-bold">Today</span>
+            <div className="text-2xl font-bold text-white tracking-tight leading-none font-mono">
               {formatNumber(todayCoins)}
             </div>
+          </div>
+          
+          
+          {/* 어제 */}
+          <div className="flex items-center justify-between w-full px-4 opacity-80">
+            <span className="text-xs text-slate-400 font-medium">어제</span>
+            <span className="text-xl text-slate-300 font-mono font-bold leading-none">{formatNumber(yesterdayCoins)}</span>
+          </div>
+          
+          {/* 2일 전 */}
+          <div className="flex items-center justify-between w-full px-4 opacity-60">
+            <span className="text-[10px] text-slate-500 font-medium">2일 전</span>
+            <span className="text-lg text-slate-400 font-mono font-bold leading-none">{formatNumber(twoDaysAgoCoins)}</span>
           </div>
         </div>
       </div>
@@ -166,7 +159,7 @@ export default function Dashboard({ reports }: Props) {
         </div>
       </div>
 
-      {/* [New] 4. 주간 딜 순위 */}
+      {/* 4. 주간 딜 순위 */}
       <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-purple-500/10 group-hover:bg-purple-500/20"></div>
         <h3 className="text-slate-400 text-base font-bold mb-1 flex items-center justify-center gap-2 z-10">
