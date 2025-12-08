@@ -1,29 +1,28 @@
-// front/src/App.tsx
-import { useState, useEffect, Suspense, lazy, useMemo } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
-import { getReports } from './api/reports';
+import { getRecentReports } from './api/reports'; // [Modified] getRecentReports만 사용
 import type { BattleMain } from './types/report';
 import ReportInputModal from './components/Detail/ReportInputModal';
 import AuthModal from './components/Auth/AuthModal';
 import NavBar from './components/Layout/NavBar';
-import { GameDataProvider } from './contexts/GameDataContext'; // [New] Provider Import
+import { GameDataProvider } from './contexts/GameDataContext';
 
-// [Optimization] 페이지 Lazy Loading
+// 페이지 Lazy Loading
 const MainPage = lazy(() => import('./pages/MainPage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
 const ReportDetail = lazy(() => import('./pages/ReportDetail'));
 const StonesPage = lazy(() => import('./pages/StonesPage'));
 const ModulesInfoPage = lazy(() => import('./pages/ModulesInfoPage'));
 
-// 로딩 중 표시 컴포넌트
+// 로딩 중 표시
 const LoadingFallback = () => (
   <div className="flex justify-center items-center h-[50vh] text-slate-500">
     <div className="animate-pulse">페이지 로딩 중...</div>
   </div>
 );
 
-// 로그인 필요 안내 컴포넌트
+// 로그인 필요 안내
 const LoginRequired = ({ onOpenAuth }: { onOpenAuth: () => void }) => (
   <div className="text-center py-20 text-slate-500">
      <User size={48} className="mx-auto mb-4 opacity-20"/>
@@ -32,52 +31,36 @@ const LoginRequired = ({ onOpenAuth }: { onOpenAuth: () => void }) => (
   </div>
 );
 
-// [New] URL 파라미터를 받아 ReportDetail에 넘겨주는 래퍼 컴포넌트
+// URL 파라미터 래퍼
 const ReportDetailWrapper = () => {
   const { date } = useParams();
   const navigate = useNavigate();
-  // date가 없으면 빈 문자열 처리, 뒤로가기 버튼(-1) 연결
   return <ReportDetail battleDate={date || ""} onBack={() => navigate(-1)} />;
 };
 
 export default function App() {
-  const [reports, setReports] = useState<BattleMain[]>([]);
+  // [Modified] 전체 reports 대신 최근 리포트(recentReports)만 상태 관리
+  const [recentReports, setRecentReports] = useState<BattleMain[]>([]);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
 
-  const loadReports = async () => {
+  // [Modified] 최근 데이터만 로드하도록 변경
+  const loadRecentData = async () => {
     try {
-      const data = await getReports(); 
-      setReports(data);
+      const data = await getRecentReports(); 
+      setRecentReports(data);
     } catch (e) {
       console.error(e);
     }
   };
 
   useEffect(() => {
-    if (token) loadReports();
-    else setReports([]);
+    if (token) loadRecentData();
+    else setRecentReports([]);
   }, [token]);
 
-  // 리포트 데이터 분류 (최근 3일 vs 과거)
-  const { recentReports, pastReports } = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const recent: BattleMain[] = [];
-    const past: BattleMain[] = [];
-
-    reports.forEach(report => {
-      const reportDate = new Date(report.battle_date);
-      reportDate.setHours(0, 0, 0, 0);
-      const diffTime = today.getTime() - reportDate.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays < 3) recent.push(report);
-      else past.push(report);
-    });
-    return { recentReports: recent, pastReports: past };
-  }, [reports]);
+  // [Removed] useMemo로 recent/past 나누던 로직 제거 (백엔드가 이미 분리함)
 
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -91,7 +74,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     setToken(null);
-    setReports([]);
+    setRecentReports([]);
   };
 
   const handleLoginSuccess = (accessToken: string) => {
@@ -102,7 +85,6 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      {/* [New] GameDataProvider로 감싸기 */}
       <GameDataProvider token={token}>
         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
           
@@ -122,9 +104,10 @@ export default function App() {
                   ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
                 } />
 
+                {/* [Modified] HistoryPage에 props 전달 제거 (자체 로딩) */}
                 <Route path="/history" element={
                   token ? (
-                    <HistoryPage reports={pastReports} /> 
+                    <HistoryPage /> 
                   ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
                 } />
 
@@ -140,7 +123,7 @@ export default function App() {
           </main>
 
           {isReportModalOpen && (
-            <ReportInputModal onClose={() => setIsReportModalOpen(false)} onSuccess={loadReports} />
+            <ReportInputModal onClose={() => setIsReportModalOpen(false)} onSuccess={loadRecentData} />
           )}
 
           {isAuthModalOpen && (

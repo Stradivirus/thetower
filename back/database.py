@@ -18,7 +18,7 @@ DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERV
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 2. [추가] 리플리카 서버 (읽기용)
+# 2. 리플리카 서버 (읽기용)
 POSTGRES_SERVER_READ = os.getenv("POSTGRES_SERVER_READ")
 # 만약 환경변수가 없으면 메인 서버를 쓰도록 fallback 처리 (안전장치)
 if not POSTGRES_SERVER_READ:
@@ -31,7 +31,7 @@ SessionLocalRead = sessionmaker(autocommit=False, autoflush=False, bind=engine_r
 
 Base = declarative_base()
 
-# 메인 DB 세션 (기존)
+# 메인 DB 세션 (쓰기/읽기 겸용 - progress, modules 등에서 사용)
 def get_db():
     db = SessionLocal()
     try:
@@ -39,7 +39,7 @@ def get_db():
     finally:
         db.close()
 
-# [추가] 읽기 전용 DB 세션
+# 읽기 전용 DB 세션 (reports 조회용)
 def get_db_read():
     db = SessionLocalRead()
     try:

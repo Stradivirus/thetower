@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from models import BattleMain, BattleDetail, User, UserProgress, UserModules
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import schemas
 
 # --- User ---
@@ -29,7 +29,7 @@ def update_user_progress(db: Session, user_id: int, progress_data: dict):
     db.refresh(db_progress)
     return db_progress
 
-# --- [Modified] Modules ---
+# --- Modules ---
 def get_user_modules(db: Session, user_id: int):
     return db.query(UserModules).filter(UserModules.user_id == user_id).first()
 
@@ -69,9 +69,33 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
     db.commit()
     return battle_main
 
-def get_battle_mains(db: Session, user_id: int, skip: int = 0, limit: int = 100):
+# [Modified] 날짜 기준: 오늘 포함 3일 (D-0, D-1, D-2)
+def get_cutoff_date():
+    # 현재 UTC 날짜의 0시 0분 0초
+    now = datetime.now(timezone.utc)
+    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    # 2일 전 자정까지 포함하면 총 3일치 (오늘, 어제, 그제)
+    # 예: 8일 실행 -> 6일 00:00:00 기준 (6, 7, 8일 데이터가 Recent)
+    return midnight - timedelta(days=2)
+
+# 최근 3일 데이터 조회
+def get_recent_reports(db: Session, user_id: int):
+    cutoff_date = get_cutoff_date()
+    
     return db.query(BattleMain)\
              .filter(BattleMain.owner_id == user_id)\
+             .filter(BattleMain.battle_date >= cutoff_date)\
+             .order_by(BattleMain.battle_date.desc())\
+             .all()
+
+# 3일 이전 데이터 조회 (히스토리용)
+def get_history_reports(db: Session, user_id: int, skip: int = 0, limit: int = 100):
+    cutoff_date = get_cutoff_date()
+    
+    return db.query(BattleMain)\
+             .filter(BattleMain.owner_id == user_id)\
+             .filter(BattleMain.battle_date < cutoff_date)\
              .order_by(BattleMain.battle_date.desc())\
              .offset(skip).limit(limit).all()
 

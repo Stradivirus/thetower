@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
-from datetime import datetime
+from datetime import datetime, timezone
 
 class User(Base):
     __tablename__ = "users"
@@ -26,25 +26,21 @@ class UserProgress(Base):
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     progress_json = Column(JSONB) 
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # [Modified] timezone.utc 적용
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="progress")
 
-# [Modified] 모듈 데이터 저장용 테이블 (컬럼 분리)
 class UserModules(Base):
     __tablename__ = "user_modules"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     
-    # [변경] 보유 현황 (Inventory) - 레벨, 조각 등 확장 가능
-    # 예: { "아스트랄 구조": { "rarity": 1, "level": 10 } }
     inventory_json = Column(JSONB, default={}) 
-    
-    # [추가] 장착 현황 (Loadout)
-    # 예: { "cannon_main": { "name": "아스트랄 구조", "rarity": 1 } }
     equipped_json = Column(JSONB, default={})
 
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # [Modified] timezone.utc 적용
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="modules")
 
@@ -52,7 +48,8 @@ class BattleMain(Base):
     __tablename__ = "battle_mains"
     
     battle_date = Column(DateTime, primary_key=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    # [Modified] timezone.utc 적용
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="reports")
