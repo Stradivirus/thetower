@@ -26,7 +26,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(reports.router)
 app.include_router(progress.router)
-app.include_router(modules.router) # 등록
+app.include_router(modules.router)
 
 @app.get("/")
 def root():
