@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Zap, Layers, ChevronDown, ChevronUp, Sword, Skull, TrendingUp, TrendingDown } from 'lucide-react';
+import { Zap, Layers, ChevronDown, ChevronUp, Skull } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber, formatDateHeader, formatTimeOnly, parseDurationToHours } from '../../utils/format';
 
@@ -108,9 +108,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
         {/* 6. Damage & Killer (3칸) */}
         <div className="md:col-span-3 flex flex-col justify-center border-l border-slate-800/50 pl-4 h-full py-0.5 min-w-0">
-          <div className="text-[9px] text-slate-600 mb-1.5 h-3 flex items-center">
-             (오브, 블랙홀 제외)
-          </div>
           {mainDamages.length > 0 ? (
             <div className="grid grid-cols-3 gap-2 mb-1.5">
               {mainDamages.map((dmg, idx) => (
