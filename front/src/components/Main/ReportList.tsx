@@ -66,7 +66,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           <div className="text-yellow-400 font-bold font-mono text-lg truncate">{formatNumber(report.coin_earned)}</div>
         </div>
 
-        {/* 3. Coin/h (1칸) - [Modified] User Request */}
+        {/* 3. Coin/h (1칸) */}
         <div className="md:col-span-1 text-center">
             <div className="text-slate-300 font-mono font-medium text-sm truncate">{formatNumber(report.coins_per_hour)}/h</div>
         </div>
@@ -92,7 +92,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
         {/* 6. Damage & Killer (3칸) */}
         <div className="md:col-span-3 flex flex-col justify-center border-l border-slate-800/50 pl-4 h-full py-0.5 min-w-0">
-          {/* Main Damage */}
           {mainDamages.length > 0 ? (
             <div className="grid grid-cols-3 gap-2 mb-1.5">
               {mainDamages.map((dmg, idx) => (
@@ -107,7 +106,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
             <div className="text-xs text-slate-500 mb-1.5">No Data</div>
           )}
 
-          {/* Killer Info */}
           <div className="flex items-center gap-1.5 text-xs">
              <Skull size={10} className="text-slate-500" />
              <span className="text-slate-500 text-[10px]">Killed by</span>
@@ -115,7 +113,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           </div>
         </div>
 
-        {/* 7. Memo (2칸) - [Modified] 1칸 -> 2칸으로 확장하여 내용 표시 */}
+        {/* 7. Memo (2칸) */}
         <div className="md:col-span-2 flex justify-center items-center px-2">
             {report.notes ? (
               <div className="bg-blue-500/10 border border-blue-500/30 px-2 py-1 rounded text-[10px] text-blue-300 truncate w-full text-center cursor-help transition-colors hover:bg-blue-500/20" title={report.notes}>
@@ -133,14 +131,12 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
     <>
       {!hideHeader && (
         <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 text-center select-none items-end pb-2">
-          {/* [Modified] 헤더 비율을 위의 renderItem과 동일하게 2:2:1:1:1:3:2로 조정 */}
           <div className="col-span-2 text-xs font-bold text-slate-300">Time / Wave</div>
           <div className="col-span-2 text-xs font-bold text-slate-300">Coins</div>
           <div className="col-span-1 text-xs font-bold text-slate-400">Coin/h</div>
           <div className="col-span-1 text-xs font-bold text-cyan-400">Cell/h</div>
           <div className="col-span-1 text-xs font-bold text-slate-400">Res.</div>
           
-          {/* [Modified] 대미지 헤더 및 하단 설명 추가 */}
           <div className="col-span-3 text-left pl-4">
             <span className="text-xs font-bold text-rose-400">Damage & Killer</span>
             <span className="text-[10px] text-slate-500 font-normal ml-1 block leading-none mt-0.5">(오브, 블랙홀 제외)</span>
@@ -160,7 +156,9 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           const isExpanded = expandedDates[dateHeader];
           
           if (isOld) {
+             // [Modified] 합계 계산에 Cells 추가
              const totalCoins = groupItems.reduce((acc, r) => acc + r.coin_earned, 0);
+             const totalCells = groupItems.reduce((acc, r) => acc + r.cells_earned, 0);
              const totalShards = groupItems.reduce((acc, r) => acc + r.reroll_shards_earned, 0);
              
              return (
@@ -180,9 +178,19 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                         {groupItems.length} Games
                       </span>
                       <div className="h-4 w-px bg-slate-800"></div>
+                      
+                      {/* Coins */}
                       <span className="flex items-center gap-1.5 text-slate-400">
                         <span className="text-yellow-500 font-mono font-bold text-base">{formatNumber(totalCoins)}</span>
                       </span>
+
+                      {/* [New] Cells */}
+                      <span className="flex items-center gap-1.5 text-slate-400">
+                        <Zap size={14} className="text-cyan-500"/>
+                        <span className="text-cyan-500 font-mono font-bold text-base">{formatNumber(totalCells)}</span>
+                      </span>
+
+                      {/* Shards */}
                       <span className="flex items-center gap-1.5 text-slate-400">
                         <Layers size={14} className="text-green-500"/> 
                         <span className="text-green-500 font-mono font-bold text-base">{formatNumber(totalShards)}</span>
