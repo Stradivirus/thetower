@@ -1,8 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
-# --- User & Token ---
 class UserBase(BaseModel):
     username: str
 
@@ -22,7 +21,6 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-# --- Progress ---
 class ProgressBase(BaseModel):
     progress_json: Dict[str, Any]
 
@@ -31,8 +29,6 @@ class ProgressResponse(ProgressBase):
     class Config:
         from_attributes = True
 
-# --- [Modified] Modules ---
-# 보유와 장착을 분리하여 요청/응답 처리
 class UserModulesBase(BaseModel):
     inventory_json: Dict[str, Any]
     equipped_json: Dict[str, Any]
@@ -42,7 +38,11 @@ class UserModulesResponse(UserModulesBase):
     class Config:
         from_attributes = True
 
-# --- Reports ---
+# [New]
+class DamageItem(BaseModel):
+    name: str
+    value: str
+
 class BattleMainBase(BaseModel):
     battle_date: datetime
     tier: str
@@ -58,6 +58,9 @@ class BattleMainBase(BaseModel):
     notes: Optional[str] = None
 
 class BattleMainResponse(BattleMainBase):
+    # [New]
+    top_damages: List[DamageItem] = [] 
+    
     class Config:
         from_attributes = True
 

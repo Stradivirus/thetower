@@ -1,4 +1,8 @@
-// [Updated] 백엔드 스키마 변경 반영
+export interface DamageItem {
+  name: string;
+  value: string;
+}
+
 export interface BattleMain {
   battle_date: string;
   created_at: string;
@@ -16,6 +20,9 @@ export interface BattleMain {
   damage_dealt: string;
   damage_taken: string;
   notes?: string;
+  
+  // [New] 추가됨
+  top_damages: DamageItem[];
 }
 
 export interface BattleDetail {
