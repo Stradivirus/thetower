@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, Search, X, Calendar, ChevronDown, ChevronUp, Loader2, Layers } from 'lucide-react';
+import { Archive, Search, X, Calendar, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import ReportList from '../components/Main/ReportList';
 import { formatNumber } from '../utils/format';
