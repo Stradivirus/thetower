@@ -1,48 +1,41 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, Search, X, Calendar, ChevronDown, ChevronUp, Loader2, Zap, Layers, TrendingUp, TrendingDown } from 'lucide-react';
+import { Archive, Search, X, Calendar, ChevronDown, ChevronUp, Loader2, Zap, Layers } from 'lucide-react';
 import type { BattleMain } from '../types/report';
+import type { WeeklyStatsResponse } from '../api/reports'; 
+import { getHistoryReports, getWeeklyStats } from '../api/reports';
 import ReportList from '../components/Main/ReportList';
+import WeeklyStatsChart from '../components/History/WeeklyStatsChart';
 import { formatNumber } from '../utils/format';
-import { getHistoryReports } from '../api/reports';
-
-// [New] 증감률 표시 컴포넌트
-const TrendIndicator = ({ current, previous }: { current: number, previous: number }) => {
-  if (!previous || previous === 0) return null;
-  const diff = current - previous;
-  const percent = (diff / previous) * 100;
-  const isPositive = diff > 0;
-  if (diff === 0) return null;
-
-  return (
-    <span className={`text-[10px] font-bold ml-1.5 flex items-center gap-0.5 ${isPositive ? 'text-green-400' : 'text-rose-400'}`}>
-      {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-      {Math.abs(percent).toFixed(1)}%
-    </span>
-  );
-};
 
 export default function HistoryPage() {
   const navigate = useNavigate();
   const [reports, setReports] = useState<BattleMain[]>([]);
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStatsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const fetchHistory = async () => {
+    const loadData = async () => {
       setIsLoading(true);
       try {
-        const data = await getHistoryReports(0, 1000);
-        setReports(data);
+        // 리스트와 통계 데이터를 병렬로 호출
+        const [historyData, statsData] = await Promise.all([
+          getHistoryReports(0, 1000),
+          getWeeklyStats()
+        ]);
+        
+        setReports(historyData);
+        setWeeklyStats(statsData);
       } catch (error) {
-        console.error("Failed to load history:", error);
+        console.error("Failed to load history data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-    fetchHistory();
+    loadData();
   }, []);
 
   const handleSelectReport = (date: string) => {
@@ -51,7 +44,7 @@ export default function HistoryPage() {
 
   const { recentWeekReports, monthlyGroups } = useMemo(() => {
     const now = new Date();
-    // 10일 전 자정 계산
+    // 10일 전 자정 계산 (최근 리스트 기준)
     const historyListLimit = new Date(now);
     historyListLimit.setDate(now.getDate() - 10); 
     historyListLimit.setHours(0, 0, 0, 0);
@@ -76,11 +69,11 @@ export default function HistoryPage() {
 
       const reportDate = new Date(report.battle_date);
       
-      // 1. 최근 10일치 리스트
+      // 1. 최근 10일치 리스트용 분류
       if (reportDate >= historyListLimit) {
         recent.push(report);
       } else {
-        // 2. 월별 집계
+        // 2. 월별 리스트용 그룹화 (단순 합계만 계산)
         const monthKey = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
         if (!monthlyMap.has(monthKey)) {
           monthlyMap.set(monthKey, { monthKey, coins: 0, cells: 0, shards: 0, count: 0, reports: [] });
@@ -98,17 +91,7 @@ export default function HistoryPage() {
     const sortedMonths = Array.from(monthlyMap.values())
         .sort((a, b) => b.monthKey.localeCompare(a.monthKey));
 
-    // 전월 대비 증감률 계산을 위해 데이터 가공
-    const finalMonthlyGroups = sortedMonths.map((group, index) => {
-        const prevMonth = sortedMonths[index + 1]; // 다음 인덱스 = 더 과거 달
-        return {
-            ...group,
-            prevCoins: prevMonth ? prevMonth.coins : 0,
-            prevCells: prevMonth ? prevMonth.cells : 0
-        };
-    });
-
-    return { recentWeekReports: recent, monthlyGroups: finalMonthlyGroups };
+    return { recentWeekReports: recent, monthlyGroups: sortedMonths };
   }, [reports, searchTerm]);
 
   const toggleMonth = (monthKey: string) => {
@@ -158,6 +141,11 @@ export default function HistoryPage() {
         </div>
       </div>
 
+      {/* 검색어가 없을 때만 분석 차트 표시 */}
+      {!searchTerm && (
+        <WeeklyStatsChart data={weeklyStats} loading={isLoading} />
+      )}
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500">
           <Loader2 size={32} className="animate-spin mb-2 text-blue-500" />
@@ -166,7 +154,7 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-4">
           
-          {/* 1. 최근 10일치 리스트 */}
+          {/* 최근 10일 리스트 */}
           {recentWeekReports.length > 0 && (
             <div className="animate-fade-in mb-6">
               <ReportList 
@@ -178,7 +166,7 @@ export default function HistoryPage() {
             </div>
           )}
 
-          {/* 2. 월별 아카이브 (증감률 추가) */}
+          {/* 월별 리스트 (심플 버전) */}
           <div>
             {monthlyGroups.map((group) => {
                 const isExpanded = expandedMonths.has(group.monthKey);
@@ -195,26 +183,22 @@ export default function HistoryPage() {
                           {formatMonthKey(group.monthKey)}
                         </span>
                         
+                        {/* 간소화된 월별 헤더: 증감률 제거, 코인/셀/샤드 합계만 깔끔하게 */}
                         <div className="flex items-center gap-4 text-xs">
                           <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700 font-medium">
                             {group.count} Games
                           </span>
                           <div className="h-4 w-px bg-slate-800"></div>
                           
-                          {/* Coins + Trend */}
                           <span className="flex items-center gap-1.5 text-slate-400">
                             <span className="text-yellow-500 font-mono font-bold text-base">{formatNumber(group.coins)}</span>
-                            <TrendIndicator current={group.coins} previous={group.prevCoins} />
                           </span>
 
-                          {/* Cells + Trend */}
                           <span className="flex items-center gap-1.5 text-slate-400 ml-2">
                             <Zap size={14} className="text-cyan-500"/>
                             <span className="text-cyan-500 font-mono font-bold text-base">{formatNumber(group.cells)}</span>
-                            <TrendIndicator current={group.cells} previous={group.prevCells} />
                           </span>
 
-                          {/* Shards */}
                           <span className="flex items-center gap-1.5 text-slate-400 ml-2">
                             <Layers size={14} className="text-green-500"/> 
                             <span className="text-green-500 font-mono font-bold text-base">{formatNumber(group.shards)}</span>

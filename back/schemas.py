@@ -38,7 +38,6 @@ class UserModulesResponse(UserModulesBase):
     class Config:
         from_attributes = True
 
-# [New]
 class DamageItem(BaseModel):
     name: str
     value: str
@@ -58,7 +57,6 @@ class BattleMainBase(BaseModel):
     notes: Optional[str] = None
 
 class BattleMainResponse(BattleMainBase):
-    # [New]
     top_damages: List[DamageItem] = [] 
     
     class Config:
@@ -76,3 +74,15 @@ class BattleDetailResponse(BaseModel):
 class FullReportResponse(BaseModel):
     main: BattleMainResponse
     detail: BattleDetailResponse
+
+# [Modified] 딜 관련 스키마(DamageStat) 삭제 및 WeeklyStatsResponse 간소화
+class DailyStat(BaseModel):
+    date: str
+    total_coins: int
+    total_cells: int
+    coin_growth: float
+    cell_growth: float
+
+class WeeklyStatsResponse(BaseModel):
+    daily_stats: List[DailyStat]
+    # top_damages 필드 삭제됨
