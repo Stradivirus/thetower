@@ -11,6 +11,26 @@ const getAuthHeaders = (): HeadersInit => {
   return {};
 };
 
+// [New] 주간 통계 데이터 타입 정의
+export interface DailyStat {
+  date: string;
+  total_coins: number;
+  total_cells: number;
+  coin_growth: number;
+  cell_growth: number;
+}
+
+export interface DamageStat {
+  name: string;
+  total_damage: number;
+  formatted_value: string;
+}
+
+export interface WeeklyStatsResponse {
+  daily_stats: DailyStat[];
+  top_damages: DamageStat[];
+}
+
 export const createReport = async (reportText: string, notes: string): Promise<BattleMain> => {
   const formData = new FormData();
   formData.append('report_text', reportText);
@@ -27,6 +47,16 @@ export const createReport = async (reportText: string, notes: string): Promise<B
     throw new Error(errorData.detail || 'Failed to create report');
   }
   
+  return response.json();
+};
+
+// [New] 주간 통계 조회 함수
+export const getWeeklyStats = async (): Promise<WeeklyStatsResponse> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/weekly-stats`, {
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) throw new Error('Failed to fetch weekly stats');
   return response.json();
 };
 
@@ -51,7 +81,6 @@ export const getRecentReports = async (): Promise<BattleMain[]> => {
 };
 
 // [New] 과거 데이터 조회 (기록 보관소용)
-// limit을 넉넉하게 잡거나, 추후 무한 스크롤 구현 시 파라미터 조절 가능
 export const getHistoryReports = async (skip: number = 0, limit: number = 1000): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/history?skip=${skip}&limit=${limit}`, {
     headers: getAuthHeaders(),
