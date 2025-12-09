@@ -14,7 +14,6 @@ def get_my_modules(
 ):
     modules = crud.get_user_modules(db, current_user.id)
     if not modules:
-        # 데이터가 없을 경우 빈 객체 반환
         return {"inventory_json": {}, "equipped_json": {}}
     return modules
 
