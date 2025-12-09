@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Zap, Layers, ChevronDown, ChevronUp, Skull} from 'lucide-react';
+import { Zap, Layers, ChevronDown, ChevronUp, Skull } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber, formatDateHeader, formatTimeOnly, parseDurationToHours } from '../../utils/format';
 
@@ -144,7 +144,8 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
       )}
 
       <div className="space-y-6 mt-4">
-        {groupedReports.map(([dateHeader, groupItems], index) => {
+        {/* [Fixed] 불필요한 index 매개변수 제거 */}
+        {groupedReports.map(([dateHeader, groupItems]) => {
           const reportDate = new Date(groupItems[0].battle_date);
           reportDate.setHours(0, 0, 0, 0);
           const diffTime = today.getTime() - reportDate.getTime();
@@ -199,7 +200,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                   </div>
                 </div>
                 {isExpanded && (
-                  <div className="px-4 pb-4 bg-slate-900/30 animate-fade-in border-t border-slate-800/30 pt-4">
+                  <div className="px-4 pb-4 bg-slate-950/30 animate-fade-in border-t border-slate-800/30 pt-4">
                     {groupItems.map(report => renderItem(report))}
                   </div>
                 )}
@@ -221,17 +222,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                     <span className="text-xs text-slate-500 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
                         {groupItems.length} Games
                     </span>
-
-                    {/* 일별 헤더 정보 (심플 버전) */}
-                    {/* <div className="hidden sm:flex items-center gap-3 text-xs ml-2 border-l border-slate-800 pl-3">
-                         <span className="flex items-center gap-1">
-                            <span className="text-yellow-500 font-mono font-bold">{formatNumber(totalCoins)}</span>
-                         </span>
-                         <span className="flex items-center gap-1">
-                            <Zap size={12} className="text-cyan-500"/>
-                            <span className="text-cyan-500 font-mono font-bold">{formatNumber(totalCells)}</span>
-                         </span>
-                    </div> */}
                 </div>
                 
                 <div className="h-px bg-slate-800 flex-1"></div>
