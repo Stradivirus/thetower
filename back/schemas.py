@@ -75,7 +75,9 @@ class FullReportResponse(BaseModel):
     main: BattleMainResponse
     detail: BattleDetailResponse
 
-# [Modified] 딜 관련 스키마(DamageStat) 삭제 및 WeeklyStatsResponse 간소화
+# --- 통계 관련 스키마 ---
+
+# 1. 일간(Daily) 통계
 class DailyStat(BaseModel):
     date: str
     total_coins: int
@@ -85,4 +87,14 @@ class DailyStat(BaseModel):
 
 class WeeklyStatsResponse(BaseModel):
     daily_stats: List[DailyStat]
-    # top_damages 필드 삭제됨
+
+# 2. 주간(Weekly) 트렌드 [New]
+class WeeklyTrendStat(BaseModel):
+    week_start_date: str  # 해당 주 월요일
+    total_coins: int
+    total_cells: int
+    coin_growth: float
+    cell_growth: float
+
+class WeeklyTrendResponse(BaseModel):
+    weekly_stats: List[WeeklyTrendStat]

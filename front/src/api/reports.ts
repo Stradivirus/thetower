@@ -11,7 +11,7 @@ const getAuthHeaders = (): HeadersInit => {
   return {};
 };
 
-// [New] 주간 통계 데이터 타입 정의
+// [New] 통계 데이터 타입 정의
 export interface DailyStat {
   date: string;
   total_coins: number;
@@ -20,15 +20,21 @@ export interface DailyStat {
   cell_growth: number;
 }
 
-export interface DamageStat {
-  name: string;
-  total_damage: number;
-  formatted_value: string;
-}
-
 export interface WeeklyStatsResponse {
   daily_stats: DailyStat[];
-  top_damages: DamageStat[];
+}
+
+// [New] 주간 트렌드 타입 추가
+export interface WeeklyTrendStat {
+  week_start_date: string;
+  total_coins: number;
+  total_cells: number;
+  coin_growth: number;
+  cell_growth: number;
+}
+
+export interface WeeklyTrendResponse {
+  weekly_stats: WeeklyTrendStat[];
 }
 
 export const createReport = async (reportText: string, notes: string): Promise<BattleMain> => {
@@ -50,7 +56,7 @@ export const createReport = async (reportText: string, notes: string): Promise<B
   return response.json();
 };
 
-// [New] 주간 통계 조회 함수
+// 일간 통계 조회
 export const getWeeklyStats = async (): Promise<WeeklyStatsResponse> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/weekly-stats`, {
     headers: getAuthHeaders(),
@@ -60,7 +66,17 @@ export const getWeeklyStats = async (): Promise<WeeklyStatsResponse> => {
   return response.json();
 };
 
-// [Deprecated] 기존 전체 조회 (하위 호환성 위해 유지하거나 제거 가능)
+// [New] 주간 트렌드 조회
+export const getWeeklyTrends = async (): Promise<WeeklyTrendResponse> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/weekly-trends`, {
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) throw new Error('Failed to fetch weekly trends');
+  return response.json();
+};
+
+// 기존 전체 조회
 export const getReports = async (): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/`, {
     headers: getAuthHeaders(),
@@ -70,7 +86,7 @@ export const getReports = async (): Promise<BattleMain[]> => {
   return response.json();
 };
 
-// [New] 최근 3일 데이터 조회 (메인 대시보드용)
+// 최근 데이터 조회 (메인 대시보드용)
 export const getRecentReports = async (): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/recent`, {
     headers: getAuthHeaders(),
@@ -80,7 +96,7 @@ export const getRecentReports = async (): Promise<BattleMain[]> => {
   return response.json();
 };
 
-// [New] 과거 데이터 조회 (기록 보관소용)
+// 과거 데이터 조회 (기록 보관소용)
 export const getHistoryReports = async (skip: number = 0, limit: number = 1000): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/history?skip=${skip}&limit=${limit}`, {
     headers: getAuthHeaders(),

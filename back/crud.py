@@ -3,12 +3,11 @@ from models import BattleMain, BattleDetail, User, UserProgress, UserModules
 from datetime import datetime, timedelta, timezone
 import schemas
 
-# [New] 간단한 인메모리 캐시 저장소
-# 구조: { user_id: { "timestamp": datetime, "data": result_dict } }
+# 간단한 인메모리 캐시 저장소
 _stats_cache = {}
-CACHE_EXPIRE_MINUTES = 10  # 캐시 유효 시간 (10분)
+CACHE_EXPIRE_MINUTES = 10
 
-# [Safety] models.py에 파싱 함수가 없거나 임포트 실패를 대비해 안전하게 재정의
+# [Safety] 안전한 파싱 함수
 def parse_game_number_safe(value_str: str) -> float:
     if not value_str: return 0.0
     clean_str = str(value_str).strip().replace(',', '')
@@ -94,21 +93,19 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
     db.merge(battle_detail)
     db.commit()
     
-    # [Cache Invalidation] 데이터가 변경되었으므로 해당 유저의 통계 캐시 삭제
-    if user_id in _stats_cache:
-        del _stats_cache[user_id]
+    keys_to_remove = [k for k in _stats_cache.keys() if str(k).startswith(str(user_id))]
+    for k in keys_to_remove:
+        del _stats_cache[k]
         
     return battle_main
 
 def get_cutoff_date():
-    # 현재 UTC 시간 기준
     now = datetime.now(timezone.utc)
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return midnight - timedelta(days=2)
 
 def get_recent_reports(db: Session, user_id: int):
     cutoff_date = get_cutoff_date()
-    # DB에 저장된 날짜가 Naive(시간대 없음)일 수 있으므로 비교를 위해 tzinfo 제거
     cutoff_date_naive = cutoff_date.replace(tzinfo=None)
     
     return db.query(BattleMain)\
@@ -143,63 +140,55 @@ def get_full_report(db: Session, battle_date: datetime, user_id: int):
         "detail": main.detail
     }
 
-# [Modified] 주간 통계 데이터 집계 (최근 7일) - 딜 미터기 제거 & 캐싱 & 날짜 에러 수정
+# 1. 일간 통계 (어제 기준 최근 7일)
 def get_weekly_stats(db: Session, user_id: int):
-    # 1. 캐시 확인
-    if user_id in _stats_cache:
-        cache_entry = _stats_cache[user_id]
-        elapsed = datetime.now() - cache_entry["timestamp"]
-        # 유효 시간(10분)이 지나지 않았다면 캐시된 데이터 즉시 반환
-        if elapsed < timedelta(minutes=CACHE_EXPIRE_MINUTES):
+    cache_key = f"{user_id}_daily"
+    
+    if cache_key in _stats_cache:
+        cache_entry = _stats_cache[cache_key]
+        if (datetime.now() - cache_entry["timestamp"]) < timedelta(minutes=CACHE_EXPIRE_MINUTES):
             return cache_entry["data"]
 
-    # --- 계산 로직 시작 ---
+    # 오늘 자정 (UTC)
+    now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    yesterday = now_utc - timedelta(days=1)
     
-    # [Fix] 500 에러 원인 해결: UTC Aware -> Naive 변환
-    # DB에 저장된 날짜 포맷과 비교하기 위해 tzinfo를 제거합니다.
-    base_date = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
-    
-    # 7일 전 (오늘 포함 7일 데이터)
-    cutoff_date = base_date - timedelta(days=6)
-    # 증감률 계산을 위해 하루 더 전 데이터도 필요 (-1일)
-    fetch_start_date = cutoff_date - timedelta(days=1)
+    # 8일치 데이터 로드 (D-1 ~ D-8)
+    fetch_start_date = yesterday - timedelta(days=7)
     
     reports = db.query(BattleMain)\
-                .options(joinedload(BattleMain.detail))\
                 .filter(BattleMain.owner_id == user_id)\
                 .filter(BattleMain.battle_date >= fetch_start_date)\
+                .filter(BattleMain.battle_date < now_utc)\
                 .order_by(BattleMain.battle_date.asc())\
                 .all()
 
-    # 2. 일별 데이터 그룹화
     daily_map = {}
     for r in reports:
         date_key = r.battle_date.strftime("%Y-%m-%d")
         if date_key not in daily_map:
             daily_map[date_key] = {"coins": 0, "cells": 0}
         
-        # [Safety] 값이 None일 경우 0으로 처리하여 TypeError 방지
         daily_map[date_key]["coins"] += (r.coin_earned or 0)
         daily_map[date_key]["cells"] += (r.cells_earned or 0)
 
-    # 3. 날짜순 정렬 및 증감률 계산
     daily_stats = []
     
-    # 실제로 반환해야 할 날짜 리스트 생성 (cutoff_date 부터 7일간)
+    # 실제 보여줄 날짜: D-1 ~ D-7 (7일)
+    display_start_date = yesterday - timedelta(days=6)
+    
     target_dates = []
     for i in range(7):
-        d = cutoff_date + timedelta(days=i)
+        d = display_start_date + timedelta(days=i)
         target_dates.append(d.strftime("%Y-%m-%d"))
 
     for date_str in target_dates:
         curr_data = daily_map.get(date_str, {"coins": 0, "cells": 0})
         
-        # 전일 날짜 계산
         prev_date_obj = datetime.strptime(date_str, "%Y-%m-%d") - timedelta(days=1)
         prev_date_str = prev_date_obj.strftime("%Y-%m-%d")
         prev_data = daily_map.get(prev_date_str, {"coins": 0, "cells": 0})
         
-        # 증감률 계산 (0 나누기 방지)
         coin_growth = 0.0
         if prev_data["coins"] > 0:
             coin_growth = (curr_data["coins"] - prev_data["coins"]) / prev_data["coins"] * 100
@@ -216,14 +205,102 @@ def get_weekly_stats(db: Session, user_id: int):
             "cell_growth": round(cell_growth, 1)
         })
 
-    # --- 계산 로직 끝 ---
-
     result = {"daily_stats": daily_stats}
+    _stats_cache[cache_key] = {"timestamp": datetime.now(), "data": result}
+    return result
 
-    # 4. 계산 결과를 캐시에 저장 (현재 시간과 함께)
-    _stats_cache[user_id] = {
-        "timestamp": datetime.now(),
-        "data": result
-    }
+# 2. 주간 트렌드 (최근 8주 Rolling - 어제 기준 7일씩 묶음) [Updated]
+def get_weekly_trends(db: Session, user_id: int):
+    cache_key = f"{user_id}_weekly"
+    
+    if cache_key in _stats_cache:
+        cache_entry = _stats_cache[cache_key]
+        if (datetime.now() - cache_entry["timestamp"]) < timedelta(minutes=CACHE_EXPIRE_MINUTES):
+            return cache_entry["data"]
 
+    # 기준일: 어제
+    now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    yesterday = now_utc - timedelta(days=1)
+    
+    # [Rolling Week Logic]
+    # Bucket 0: [어제-6일 ~ 어제] (7일간)
+    # Bucket 1: [어제-13일 ~ 어제-7일]
+    # ...
+    # 보여줄 8주치 + 비교용 1주 = 총 9주(63일) 데이터 필요
+    fetch_start_date = yesterday - timedelta(days=63)
+    
+    # 오늘 데이터 제외
+    reports = db.query(BattleMain)\
+                .filter(BattleMain.owner_id == user_id)\
+                .filter(BattleMain.battle_date >= fetch_start_date)\
+                .filter(BattleMain.battle_date < now_utc)\
+                .order_by(BattleMain.battle_date.asc())\
+                .all()
+
+    weekly_map = {}
+    
+    # 리포트 그룹화 (Rolling)
+    for r in reports:
+        # 어제 날짜와의 차이를 구함
+        diff_days = (yesterday - r.battle_date.replace(hour=0,minute=0,second=0,microsecond=0)).days
+        
+        # 미래 데이터 방어
+        if diff_days < 0: continue
+        
+        # 주차 인덱스 계산 (0: 최신주, 1: 1주전...)
+        week_idx = diff_days // 7
+        
+        # 해당 주차의 종료일(End Date)과 시작일(Start Date) 계산
+        # End Date = Yesterday - (week_idx * 7)
+        # Start Date = End Date - 6
+        end_date = yesterday - timedelta(days=week_idx * 7)
+        start_date = end_date - timedelta(days=6)
+        
+        # 키는 '시작일'로 저장 (프론트엔드 표기를 위해)
+        key = start_date.strftime("%Y-%m-%d")
+        
+        if key not in weekly_map:
+            weekly_map[key] = {"coins": 0, "cells": 0}
+            
+        weekly_map[key]["coins"] += (r.coin_earned or 0)
+        weekly_map[key]["cells"] += (r.cells_earned or 0)
+
+    trend_stats = []
+    
+    # 8주치 타겟 생성 (과거 -> 최신)
+    # i=0 (7주전) ... i=7 (이번주)
+    target_weeks = []
+    for i in range(8):
+        # week_idx = 7 - i
+        week_idx = 7 - i
+        end_date = yesterday - timedelta(days=week_idx * 7)
+        start_date = end_date - timedelta(days=6)
+        target_weeks.append(start_date.strftime("%Y-%m-%d"))
+
+    for week_str in target_weeks:
+        curr_data = weekly_map.get(week_str, {"coins": 0, "cells": 0})
+        
+        # 전주 시작일 (7일 전)
+        prev_date_obj = datetime.strptime(week_str, "%Y-%m-%d") - timedelta(days=7)
+        prev_week_str = prev_date_obj.strftime("%Y-%m-%d")
+        prev_data = weekly_map.get(prev_week_str, {"coins": 0, "cells": 0})
+        
+        coin_growth = 0.0
+        if prev_data["coins"] > 0:
+            coin_growth = (curr_data["coins"] - prev_data["coins"]) / prev_data["coins"] * 100
+            
+        cell_growth = 0.0
+        if prev_data["cells"] > 0:
+            cell_growth = (curr_data["cells"] - prev_data["cells"]) / prev_data["cells"] * 100
+            
+        trend_stats.append({
+            "week_start_date": week_str,
+            "total_coins": curr_data["coins"],
+            "total_cells": curr_data["cells"],
+            "coin_growth": round(coin_growth, 1),
+            "cell_growth": round(cell_growth, 1)
+        })
+
+    result = {"weekly_stats": trend_stats}
+    _stats_cache[cache_key] = {"timestamp": datetime.now(), "data": result}
     return result
