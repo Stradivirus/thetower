@@ -16,6 +16,7 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: ${ALGORITHM}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
 
   # --- 2. Frontend Service (React Build + Caddy Server) ---
   frontend:
