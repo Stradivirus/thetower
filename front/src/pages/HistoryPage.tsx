@@ -21,7 +21,6 @@ export default function HistoryPage() {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // 리스트와 통계 데이터를 병렬로 호출
         const [historyData, statsData] = await Promise.all([
           getHistoryReports(0, 1000),
           getWeeklyStats()
@@ -44,9 +43,15 @@ export default function HistoryPage() {
 
   const { recentWeekReports, monthlyGroups } = useMemo(() => {
     const now = new Date();
-    // 10일 전 자정 계산 (최근 리스트 기준)
+    
+    // 1. [MainPage 제외 기준] 오늘 포함 3일치 (Today, D-1, D-2) 계산
+    const mainPageCutoff = new Date(now);
+    mainPageCutoff.setDate(now.getDate() - 2);
+    mainPageCutoff.setHours(0, 0, 0, 0);
+
+    // 2. [History 리스트 기준] 최근 10일치 (그 이후는 월별로)
     const historyListLimit = new Date(now);
-    historyListLimit.setDate(now.getDate() - 10); 
+    historyListLimit.setDate(now.getDate() - 9); 
     historyListLimit.setHours(0, 0, 0, 0);
 
     const lowerTerm = searchTerm.toLowerCase();
@@ -69,11 +74,17 @@ export default function HistoryPage() {
 
       const reportDate = new Date(report.battle_date);
       
-      // 1. 최근 10일치 리스트용 분류
+      // [핵심 수정] 검색어가 없을 때는 "메인 페이지에 있는 3일치"는 건너뜀
+      // (검색 중일 때는 다 보여주는 게 UX상 맞음)
+      if (!searchTerm && reportDate >= mainPageCutoff) {
+        return; 
+      }
+      
+      // 3일 전 ~ 10일 전 데이터 -> 상단 리스트에 표시
       if (reportDate >= historyListLimit) {
         recent.push(report);
       } else {
-        // 2. 월별 리스트용 그룹화 (단순 합계만 계산)
+        // 10일 이전 데이터 -> 월별 묶음
         const monthKey = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
         if (!monthlyMap.has(monthKey)) {
           monthlyMap.set(monthKey, { monthKey, coins: 0, cells: 0, shards: 0, count: 0, reports: [] });
@@ -87,7 +98,6 @@ export default function HistoryPage() {
       }
     });
 
-    // 월별 데이터 정렬 (최신순)
     const sortedMonths = Array.from(monthlyMap.values())
         .sort((a, b) => b.monthKey.localeCompare(a.monthKey));
 
@@ -141,7 +151,6 @@ export default function HistoryPage() {
         </div>
       </div>
 
-      {/* 검색어가 없을 때만 분석 차트 표시 */}
       {!searchTerm && (
         <WeeklyStatsChart data={weeklyStats} loading={isLoading} />
       )}
@@ -154,9 +163,10 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-4">
           
-          {/* 최근 10일 리스트 */}
+          {/* 최근 10일 (하지만 상위 3일은 제외된) 리스트 */}
           {recentWeekReports.length > 0 && (
             <div className="animate-fade-in mb-6">
+              <div className="text-xs font-bold text-slate-500 mb-2 px-1">최근 기록 (이전 7일)</div>
               <ReportList 
                 reports={recentWeekReports} 
                 onSelectReport={handleSelectReport}
@@ -166,7 +176,7 @@ export default function HistoryPage() {
             </div>
           )}
 
-          {/* 월별 리스트 (심플 버전) */}
+          {/* 월별 아카이브 */}
           <div>
             {monthlyGroups.map((group) => {
                 const isExpanded = expandedMonths.has(group.monthKey);
@@ -183,7 +193,6 @@ export default function HistoryPage() {
                           {formatMonthKey(group.monthKey)}
                         </span>
                         
-                        {/* 간소화된 월별 헤더: 증감률 제거, 코인/셀/샤드 합계만 깔끔하게 */}
                         <div className="flex items-center gap-4 text-xs">
                           <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700 font-medium">
                             {group.count} Games

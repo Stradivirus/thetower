@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
-  ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine 
+  ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend 
 } from 'recharts';
-import { BarChart3, Zap, CircleDollarSign, RefreshCw, CalendarDays, CalendarRange } from 'lucide-react';
+import { BarChart3, Zap, CircleDollarSign, RefreshCw, CalendarDays, CalendarRange, TrendingUp, TrendingDown } from 'lucide-react';
 import { getWeeklyTrends } from '../../api/reports';
 import type { WeeklyStatsResponse, WeeklyTrendResponse } from '../../api/reports';
 import { formatNumber } from '../../utils/format';
@@ -38,31 +38,33 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   const isLoading = viewMode === 'daily' ? dailyLoading : weeklyLoading;
 
-  if (isLoading && ((viewMode === 'daily' && !dailyData) || (viewMode === 'weekly' && !weeklyData))) {
-    return (
-      <div className="h-[380px] bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-500 mb-8 animate-pulse">
-        <RefreshCw className="animate-spin mr-2" size={20} /> 데이터 분석 중...
-      </div>
-    );
-  }
+  const chartData = useMemo(() => {
+    let rawData: any[] = [];
+    if (viewMode === 'daily' && dailyData) {
+      rawData = dailyData.daily_stats;
+    } else if (viewMode === 'weekly' && weeklyData) {
+      rawData = weeklyData.weekly_stats;
+    }
 
-  let chartData: any[] = [];
-  
-  if (viewMode === 'daily' && dailyData) {
-    chartData = dailyData.daily_stats.map(d => ({
+    return rawData.map(d => ({
       ...d,
-      displayDate: d.date.substring(5).replace('-', '/'),
+      displayDate: viewMode === 'daily' 
+        ? d.date.substring(5).replace('-', '/') 
+        : `${d.week_start_date.substring(5).replace('-', '/')}~`,
       currentGrowth: resourceType === 'coin' ? d.coin_growth : d.cell_growth,
       amount: resourceType === 'coin' ? d.total_coins : d.total_cells
     }));
-  } else if (viewMode === 'weekly' && weeklyData) {
-    chartData = weeklyData.weekly_stats.map(d => ({
-      ...d,
-      displayDate: `${d.week_start_date.substring(5).replace('-', '/')}~`, 
-      currentGrowth: resourceType === 'coin' ? d.coin_growth : d.cell_growth,
-      amount: resourceType === 'coin' ? d.total_coins : d.total_cells
-    }));
-  }
+  }, [viewMode, dailyData, weeklyData, resourceType]);
+
+  const summary = useMemo(() => {
+    if (chartData.length === 0) return { total: 0, avgGrowth: 0 };
+    
+    const total = chartData.reduce((acc, cur) => acc + cur.amount, 0);
+    const growthSum = chartData.reduce((acc, cur) => acc + cur.currentGrowth, 0);
+    const avgGrowth = growthSum / chartData.length;
+
+    return { total, avgGrowth };
+  }, [chartData]);
 
   const COLORS = {
     coinBar: '#fbbf24',
@@ -85,74 +87,91 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   const off = gradientOffset();
 
+  if (isLoading && chartData.length === 0) {
+    return (
+      <div className="h-[380px] bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-slate-500 mb-8 animate-pulse">
+        <RefreshCw className="animate-spin mr-2" size={20} /> 데이터 분석 중...
+      </div>
+    );
+  }
+
+  const renderCustomLegend = () => {
+    const isPositive = summary.avgGrowth >= 0;
+    const TrendIcon = isPositive ? TrendingUp : TrendingDown;
+    const trendColor = isPositive ? 'text-green-400' : 'text-blue-400';
+
+    return (
+      <div className="flex items-center justify-between px-2 mt-4 border-t border-slate-800/50 pt-3 text-xs">
+        {/* Left */}
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: currentBarColor }}></div>
+          <span className="text-slate-300 font-bold">
+            {isCoin ? "Coins Earned" : "Cells Earned"}
+          </span>
+        </div>
+
+        {/* Center */}
+        <div className="flex items-center gap-4 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800">
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-500">Total:</span>
+            <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
+              {formatNumber(summary.total)}
+            </span>
+          </div>
+          <div className="w-px h-3 bg-slate-700"></div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-500">Avg Growth:</span>
+            <span className={`font-mono font-bold text-sm flex items-center gap-0.5 ${trendColor}`}>
+              <TrendIcon size={12} />
+              {Math.abs(summary.avgGrowth).toFixed(1)}%
+            </span>
+          </div>
+        </div>
+
+        {/* Right */}
+        <div className="flex items-center gap-2">
+          <span className="text-slate-300 font-bold">Growth %</span>
+          <div className="w-8 h-0.5 bg-gradient-to-r from-red-500 to-blue-500 relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-900 border-2 border-slate-500"></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 animate-fade-in shadow-xl">
-      
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        
-        {/* Title */}
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
             <h3 className="text-slate-300 text-lg font-bold flex items-center gap-2">
               <BarChart3 size={20} className="text-slate-400" /> 성장 분석
             </h3>
-            {/* [New] 안내 문구 추가 */}
             <span className="text-[11px] text-slate-500 font-medium ml-7">
               * 오늘을 제외한 {viewMode === 'daily' ? '최근 7일' : '최근 8주'} 데이터 (어제 기준)
             </span>
           </div>
           
           <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit self-start mt-1">
-             <button
-                onClick={() => setViewMode('daily')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                  viewMode === 'daily' 
-                    ? 'bg-slate-800 text-white shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-300'
-                }`}
-             >
+             <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarDays size={14} /> 일간
              </button>
-             <button
-                onClick={() => setViewMode('weekly')}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                  viewMode === 'weekly' 
-                    ? 'bg-slate-800 text-white shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-300'
-                }`}
-             >
+             <button onClick={() => setViewMode('weekly')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarRange size={14} /> 주간
              </button>
           </div>
         </div>
 
-        {/* Resource Type */}
         <div className="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-800">
-          <button 
-            onClick={() => setResourceType('coin')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-              isCoin 
-                ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' 
-                : 'text-slate-500 hover:text-white border border-transparent'
-            }`}
-          >
+          <button onClick={() => setResourceType('coin')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isCoin ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
             <CircleDollarSign size={14} /> Coins
           </button>
-          <button 
-            onClick={() => setResourceType('cell')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-              !isCoin 
-                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
-                : 'text-slate-500 hover:text-white border border-transparent'
-            }`}
-          >
+          <button onClick={() => setResourceType('cell')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isCoin ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
             <Zap size={14} /> Cells
           </button>
         </div>
       </div>
 
-      {/* Chart Area */}
       <div className="h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
@@ -162,37 +181,10 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
                 <stop offset={off} stopColor={COLORS.decrease} stopOpacity={1} />
               </linearGradient>
             </defs>
-
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-            
-            <XAxis 
-              dataKey="displayDate" 
-              tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} 
-              axisLine={false} 
-              tickLine={false} 
-              dy={10}
-            />
-            
-            <YAxis 
-              yAxisId="left" 
-              tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }} 
-              tickFormatter={(val) => formatNumber(val)} 
-              axisLine={false} 
-              tickLine={false}
-              width={50}
-            />
-            
-            <YAxis 
-              yAxisId="right" 
-              orientation="right" 
-              tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }}
-              tickFormatter={(val) => `${val}%`}
-              axisLine={false} 
-              tickLine={false}
-              width={40}
-              domain={['auto', 'auto']}
-            />
-            
+            <XAxis dataKey="displayDate" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
+            <YAxis yAxisId="left" tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }} tickFormatter={(val) => formatNumber(val)} axisLine={false} tickLine={false} width={50} />
+            <YAxis yAxisId="right" orientation="right" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} tickFormatter={(val) => `${val}%`} axisLine={false} tickLine={false} width={40} domain={['auto', 'auto']} />
             <Tooltip 
               cursor={{ fill: '#1e293b', opacity: 0.4 }}
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
@@ -204,35 +196,13 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
                   const color = num > 0 ? COLORS.increase : (num < 0 ? COLORS.decrease : '#94a3b8');
                   return [<span style={{ color }}>{value}%</span>, 'Growth Rate'];
                 }
-                return [formatNumber(value), 'Total Amount'];
+                return [formatNumber(value), isCoin ? 'Coins' : 'Cells'];
               }}
             />
-            
-            <Legend wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} iconType="circle" />
-
-            <Bar 
-              yAxisId="left"
-              dataKey="amount" 
-              name={isCoin ? "Coins Earned" : "Cells Earned"} 
-              barSize={viewMode === 'daily' ? 24 : 36}
-              radius={[6, 6, 0, 0]}
-              fill={currentBarColor}
-              fillOpacity={0.8}
-            />
-
+            <Legend content={renderCustomLegend} />
+            <Bar yAxisId="left" dataKey="amount" name={isCoin ? "Coins Earned" : "Cells Earned"} barSize={viewMode === 'daily' ? 24 : 36} radius={[6, 6, 0, 0]} fill={currentBarColor} fillOpacity={0.8} />
             <ReferenceLine y={0} yAxisId="right" stroke="#475569" strokeDasharray="3 3" />
-
-            <Line 
-              yAxisId="right"
-              type="monotone" 
-              dataKey="currentGrowth" 
-              name="Growth %" 
-              stroke="url(#splitColor)" 
-              strokeWidth={3} 
-              dot={{ r: 4, fill: '#0f172a', strokeWidth: 2, stroke: '#64748b' }}
-              activeDot={{ r: 6 }}
-              connectNulls
-            />
+            <Line yAxisId="right" type="monotone" dataKey="currentGrowth" name="Growth %" stroke="url(#splitColor)" strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2, stroke: '#64748b' }} activeDot={{ r: 6 }} connectNulls />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
