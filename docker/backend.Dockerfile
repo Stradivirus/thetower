@@ -21,5 +21,5 @@ COPY back/ $APP_HOME/back/
 WORKDIR $APP_HOME/back
 
 # Set the command to run uvicorn on main.py inside the new WORKDIR
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["gunicorn", "main:app", "--workers", "5", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000"]
 # [FIX END]
