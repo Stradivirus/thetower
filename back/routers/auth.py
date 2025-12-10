@@ -1,14 +1,19 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 import database, schemas, crud, auth
+import slack # [New] 슬랙 모듈 임포트
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/register", response_model=schemas.UserResponse)
-def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+def register(
+    user: schemas.UserCreate, 
+    background_tasks: BackgroundTasks, # [New] 백그라운드 태스크 의존성 추가
+    db: Session = Depends(database.get_db)
+):
     if len(user.username) < 4:
         raise HTTPException(status_code=400, detail="아이디는 4자 이상이어야 합니다.")
     if len(user.password) < 4:
@@ -19,7 +24,18 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
         raise HTTPException(status_code=400, detail="이미 사용 중인 아이디입니다.")
     
     hashed_pw = auth.get_password_hash(user.password)
-    return crud.create_user(db=db, user=user, hashed_password=hashed_pw)
+    new_user = crud.create_user(db=db, user=user, hashed_password=hashed_pw)
+
+    # [New] 10명 단위 알림 로직
+    try:
+        total_count = crud.count_users(db)
+        if total_count % 10 == 0:
+            msg = f"🚀 [축] {total_count}번째 사용자가 가입했습니다! (ID: {new_user.username})"
+            background_tasks.add_task(slack.send_slack_notification, msg)
+    except Exception as e:
+        print(f"Notification Check Error: {e}")
+
+    return new_user
 
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):

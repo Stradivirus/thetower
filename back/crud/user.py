@@ -11,3 +11,7 @@ def create_user(db: Session, user: schemas.UserCreate, hashed_password: str):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+# [New] 사용자 수 조회
+def count_users(db: Session) -> int:
+    return db.query(User).count()

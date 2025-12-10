@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi import APIRouter, Depends, HTTPException, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from database import get_db, get_db_read
 from schemas import BattleMainResponse, FullReportResponse, WeeklyStatsResponse, WeeklyTrendResponse
@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import List, Optional
 from models import User
 from auth import get_current_user
+import slack # [New] 슬랙 모듈 임포트
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -16,12 +17,29 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 def create_report(
     report_text: str = Form(...), 
     notes: Optional[str] = Form(None),
+    background_tasks: BackgroundTasks = None, # [New] 백그라운드 태스크 추가 (기본값 None 안전장치)
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     try:
         parsed_data = parse_battle_report(report_text)
         result = crud.create_battle_record(db, parsed_data, current_user.id, notes)
+        
+        # [New] 10건 단위 알림 로직
+        if background_tasks:
+            try:
+                total_count = crud.count_reports(db)
+                if total_count % 10 == 0:
+                    msg = (
+                        f"⚔️ [New Record] {total_count}번째 전투 기록이 등록되었습니다!\n"
+                        f"- User: {current_user.username}\n"
+                        f"- Tier: {result.tier} / Wave: {result.wave}\n"
+                        f"- Coins: {result.coin_earned:,}"
+                    )
+                    background_tasks.add_task(slack.send_slack_notification, msg)
+            except Exception as e:
+                print(f"Notification Check Error: {e}")
+
         return result
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -26,10 +26,14 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
         
     return battle_main
 
+# [New] 전체 리포트 수 조회
+def count_reports(db: Session) -> int:
+    return db.query(BattleMain).count()
+
 def get_cutoff_date():
     now = datetime.now(timezone.utc)
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    # [수정됨] 최근 7일치 데이터를 조회하도록 변경
+    # 최근 7일치 데이터를 조회하도록 변경
     return midnight - timedelta(days=7)
 
 def get_recent_reports(db: Session, user_id: int):
@@ -44,7 +48,6 @@ def get_recent_reports(db: Session, user_id: int):
              .all()
 
 def get_history_reports(db: Session, user_id: int, skip: int = 0, limit: int = 100):
-    # [수정됨] 주석 라인 제거하여 에러 해결
     return db.query(BattleMain)\
              .options(joinedload(BattleMain.detail))\
              .filter(BattleMain.owner_id == user_id)\
