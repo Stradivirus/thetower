@@ -65,7 +65,8 @@ export default function App() {
   useEffect(() => {
     const handleAuthExpired = () => {
       handleLogout();
-      alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
+      // [Modified] alert 제거하고 바로 로그인 모달 열기
+      setIsAuthModalOpen(true);
     };
     window.addEventListener('auth:expired', handleAuthExpired);
     return () => window.removeEventListener('auth:expired', handleAuthExpired);
