@@ -30,7 +30,8 @@ def register(
     try:
         total_count = crud.count_users(db)
         if total_count % 10 == 0:
-            msg = f"🚀 [축] {total_count}번째 사용자가 가입했습니다! (ID: {new_user.username})"
+            # [Modified] ID 제거하고 카운트만 전송
+            msg = f"🚀 [축] {total_count}번째 사용자가 가입했습니다!"
             background_tasks.add_task(slack.send_slack_notification, msg)
     except Exception as e:
         print(f"Notification Check Error: {e}")

@@ -30,12 +30,8 @@ def create_report(
             try:
                 total_count = crud.count_reports(db)
                 if total_count % 10 == 0:
-                    msg = (
-                        f"⚔️ [New Record] {total_count}번째 전투 기록이 등록되었습니다!\n"
-                        f"- User: {current_user.username}\n"
-                        f"- Tier: {result.tier} / Wave: {result.wave}\n"
-                        f"- Coins: {result.coin_earned:,}"
-                    )
+                    # [Modified] 세부 내용 제거하고 심플하게 메시지 전송
+                    msg = f"⚔️ [New Record] {total_count}번째 전투 기록이 등록되었습니다!"
                     background_tasks.add_task(slack.send_slack_notification, msg)
             except Exception as e:
                 print(f"Notification Check Error: {e}")
