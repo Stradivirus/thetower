@@ -101,7 +101,7 @@ def get_history_view(db: Session, user_id: int):
         "monthly_summaries": monthly_summaries
     }
 
-# [New] 특정 월의 상세 기록 조회 (Lazy Loading 용)
+# 특정 월의 상세 기록 조회 (Lazy Loading 용)
 def get_reports_by_month(db: Session, user_id: int, month_key: str):
     # month_key format: "YYYY-MM"
     # 해당 월의 1일부터 말일까지 조회

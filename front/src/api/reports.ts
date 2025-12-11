@@ -1,4 +1,4 @@
-import type { BattleMain, FullReport, HistoryViewResponse, MonthlySummary } from '../types/report';
+import type { BattleMain, FullReport, HistoryViewResponse } from '../types/report';
 import { API_BASE_URL, fetchWithAuth } from '../utils/apiConfig';
 
 const REPORTS_URL = `${API_BASE_URL}/reports`;
