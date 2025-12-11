@@ -4,7 +4,7 @@ import { RARITIES, RARITY } from './ModuleConstants';
 import { MODULE_TYPES } from '../../data/module_reroll_data'; 
 import SlotViewer, { type SimulationSlot } from './Reroll/SlotViewer';
 import ManualSelectorModal from './Reroll/ManualSelectorModal';
-import useEscKey from '../../hooks/useEscKey'; // [New] Import
+import useEscKey from '../../hooks/useEscKey';
 
 interface Props {
   isOpen: boolean;
@@ -31,9 +31,19 @@ export default function ModuleDetailModal({
   onUnequip,
   equipStatus
 }: Props) {
-  // ... (state 및 effect 로직들은 그대로 유지) ...
-  const initialRarity = typeof currentData === 'object' ? currentData.rarity : (currentData !== undefined ? currentData : RARITY.ANCESTRAL);
-  const initialEffects = typeof currentData === 'object' ? (currentData.effects || []) : [];
+  // [Fix] currentData가 null이 아니고 객체인지 확인 (null check 필수)
+  const isDataObject = currentData && typeof currentData === 'object';
+
+  // [Fix] 초기값 설정 로직 개선
+  // 1. 객체 데이터가 유효하면 rarity 속성 사용
+  // 2. 숫자 데이터(레거시)면 그대로 사용
+  // 3. null/undefined면 기본값(ANCESTRAL) 사용
+  const initialRarity = isDataObject 
+    ? currentData.rarity 
+    : (typeof currentData === 'number' ? currentData : RARITY.ANCESTRAL);
+
+  // [Fix] 객체일 때만 effects 접근, 아니면 빈 배열
+  const initialEffects = isDataObject ? (currentData.effects || []) : [];
 
   const [rarity, setRarity] = useState<number>(initialRarity);
   const [effects, setEffects] = useState<(string | null)[]>([]);
@@ -48,9 +58,9 @@ export default function ModuleDetailModal({
     });
     setEffects(filled);
     setRarity(initialRarity);
-  }, [currentData, isOpen]);
+  }, [currentData, isOpen]); // 의존성 배열에 계산된 값 대신 원본 사용, 내부에서 재계산됨
 
-  // [New] ESC 키 처리 (선택 모달이 안 열려있을 때만 동작)
+  // ESC 키 처리
   useEscKey(onClose, isOpen && !isSelectorOpen);
 
   const availableEffects = useMemo(() => {
@@ -66,8 +76,17 @@ export default function ModuleDetailModal({
       if (!effectData) {
         return { id: idx, effectId: null, rarity: 0, value: 'Unknown', unit: '', isLocked: false };
       }
+      
       const val = effectData.values[rarity]; 
-      return { id: idx, effectId: effectId, rarity: rarity, value: val ?? '-', unit: effectData.unit, isLocked: false };
+      
+      return {
+        id: idx,
+        effectId: effectId,
+        rarity: rarity, 
+        value: val ?? '-',
+        unit: effectData.unit,
+        isLocked: false 
+      };
     });
   }, [effects, availableEffects, rarity]);
 
@@ -100,7 +119,6 @@ export default function ModuleDetailModal({
 
   return (
     <div 
-      // [New] 배경 클릭 시 닫기 (이벤트 타겟 확인)
       onClick={(e) => e.target === e.currentTarget && onClose()}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4 cursor-pointer"
     >
@@ -124,7 +142,8 @@ export default function ModuleDetailModal({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
-          {/* ... (기존 내용 유지) ... */}
+          
+          {/* 1. Rarity Selector */}
           <div className="space-y-2">
              <label className="text-sm font-bold text-slate-400">Module Rarity</label>
              <div className="grid grid-cols-4 gap-2">
@@ -150,6 +169,7 @@ export default function ModuleDetailModal({
              </div>
           </div>
 
+          {/* 2. Sub-Effects Editor */}
           <div className="space-y-2">
             <div className="flex justify-between items-end">
               <label className="text-sm font-bold text-slate-400">Sub-Effects ({effects.filter(e => e).length}/8)</label>
@@ -170,6 +190,7 @@ export default function ModuleDetailModal({
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/30 rounded-b-2xl flex justify-between items-center gap-4 shrink-0">
+          
           <button 
              onClick={() => { if(confirm('Delete this module?')) onDelete(); }}
              className="flex items-center gap-2 px-4 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg text-sm font-bold transition-colors"
