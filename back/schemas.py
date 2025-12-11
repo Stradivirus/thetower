@@ -1,7 +1,10 @@
 from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
 from datetime import datetime
-from typing import Optional, Dict, Any, List
 
+# ==========================================
+# 1. 유저 및 인증 (User & Auth) - [기존 코드 복구]
+# ==========================================
 class UserBase(BaseModel):
     username: str
 
@@ -21,6 +24,9 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
+# ==========================================
+# 2. 게임 진행도 및 모듈 (Progress) - [기존 코드 복구]
+# ==========================================
 class ProgressBase(BaseModel):
     progress_json: Dict[str, Any]
 
@@ -38,36 +44,47 @@ class UserModulesResponse(UserModulesBase):
     class Config:
         from_attributes = True
 
+# ==========================================
+# 3. 전투 기록 (Report) - [최적화 적용]
+# ==========================================
+
 class DamageItem(BaseModel):
     name: str
     value: str
+    raw: float = 0.0  # [New] 정렬 및 계산을 위한 숫자형 데이터
 
-class BattleMainBase(BaseModel):
+class BattleMainResponse(BaseModel):
     battle_date: datetime
+    created_at: Optional[datetime] = None
+    
     tier: str
     wave: int
     game_time: str
     real_time: str
+    
     coin_earned: int
     coins_per_hour: int
     cells_earned: int
     reroll_shards_earned: int
+    
     killer: str
     damage_dealt: str
-    notes: Optional[str] = None
-
-class BattleMainResponse(BattleMainBase):
-    top_damages: List[DamageItem] = [] 
+    damage_taken: str
     
+    notes: Optional[str] = None
+    
+    # [Modified] Dict 대신 명확한 스키마 사용
+    top_damages: List[DamageItem] = []
+
     class Config:
         from_attributes = True
 
 class BattleDetailResponse(BaseModel):
-    battle_date: datetime
-    combat_json: Dict[str, Any]
-    utility_json: Dict[str, Any]
-    enemy_json: Dict[str, Any]
-    bot_json: Dict[str, Any]
+    combat_json: Dict[str, Any] = {}
+    utility_json: Dict[str, Any] = {}
+    enemy_json: Dict[str, Any] = {}
+    bot_json: Dict[str, Any] = {}
+
     class Config:
         from_attributes = True
 
@@ -75,9 +92,9 @@ class FullReportResponse(BaseModel):
     main: BattleMainResponse
     detail: BattleDetailResponse
 
-# --- 통계 관련 스키마 ---
-
-# 1. 일간(Daily) 통계
+# ==========================================
+# 4. 통계 (Stats)
+# ==========================================
 class DailyStat(BaseModel):
     date: str
     total_coins: int
@@ -88,9 +105,8 @@ class DailyStat(BaseModel):
 class WeeklyStatsResponse(BaseModel):
     daily_stats: List[DailyStat]
 
-# 2. 주간(Weekly) 트렌드 [New]
 class WeeklyTrendStat(BaseModel):
-    week_start_date: str  # 해당 주 월요일
+    week_start_date: str
     total_coins: int
     total_cells: int
     coin_growth: float
@@ -98,3 +114,17 @@ class WeeklyTrendStat(BaseModel):
 
 class WeeklyTrendResponse(BaseModel):
     weekly_stats: List[WeeklyTrendStat]
+
+# ==========================================
+# 5. 기록실 최적화 뷰 (History View) - [New]
+# ==========================================
+class MonthlySummary(BaseModel):
+    month_key: str        # 예: "2023-12"
+    count: int            # 게임 수
+    total_coins: int      # 총 코인
+    total_cells: int      # 총 셀
+    total_shards: int     # 총 파편
+
+class HistoryViewResponse(BaseModel):
+    recent_reports: List[BattleMainResponse]  # 최근 7일치 상세
+    monthly_summaries: List[MonthlySummary]   # 그 이전 월별 요약

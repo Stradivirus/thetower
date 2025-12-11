@@ -1,4 +1,4 @@
-import type { BattleMain, FullReport } from '../types/report';
+import type { BattleMain, FullReport, HistoryViewResponse, MonthlySummary } from '../types/report';
 import { API_BASE_URL, fetchWithAuth } from '../utils/apiConfig';
 
 const REPORTS_URL = `${API_BASE_URL}/reports`;
@@ -11,7 +11,7 @@ const getAuthHeaders = (): HeadersInit => {
   return {};
 };
 
-// [New] 통계 데이터 타입 정의
+// --- 기존 통계 타입들 ---
 export interface DailyStat {
   date: string;
   total_coins: number;
@@ -19,12 +19,9 @@ export interface DailyStat {
   coin_growth: number;
   cell_growth: number;
 }
-
 export interface WeeklyStatsResponse {
   daily_stats: DailyStat[];
 }
-
-// [New] 주간 트렌드 타입 추가
 export interface WeeklyTrendStat {
   week_start_date: string;
   total_coins: number;
@@ -32,10 +29,10 @@ export interface WeeklyTrendStat {
   coin_growth: number;
   cell_growth: number;
 }
-
 export interface WeeklyTrendResponse {
   weekly_stats: WeeklyTrendStat[];
 }
+// ----------------------
 
 export const createReport = async (reportText: string, notes: string): Promise<BattleMain> => {
   const formData = new FormData();
@@ -52,7 +49,26 @@ export const createReport = async (reportText: string, notes: string): Promise<B
     const errorData = await response.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to create report');
   }
+  return response.json();
+};
+
+// [New] 기록실 뷰 데이터 조회 (최근 7일 + 월별 요약)
+export const getHistoryView = async (): Promise<HistoryViewResponse> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/view`, {
+    headers: getAuthHeaders(),
+  });
   
+  if (!response.ok) throw new Error('Failed to fetch history view');
+  return response.json();
+};
+
+// [New] 특정 월의 상세 기록 조회 (Lazy Loading)
+export const getReportsByMonth = async (monthKey: string): Promise<BattleMain[]> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/month/${monthKey}`, {
+    headers: getAuthHeaders(),
+  });
+  
+  if (!response.ok) throw new Error('Failed to fetch monthly reports');
   return response.json();
 };
 
@@ -61,48 +77,24 @@ export const getWeeklyStats = async (): Promise<WeeklyStatsResponse> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/weekly-stats`, {
     headers: getAuthHeaders(),
   });
-  
   if (!response.ok) throw new Error('Failed to fetch weekly stats');
   return response.json();
 };
 
-// [New] 주간 트렌드 조회
+// 주간 트렌드 조회
 export const getWeeklyTrends = async (): Promise<WeeklyTrendResponse> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/weekly-trends`, {
     headers: getAuthHeaders(),
   });
-  
   if (!response.ok) throw new Error('Failed to fetch weekly trends');
   return response.json();
 };
 
-// 기존 전체 조회
-export const getReports = async (): Promise<BattleMain[]> => {
-  const response = await fetchWithAuth(`${REPORTS_URL}/`, {
-    headers: getAuthHeaders(),
-  });
-  
-  if (!response.ok) throw new Error('Failed to fetch reports');
-  return response.json();
-};
-
-// 최근 데이터 조회 (메인 대시보드용)
 export const getRecentReports = async (): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/recent`, {
     headers: getAuthHeaders(),
   });
-  
   if (!response.ok) throw new Error('Failed to fetch recent reports');
-  return response.json();
-};
-
-// 과거 데이터 조회 (기록 보관소용)
-export const getHistoryReports = async (skip: number = 0, limit: number = 1000): Promise<BattleMain[]> => {
-  const response = await fetchWithAuth(`${REPORTS_URL}/history?skip=${skip}&limit=${limit}`, {
-    headers: getAuthHeaders(),
-  });
-  
-  if (!response.ok) throw new Error('Failed to fetch history reports');
   return response.json();
 };
 
@@ -110,12 +102,10 @@ export const getFullReport = async (battleDate: string): Promise<FullReport> => 
   const response = await fetchWithAuth(`${REPORTS_URL}/${battleDate}`, {
     headers: getAuthHeaders(),
   });
-  
   if (!response.ok) throw new Error('Failed to fetch report detail');
   return response.json();
 };
 
-// [New] 리포트 삭제 API 추가
 export const deleteReport = async (battleDate: string): Promise<void> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/${battleDate}`, {
     method: 'DELETE',
