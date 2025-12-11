@@ -8,7 +8,7 @@ from datetime import datetime
 from typing import List, Optional
 from models import User
 from auth import get_current_user
-import slack # [New] 슬랙 모듈 임포트
+import slack
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 def create_report(
     report_text: str = Form(...), 
     notes: Optional[str] = Form(None),
-    background_tasks: BackgroundTasks = None, # [New] 백그라운드 태스크 추가 (기본값 None 안전장치)
+    background_tasks: BackgroundTasks = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -25,12 +25,10 @@ def create_report(
         parsed_data = parse_battle_report(report_text)
         result = crud.create_battle_record(db, parsed_data, current_user.id, notes)
         
-        # [New] 10건 단위 알림 로직
         if background_tasks:
             try:
                 total_count = crud.count_reports(db)
                 if total_count % 10 == 0:
-                    # [Modified] 세부 내용 제거하고 심플하게 메시지 전송
                     msg = f"⚔️ [New Record] {total_count}번째 전투 기록이 등록되었습니다!"
                     background_tasks.add_task(slack.send_slack_notification, msg)
             except Exception as e:
@@ -40,7 +38,7 @@ def create_report(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# 2. 통계 및 목록 조회 (Static Path) - Dynamic Path보다 위에 있어야 함!
+# 2. 통계 및 목록 조회 (Static Path)
 
 @router.get("/recent", response_model=List[BattleMainResponse])
 def get_recent_reports(
@@ -65,7 +63,6 @@ def get_weekly_stats_api(
 ):
     return crud.get_weekly_stats(db, current_user.id)
 
-# [New] 주간 트렌드 조회
 @router.get("/weekly-trends", response_model=WeeklyTrendResponse)
 def get_weekly_trends_api(
     db: Session = Depends(get_db_read),
@@ -73,7 +70,8 @@ def get_weekly_trends_api(
 ):
     return crud.get_weekly_trends(db, current_user.id)
 
-# 3. 상세 조회 (Dynamic Path)
+# 3. 상세 조회 및 삭제 (Dynamic Path)
+
 @router.get("/{battle_date}", response_model=FullReportResponse)
 def get_report_detail(
     battle_date: str, 
@@ -86,5 +84,21 @@ def get_report_detail(
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
         return report
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format")
+
+# [New] 기록 삭제 API
+@router.delete("/{battle_date}")
+def delete_report(
+    battle_date: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    try:
+        date_obj = datetime.fromisoformat(battle_date)
+        success = crud.delete_battle_record(db, date_obj, current_user.id)
+        if not success:
+             raise HTTPException(status_code=404, detail="Report not found")
+        return {"status": "success", "message": "Record deleted successfully"}
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format")

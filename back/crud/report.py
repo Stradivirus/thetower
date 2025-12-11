@@ -26,14 +26,12 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
         
     return battle_main
 
-# [New] 전체 리포트 수 조회
 def count_reports(db: Session) -> int:
     return db.query(BattleMain).count()
 
 def get_cutoff_date():
     now = datetime.now(timezone.utc)
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    # 최근 7일치 데이터를 조회하도록 변경
     return midnight - timedelta(days=7)
 
 def get_recent_reports(db: Session, user_id: int):
@@ -67,3 +65,22 @@ def get_full_report(db: Session, battle_date: datetime, user_id: int):
         "main": main,
         "detail": main.detail
     }
+
+# [New] 기록 삭제 함수
+def delete_battle_record(db: Session, battle_date: datetime, user_id: int) -> bool:
+    record = db.query(BattleMain).filter(
+        BattleMain.battle_date == battle_date,
+        BattleMain.owner_id == user_id
+    ).first()
+
+    if record:
+        db.delete(record)
+        db.commit()
+        
+        # 삭제 후 관련 캐시 초기화
+        keys_to_remove = [k for k in _stats_cache.keys() if str(k).startswith(str(user_id))]
+        for k in keys_to_remove:
+            del _stats_cache[k]
+            
+        return True
+    return False

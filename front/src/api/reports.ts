@@ -114,3 +114,16 @@ export const getFullReport = async (battleDate: string): Promise<FullReport> => 
   if (!response.ok) throw new Error('Failed to fetch report detail');
   return response.json();
 };
+
+// [New] 리포트 삭제 API 추가
+export const deleteReport = async (battleDate: string): Promise<void> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/${battleDate}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to delete report');
+  }
+};
