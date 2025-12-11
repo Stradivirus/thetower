@@ -14,9 +14,17 @@ interface Props {
   onSelect: (effectId: string) => void;
   effects: EffectData[];
   targetRarity: number;
+  excludedIds?: string[]; // [New] 제외할 옵션 ID 목록
 }
 
-export default function ManualSelectorModal({ isOpen, onClose, onSelect, effects, targetRarity }: Props) {
+export default function ManualSelectorModal({ 
+  isOpen, 
+  onClose, 
+  onSelect, 
+  effects, 
+  targetRarity, 
+  excludedIds = [] // [New] 기본값 빈 배열
+}: Props) {
   if (!isOpen) return null;
 
   const rarityLabel = RARITY_LABELS[targetRarity];
@@ -51,40 +59,43 @@ export default function ManualSelectorModal({ isOpen, onClose, onSelect, effects
 
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-2">
-          {effects.map((effect) => {
-            const value = effect.values[targetRarity];
-            // 해당 등급에 값이 없는 옵션(예: Common 등급의 특정 옵션)은 비활성화 처리
-            const isValid = value !== null && value !== undefined;
+          {effects
+            // [New] 이미 선택된 옵션(excludedIds)은 목록에서 제외
+            .filter(effect => !excludedIds.includes(effect.id))
+            .map((effect) => {
+              const value = effect.values[targetRarity];
+              // 해당 등급에 값이 없는 옵션(예: Common 등급의 특정 옵션)은 비활성화 처리
+              const isValid = value !== null && value !== undefined;
 
-            return (
-              <button
-                key={effect.id}
-                onClick={() => isValid && onSelect(effect.id)}
-                disabled={!isValid}
-                className={`
-                  w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all
-                  ${isValid 
-                    ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-600 group' 
-                    : 'bg-slate-900/50 border-slate-800 opacity-40 cursor-not-allowed'}
-                `}
-              >
-                <div className="flex items-center gap-3">
-                  <span className={`text-sm font-bold ${isValid ? 'text-slate-200 group-hover:text-white' : 'text-slate-500'}`}>
-                    {effect.name}
-                  </span>
-                </div>
-
-                {isValid && (
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-mono font-bold ${getRarityColor(targetRarity)}`}>
-                      {value}{effect.unit}
+              return (
+                <button
+                  key={effect.id}
+                  onClick={() => isValid && onSelect(effect.id)}
+                  disabled={!isValid}
+                  className={`
+                    w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-all
+                    ${isValid 
+                      ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 hover:border-slate-600 group' 
+                      : 'bg-slate-900/50 border-slate-800 opacity-40 cursor-not-allowed'}
+                  `}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm font-bold ${isValid ? 'text-slate-200 group-hover:text-white' : 'text-slate-500'}`}>
+                      {effect.name}
                     </span>
-                    <CheckCircle2 size={16} className="text-slate-600 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100" />
                   </div>
-                )}
-              </button>
-            );
-          })}
+
+                  {isValid && (
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm font-mono font-bold ${getRarityColor(targetRarity)}`}>
+                        {value}{effect.unit}
+                      </span>
+                      <CheckCircle2 size={16} className="text-slate-600 group-hover:text-blue-400 transition-colors opacity-0 group-hover:opacity-100" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
         </div>
         
         {/* Footer */}

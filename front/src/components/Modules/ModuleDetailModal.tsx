@@ -103,6 +103,9 @@ export default function ModuleDetailModal({
                moduleType === 'armor' ? Shield : 
                moduleType === 'generator' ? Zap : Cpu;
 
+  // [New] 현재 선택된(장착된) 옵션 ID 목록 추출 (null 제외)
+  const currentSelectedIds = effects.filter((e): e is string => e !== null);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
@@ -183,7 +186,7 @@ export default function ModuleDetailModal({
           </button>
 
           <div className="flex items-center gap-3">
-            {/* 장착 버튼 로직 시각화: 현재 상태에 따라 적절한 버튼만 표시하거나 스타일 변경 */}
+            {/* 장착 버튼 로직 시각화 */}
             {equipStatus === 'main' ? (
                <button onClick={onUnequip} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-700">
                  Unequip Main
@@ -222,6 +225,7 @@ export default function ModuleDetailModal({
         onSelect={handleEffectSelect}
         effects={availableEffects}
         targetRarity={rarity}
+        excludedIds={currentSelectedIds} // [New] 목록 전달
       />
     </div>
   );
