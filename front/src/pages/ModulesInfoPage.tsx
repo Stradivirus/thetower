@@ -6,13 +6,27 @@ import { useGameData } from '../contexts/GameDataContext';
 import ModuleColumn from '../components/Modules/ModuleColumn';
 import ModuleHeader from '../components/Modules/ModuleHeader';
 import ModuleRerollView from '../components/Modules/RerollPanel';
+import ModuleDetailModal from '../components/Modules/ModuleDetailModal';
 
 export default function ModulesInfoPage() {
-  const [rarity, setRarity] = useState<number>(3); 
+  const [rarity, setRarity] = useState<number>(5); // 기본값 Ancestral(5)로 변경
   const [isChanged, setIsChanged] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
   const [viewMode, setViewMode] = useState<'equipped' | 'inventory' | 'reroll'>('equipped');
+
+  // 모달 상태 관리
+  const [detailModal, setDetailModal] = useState<{
+    isOpen: boolean;
+    type: string;
+    name: string;
+    data: any;
+  }>({
+    isOpen: false,
+    type: '',
+    name: '',
+    data: null
+  });
 
   const { modules, progress, setModules } = useGameData();
   const token = localStorage.getItem('access_token');
@@ -20,6 +34,8 @@ export default function ModulesInfoPage() {
   const slotIdMap: Record<string, string> = {
     'cannon': 'attack', 'armor': 'defense', 'generator': 'generator', 'core': 'core'
   };
+
+  // --- Data Logic ---
 
   const handleSaveProgress = async () => {
     if (!token) { alert("로그인이 필요합니다."); return; }
@@ -34,7 +50,12 @@ export default function ModulesInfoPage() {
                   equipped_json[key] = value;
               } else if (key.startsWith('owned_')) {
                   const realName = key.replace('owned_', '');
-                  inventory_json[realName] = { rarity: value };
+                  // 데이터 구조가 숫자면 객체로 변환하여 저장 (호환성)
+                  if (typeof value === 'number') {
+                    inventory_json[realName] = { rarity: value, effects: [] };
+                  } else {
+                    inventory_json[realName] = value;
+                  }
               }
           });
 
@@ -53,48 +74,132 @@ export default function ModulesInfoPage() {
     setIsSummaryOpen(true);
   };
 
-  const toggleSelection = (moduleType: string, moduleName: string) => {
-    if (viewMode === 'reroll') return;
+  // --- Interaction Handlers ---
 
-    let newState = { ...modules };
+  // 1. 모듈 클릭 시 모달 열기
+  const handleModuleClick = (type: string, name: string, data: any) => {
+    setDetailModal({
+      isOpen: true,
+      type,
+      name,
+      data: data // data가 undefined면 모달 내부에서 초기값(Ancestral) 처리
+    });
+  };
 
-    if (viewMode === 'inventory') {
-        const ownedKey = `owned_${moduleName}`;
-        const currentRarity = newState[ownedKey]; 
+  // 2. 모달: 저장
+  const handleModalSave = (newData: { rarity: number; effects: string[] }) => {
+    const { name, type } = detailModal;
+    const newState = { ...modules };
 
-        if (currentRarity === undefined) {
-            newState[ownedKey] = 3; 
-        } else if (currentRarity > 0) {
-            newState[ownedKey] = currentRarity - 1; 
-        } else {
-            delete newState[ownedKey]; 
-        }
-    } else {
-        const mainKey = `equipped_${moduleType}_main`;
-        const subKey = `equipped_${moduleType}_sub`;
-        const unlockKey = `module_unlock_${slotIdMap[moduleType]}`;
-        const unlockLevel = progress[unlockKey] || 0; 
-        const isAssistUnlocked = unlockLevel > 0;
+    // 보유 목록 업데이트
+    newState[`owned_${name}`] = newData;
 
-        const currentMain = modules[mainKey] as EquippedModule | undefined;
-        const currentSub = modules[subKey] as EquippedModule | undefined;
-        const newModuleData: EquippedModule = { name: moduleName, rarity: rarity };
+    // 장착 중인 데이터도 동기화
+    const mainKey = `equipped_${type}_main`;
+    const subKey = `equipped_${type}_sub`;
 
-        if (currentMain?.name === moduleName) {
-            delete newState[mainKey];
-        } else if (currentSub?.name === moduleName) {
-            delete newState[subKey];
-        } else {
-            if (currentMain && isAssistUnlocked) {
-                newState[subKey] = newModuleData;
-            } else {
-                newState[mainKey] = newModuleData;
-            }
-        }
+    if (modules[mainKey]?.name === name) {
+      newState[mainKey] = { name, ...newData };
+    }
+    if (modules[subKey]?.name === name) {
+      newState[subKey] = { name, ...newData };
     }
 
     setModules(newState);
     setIsChanged(true);
+    
+    setDetailModal(prev => ({ ...prev, data: newData }));
+  };
+
+  // 3. 모달: 삭제
+  const handleModalDelete = () => {
+    const { name, type } = detailModal;
+    const newState = { ...modules };
+
+    // 보유 목록 삭제
+    delete newState[`owned_${name}`];
+
+    // 장착 해제
+    const mainKey = `equipped_${type}_main`;
+    const subKey = `equipped_${type}_sub`;
+
+    if (modules[mainKey]?.name === name) delete newState[mainKey];
+    if (modules[subKey]?.name === name) delete newState[subKey];
+
+    setModules(newState);
+    setIsChanged(true);
+    setDetailModal(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // 4. 모달: 장착 (개선된 로직)
+  const handleModalEquip = (slot: 'main' | 'sub') => {
+    const { name, type, data } = detailModal;
+    
+    // 서브 슬롯 잠금 확인
+    if (slot === 'sub') {
+       const unlockKey = `module_unlock_${slotIdMap[type]}`;
+       const unlockLevel = progress[unlockKey] || 0;
+       if (unlockLevel <= 0) {
+         alert("Assist slot is locked. Research 'Module Space' first.");
+         return;
+       }
+    }
+
+    const newState = { ...modules };
+    
+    const targetKey = `equipped_${type}_${slot}`;     // 장착 목표 슬롯
+    const otherSlot = slot === 'main' ? 'sub' : 'main';
+    const otherKey = `equipped_${type}_${otherSlot}`; // 반대편 슬롯
+
+    // [중요] 반대편 슬롯에 '나' 자신이 있다면 제거 (이동 처리)
+    if (newState[otherKey]?.name === name) {
+      delete newState[otherKey];
+    }
+
+    // 장착 데이터 준비 (모달의 현재 상태 or 기본값)
+    // data가 없을 경우 기본값: rarity 5 (Ancestral), effects []
+    const moduleDataToEquip = { name, ...(data || { rarity: 5, effects: [] }) };
+
+    // 목표 슬롯에 장착 (기존에 있던건 덮어씌워짐)
+    newState[targetKey] = moduleDataToEquip;
+    
+    // 보유 리스트(owned) 안전장치: 없으면 생성
+    if (!newState[`owned_${name}`]) {
+       newState[`owned_${name}`] = { 
+         rarity: moduleDataToEquip.rarity, 
+         effects: moduleDataToEquip.effects 
+       };
+    }
+
+    setModules(newState);
+    setIsChanged(true);
+  };
+
+  // 5. 모달: 장착 해제
+  const handleModalUnequip = () => {
+    const { name, type } = detailModal;
+    const newState = { ...modules };
+
+    const mainKey = `equipped_${type}_main`;
+    const subKey = `equipped_${type}_sub`;
+
+    if (modules[mainKey]?.name === name) delete newState[mainKey];
+    if (modules[subKey]?.name === name) delete newState[subKey];
+
+    setModules(newState);
+    setIsChanged(true);
+  };
+
+  // 현재 모달에 띄운 모듈의 장착 상태 확인 Helper
+  const getEquipStatus = () => {
+    if (!detailModal.isOpen) return null;
+    const { name, type } = detailModal;
+    const mainKey = `equipped_${type}_main`;
+    const subKey = `equipped_${type}_sub`;
+
+    if (modules[mainKey]?.name === name) return 'main';
+    if (modules[subKey]?.name === name) return 'sub';
+    return null;
   };
 
   return (
@@ -110,7 +215,6 @@ export default function ModulesInfoPage() {
       />
 
       {viewMode === 'reroll' ? (
-        // [Modified] 높이 제한(h-[calc...]) 제거 -> 내용물만큼 늘어남
         <div className="mt-4">
           <ModuleRerollView />
         </div>
@@ -122,19 +226,36 @@ export default function ModulesInfoPage() {
               moduleType={type}
               modules={modules}
               progress={progress}
-              rarity={rarity}
-              onToggle={toggleSelection}
+              // viewMode가 inventory일 때는 전체, equipped일 때는 장착된 것 위주로 정렬됨
+              // (ModuleColumn 내부 로직 따름)
+              onModuleClick={handleModuleClick} 
               viewMode={viewMode as 'equipped' | 'inventory'}
+              rarity={rarity} 
             />
           ))}
         </div>
       )}
 
+      {/* 요약 모달 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
         progress={progress}
         modulesState={modules}
+      />
+
+      {/* 상세 설정 모달 */}
+      <ModuleDetailModal 
+        isOpen={detailModal.isOpen}
+        onClose={() => setDetailModal(prev => ({ ...prev, isOpen: false }))}
+        moduleType={detailModal.type}
+        moduleName={detailModal.name}
+        currentData={detailModal.data}
+        onSave={handleModalSave}
+        onDelete={handleModalDelete}
+        onEquip={handleModalEquip}
+        onUnequip={handleModalUnequip}
+        equipStatus={getEquipStatus()}
       />
     </div>
   );
