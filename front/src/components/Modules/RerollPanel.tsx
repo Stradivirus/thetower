@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { Info, BarChart3, Target, Shield, Zap, Cpu } from 'lucide-react';
 import { RARITY, MODULE_TYPES } from '../../data/module_reroll_data'; 
-
-// Custom Hook Import
 import { useRerollSimulation } from '../../hooks/useRerollSimulation';
-
 import RerollControls from './Reroll/RerollControls';
 import WishlistSelector from './Reroll/WishlistSelector';
 import SlotViewer from './Reroll/SlotViewer';
 import RerollSidebar from './Reroll/RerollSidebar'; 
+import ManualSelectorModal from './Reroll/ManualSelectorModal'; 
 
 const MODULE_ICONS = {
   cannon: { icon: Target, label: 'Cannon', color: 'text-rose-400', bg: 'bg-rose-500/10' },
@@ -25,38 +23,43 @@ const MAX_BAN_COUNTS: Record<string, number> = {
 };
 
 export default function RerollPanel() {
-  // --- 1. Settings State (UI 설정값) ---
   const [selectedModuleType, setSelectedModuleType] = useState('cannon');
   const currentModuleInfo = MODULE_ICONS[selectedModuleType as keyof typeof MODULE_ICONS];
   const currentEffects = MODULE_TYPES[selectedModuleType] || [];
   const maxBans = MAX_BAN_COUNTS[selectedModuleType] || 0;
 
   const [targetOptions, setTargetOptions] = useState<string[]>([]); 
-  const [targetRarityCap, setTargetRarityCap] = useState<number>(RARITY.MYTHIC);
+  const [targetRarityCap, setTargetRarityCap] = useState<number>(RARITY.ANCESTRAL);
 
-  // [밴 관련 State]
   const [banCount, setBanCount] = useState<number>(0);
   const [bannedOptions, setBannedOptions] = useState<string[]>([]);
   const [isBanMode, setIsBanMode] = useState(false);
 
-  // --- 2. Simulation Hook (엔진 연결) ---
+  // 모달 상태
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedSlotIdx, setSelectedSlotIdx] = useState<number | null>(null);
+
   const { 
     slots, 
     totalCost, 
     isSimulating, 
     startSimulation, 
     stopSimulation, 
-    resetSimulation 
+    resetSimulation,
+    manualSetSlot,   
+    manualUnlockSlot 
   } = useRerollSimulation();
 
   const lockedCount = slots.filter(s => s.isLocked).length;
 
-  // --- 3. Handlers (UI 조작) ---
+  // 사용 중인 슬롯 개수 계산
+  const lockedSlots = slots.filter(s => s.isLocked);
+  const pendingTargets = targetOptions.filter(t => !lockedSlots.some(s => s.effectId === t));
+  const usedSlotCount = lockedSlots.length + pendingTargets.length;
+
   const handleModuleChange = (typeId: string) => {
     if (isSimulating) stopSimulation();
     setSelectedModuleType(typeId);
-    
-    // 모든 상태 초기화
     setTargetOptions([]); 
     setBanCount(0);
     setBannedOptions([]);
@@ -68,7 +71,6 @@ export default function RerollPanel() {
     setBanCount(count);
     if (count > 0) {
       setIsBanMode(true);
-      // 밴 개수가 줄어들면 리스트 자르기
       if (bannedOptions.length > count) {
         setBannedOptions(prev => prev.slice(0, count));
       }
@@ -83,15 +85,11 @@ export default function RerollPanel() {
       setBannedOptions(prev => {
         if (prev.includes(id)) return prev.filter(item => item !== id);
         if (prev.length >= banCount) return prev;
-        
-        if (targetOptions.includes(id)) {
-          setTargetOptions(curr => curr.filter(t => t !== id));
-        }
+        if (targetOptions.includes(id)) setTargetOptions(curr => curr.filter(t => t !== id));
         return [...prev, id];
       });
     } else {
       if (bannedOptions.includes(id)) return;
-
       setTargetOptions(prev => {
         if (prev.includes(id)) return prev.filter(item => item !== id);
         if (prev.length >= 8) return prev; 
@@ -100,16 +98,52 @@ export default function RerollPanel() {
     }
   };
 
+  const handleSlotClick = (idx: number) => {
+    const slot = slots[idx];
+    if (slot.isLocked) {
+      manualUnlockSlot(idx);
+    } else {
+      setSelectedSlotIdx(idx);
+      setIsModalOpen(true);
+    }
+  };
+
+  // [Modified] 옵션 선택 시 타겟 리스트(Target Wishlist)도 업데이트
+  const handleOptionSelect = (effectId: string) => {
+    if (selectedSlotIdx === null) return;
+
+    const effectData = currentEffects.find(e => e.id === effectId);
+    if (!effectData) return;
+
+    const val = effectData.values[targetRarityCap];
+    
+    // 1. 슬롯에 장착
+    manualSetSlot(selectedSlotIdx, effectId, targetRarityCap, val, effectData.unit);
+
+    // 2. [New] 타겟 리스트에 추가 (체크박스 활성화)
+    setTargetOptions(prev => {
+        if (prev.includes(effectId)) return prev; // 이미 체크되어 있으면 유지
+        return [...prev, effectId];
+    });
+
+    // 3. [New] 만약 밴 리스트에 있었다면 제거 (타겟과 밴 동시 설정 방지)
+    if (bannedOptions.includes(effectId)) {
+        setBannedOptions(prev => prev.filter(id => id !== effectId));
+    }
+
+    setIsModalOpen(false);
+    setSelectedSlotIdx(null);
+  };
+
   const toggleSimulation = () => {
     if (isSimulating) stopSimulation();
     else {
-      // 훅에 현재 설정값들을 넘겨주며 시작
       startSimulation(targetOptions, bannedOptions, currentEffects, targetRarityCap, isBanMode);
     }
   };
 
   return (
-    <div className="flex h-full w-full gap-4 overflow-hidden">
+    <div className="flex gap-4 items-start w-full">
       
       {/* Left Sidebar */}
       <RerollSidebar 
@@ -120,7 +154,7 @@ export default function RerollPanel() {
       />
 
       {/* Right Main Panel */}
-      <div className="flex-1 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl p-6 overflow-hidden">
+      <div className="flex-1 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl p-6">
         
         {/* Header */}
         <div className="flex items-center justify-between mb-4 shrink-0">
@@ -159,8 +193,8 @@ export default function RerollPanel() {
             />
         </div>
 
-        {/* Main Content (Split View) */}
-        <div className="flex-1 flex gap-6 min-h-0">
+        {/* Main Content */}
+        <div className="flex gap-6">
           <div className="w-1/2 flex flex-col border-r border-slate-800 pr-6">
             <WishlistSelector 
               targetOptions={targetOptions}
@@ -171,6 +205,7 @@ export default function RerollPanel() {
               isBanMode={isBanMode}
               banCount={banCount}
               onConfirmBans={() => setIsBanMode(false)}
+              usedSlotCount={usedSlotCount} 
             />
           </div>
 
@@ -179,7 +214,8 @@ export default function RerollPanel() {
               slots={slots} 
               isSimulating={isSimulating} 
               availableEffects={currentEffects}
-              activeCount={targetOptions.length > 0 ? targetOptions.length : 8}
+              activeCount={usedSlotCount > 0 ? usedSlotCount : 8}
+              onSlotClick={handleSlotClick} 
             />
           </div>
         </div>
@@ -187,9 +223,17 @@ export default function RerollPanel() {
         {/* Footer */}
         <div className="mt-4 flex items-center gap-2 text-[10px] text-slate-500 border-t border-slate-800 pt-3 shrink-0">
           <Info size={12} />
-          <span>Select options to activate slots. Unused slots will be disabled.</span>
+          <span>Click a slot to manually lock an effect. Unused slots will be disabled during simulation.</span>
         </div>
       </div>
+
+      <ManualSelectorModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelect={handleOptionSelect}
+        effects={currentEffects}
+        targetRarity={targetRarityCap}
+      />
     </div>
   );
 }

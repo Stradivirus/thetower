@@ -63,13 +63,15 @@ export default function ModuleColumn({ moduleType, modules, progress, rarity, on
   const unlockKey = `module_unlock_${slotIdMap[moduleType.id]}`;
   const unlockLevel = progress[unlockKey] || 0;
 
+  // [Modified] h-full, overflow-hidden 제거 -> h-fit으로 변경하여 내용만큼 늘어나게 함
   return (
-    <div className="flex flex-col h-full bg-slate-950/30 rounded-2xl border border-slate-800/50 overflow-hidden">
-      <div className={`flex items-center gap-2 p-4 border-b border-slate-800 bg-slate-900/50 ${moduleType.color.replace('text-', 'text-opacity-80 ')}`}>
+    <div className="flex flex-col h-fit bg-slate-950/30 rounded-2xl border border-slate-800/50">
+      <div className={`flex items-center gap-2 p-4 border-b border-slate-800 bg-slate-900/50 rounded-t-2xl ${moduleType.color.replace('text-', 'text-opacity-80 ')}`}>
         <h3 className="text-lg font-bold text-slate-200">{moduleType.label}</h3>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+      {/* [Modified] flex-1, overflow-y-auto 제거 */}
+      <div className="p-3 space-y-3">
         {sortedModules.map((module: any) => {
           const ownedKey = `owned_${module.name}`;
           const ownedRarityIdx = modules[ownedKey];
@@ -88,11 +90,9 @@ export default function ModuleColumn({ moduleType, modules, progress, rarity, on
 
           if (viewMode === 'inventory') {
             isSelected = isOwned;
-            // 보유 시 해당 등급, 아니면 Epic(0)
             displayRarityIdx = isOwned ? ownedRarityIdx : 0;
           } else {
             isSelected = isMain || isSub;
-            // 장착 시 해당 등급, 아니면 Preview Rarity
             if (isMain) displayRarityIdx = mainModule!.rarity;
             else if (isSub) {
                const maxRarityIndex = Math.max(0, unlockLevel - 1);
@@ -130,7 +130,7 @@ export default function ModuleColumn({ moduleType, modules, progress, rarity, on
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white shadow-sm leading-none border border-blue-600">ASSIST</span>
                   )}
 
-                  {/* [보유 모드 & 장착 모드 공통] 등급 뱃지 (A, M, L, E) */}
+                  {/* [보유 모드 & 장착 모드 공통] 등급 뱃지 */}
                   {isSelected && (
                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border leading-none ${activeRarity.color} ${activeRarity.border} ${activeRarity.bg}`}>
                         {activeRarity.short}

@@ -7,7 +7,6 @@ import {
   REROLL_COSTS 
 } from '../../../data/module_reroll_data';
 
-// ... (MODULE_CATS, RARITY_COLORS 등 상수는 그대로 유지) ...
 const MODULE_CATS = [
   { id: 'cannon', label: 'Cannon', icon: Target, color: 'text-rose-400', border: 'border-rose-500/50' },
   { id: 'armor', label: 'Armor', icon: Shield, color: 'text-blue-400', border: 'border-blue-500/50' },
@@ -22,18 +21,17 @@ const RARITY_COLORS = {
   [RARITY.ANCESTRAL]: "text-green-400"
 };
 
-// [수정 포인트] 인터페이스 이름을 targetRarityCap으로 변경해야 합니다.
 interface Props {
   selectedModuleType: string;
   onModuleChange: (typeId: string) => void;
-  targetRarityCap: number; // 여기가 minTargetRarity로 되어 있었다면 이걸로 바꿔주세요!
+  targetRarityCap: number; 
   lockedCount: number;
 }
 
 export default function RerollSidebar({ 
   selectedModuleType, 
   onModuleChange, 
-  targetRarityCap, // 여기도 minTargetRarity 대신 targetRarityCap으로 받기
+  targetRarityCap, 
   lockedCount 
 }: Props) {
 
@@ -43,8 +41,9 @@ export default function RerollSidebar({
       .sort((a, b) => parseInt(b[0]) - parseInt(a[0]));
   }, []);
 
+  // [Modified] overflow-hidden 제거 -> 자연스럽게 늘어남
   return (
-    <div className="w-72 flex-shrink-0 flex flex-col gap-4 overflow-hidden">
+    <div className="w-72 flex-shrink-0 flex flex-col gap-4">
       
       {/* 1. 모듈 타입 선택기 */}
       <div className="grid grid-cols-2 gap-2 shrink-0">
@@ -70,7 +69,8 @@ export default function RerollSidebar({
       </div>
 
       {/* 2. 통계 패널 */}
-      <div className="flex-1 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col min-h-0 overflow-hidden">
+      {/* [Modified] min-h-0, overflow-hidden 제거 */}
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col">
         
         {/* (A) 확률표 */}
         <div className="mb-6 shrink-0">
@@ -82,8 +82,6 @@ export default function RerollSidebar({
               {visibleChances.map(([rIdx, chance]) => {
                 const idx = parseInt(rIdx);
                 const colorClass = RARITY_COLORS[idx as keyof typeof RARITY_COLORS] || "text-slate-400";
-                
-                // [사용] targetRarityCap 변수 사용
                 const isAvailable = idx <= targetRarityCap;
                 
                 return (
@@ -102,11 +100,12 @@ export default function RerollSidebar({
         </div>
 
         {/* (B) 비용표 */}
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex flex-col">
            <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1 flex justify-between items-center shrink-0">
             <span className="flex items-center gap-1"><Dices size={12} /> Cost / Roll</span>
           </div>
-          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+          {/* [Modified] overflow-y-auto 제거 */}
+          <div className="pr-1">
             <table className="w-full text-xs">
               <tbody>
                 {Object.entries(REROLL_COSTS).map(([locks, cost]) => {
