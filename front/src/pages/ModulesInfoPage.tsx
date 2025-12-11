@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { saveModules } from '../api/modules';
-// [Fixed] 사용하지 않는 type EquippedModule 제거
 import { MODULE_TYPES } from '../components/Modules/ModuleConstants';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
@@ -234,11 +233,11 @@ export default function ModulesInfoPage() {
         </div>
       )}
 
+      {/* [Fix] modulesState prop 제거 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
         progress={progress}
-        modulesState={modules}
       />
 
       <ModuleDetailModal 

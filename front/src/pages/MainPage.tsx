@@ -13,7 +13,7 @@ interface MainPageProps {
 
 export default function MainPage({ reports }: MainPageProps) {
   const navigate = useNavigate();
-  const { progress, modules } = useGameData();
+  const { progress } = useGameData(); // [Fix] modules 사용 안함
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
@@ -43,8 +43,7 @@ export default function MainPage({ reports }: MainPageProps) {
     });
   }, [reports, searchTerm]);
 
-  // 2. [New] 리스트 표시용 데이터 (최근 3일치만 필터링)
-  // 검색어가 있을 때는 날짜 제한을 풀고 검색된거 다 보여주는게 UX상 좋습니다.
+  // 2. 리스트 표시용 데이터 (최근 3일치만 필터링)
   const listDisplayReports = useMemo(() => {
     if (searchTerm) return filteredReports; // 검색 중이면 다 보여줌
 
@@ -120,7 +119,7 @@ export default function MainPage({ reports }: MainPageProps) {
         </div>
       )}
 
-      {/* [New] 3일 이상 데이터가 있을 때만 더보기 안내 문구 표시 */}
+      {/* 3일 이상 데이터가 있을 때만 더보기 안내 문구 표시 */}
       {!searchTerm && filteredReports.length > listDisplayReports.length && (
         <div className="text-center mt-4">
             <button 
@@ -132,11 +131,11 @@ export default function MainPage({ reports }: MainPageProps) {
         </div>
       )}
 
+      {/* [Fix] modulesState prop 제거 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
         progress={progress}
-        modulesState={modules} 
       />
     </>
   );

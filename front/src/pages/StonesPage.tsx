@@ -6,7 +6,7 @@ import CardTab from '../components/Stones/CardTab';
 import ModuleTab from '../components/Stones/ModuleTab';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { formatNum } from '../components/Stones/StoneShared';
-import { useStonesData } from '../hooks/useStonesData'; // [New] 커스텀 훅 import
+import { useStonesData } from '../hooks/useStonesData'; 
 
 interface Props {
   onBack: () => void;
@@ -24,7 +24,7 @@ export default function StonesPage({ onBack, token }: Props) {
   // [Optimization] 데이터 로직은 훅에서 한 방에 가져옴
   const {
     progress,
-    modulesState,
+    // [Fix] modulesState 안쓰므로 제거
     totalStonesUsed,
     isSaving,
     isProgressChanged,
@@ -137,11 +137,11 @@ export default function StonesPage({ onBack, token }: Props) {
         {activeTab === 'module' && <ModuleTab progress={progress} updateProgress={updateProgress} />}
       </div>
 
+      {/* [Fix] modulesState prop 제거 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
         progress={progress}
-        modulesState={modulesState} 
       />
     </div>
   );
