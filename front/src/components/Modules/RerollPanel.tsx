@@ -32,7 +32,9 @@ export default function RerollPanel() {
   const maxBans = MAX_BAN_COUNTS[selectedModuleType] || 0;
 
   const [targetOptions, setTargetOptions] = useState<string[]>([]); 
-  const [targetRarityCap, setTargetRarityCap] = useState<number>(RARITY.MYTHIC);
+  
+  // [Modified] 기본값을 MYTHIC -> ANCESTRAL 로 변경
+  const [targetRarityCap, setTargetRarityCap] = useState<number>(RARITY.ANCESTRAL);
 
   // [밴 관련 State]
   const [banCount, setBanCount] = useState<number>(0);

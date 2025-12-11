@@ -1,6 +1,5 @@
-// src/pages/ModulesInfoPage.tsx
 import { useState } from 'react';
-import { saveModules } from '../api/modules'; // [Modified] API 함수 import
+import { saveModules } from '../api/modules';
 import { type EquippedModule, MODULE_TYPES } from '../components/Modules/ModuleConstants';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
@@ -39,7 +38,6 @@ export default function ModulesInfoPage() {
               }
           });
 
-          // [Modified] 직접 fetch 호출 대신 saveModules 사용
           await saveModules({ inventory_json, equipped_json });
           
           localStorage.setItem('thetower_modules', JSON.stringify(modules));
@@ -56,7 +54,6 @@ export default function ModulesInfoPage() {
   };
 
   const toggleSelection = (moduleType: string, moduleName: string) => {
-    // 리롤 탭에서는 선택 로직이 작동하지 않도록 방어 (UI상 드러나진 않지만 안전장치)
     if (viewMode === 'reroll') return;
 
     let newState = { ...modules };
@@ -73,7 +70,6 @@ export default function ModulesInfoPage() {
             delete newState[ownedKey]; // Epic(0)에서 한 번 더 누르면 삭제
         }
     } else {
-        // 'equipped' 모드 로직
         const mainKey = `equipped_${moduleType}_main`;
         const subKey = `equipped_${moduleType}_sub`;
         const unlockKey = `module_unlock_${slotIdMap[moduleType]}`;
@@ -102,7 +98,9 @@ export default function ModulesInfoPage() {
   };
 
   return (
-    <div className="w-full h-[calc(100vh-64px)] px-4 pb-4 animate-fade-in flex flex-col">
+    // [Modified] 고정 높이 제거 (h-[calc...] -> min-h-screen 또는 제거)
+    // flex-col은 유지하되 전체 스크롤을 허용
+    <div className="w-full px-4 pb-12 animate-fade-in flex flex-col">
       <ModuleHeader 
         rarity={rarity}
         setRarity={setRarity}
@@ -114,11 +112,13 @@ export default function ModulesInfoPage() {
       />
 
       {viewMode === 'reroll' ? (
-        <div className="flex-1 min-h-0 mt-4">
+        // [Modified] 리롤 뷰는 독립적인 높이를 가질 수 있으므로 h-fit 또는 적절히 조정
+        <div className="flex-1 mt-4 h-[calc(100vh-140px)]">
           <ModuleRerollView />
         </div>
       ) : (
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 min-h-0 mt-4 overflow-y-auto custom-scrollbar">
+        // [Modified] overflow-y-auto 제거, min-h-0 제거 -> 자연스럽게 늘어나도록 변경
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-4 items-start">
           {MODULE_TYPES.map(type => (
             <ModuleColumn 
               key={type.id}
@@ -127,7 +127,7 @@ export default function ModulesInfoPage() {
               progress={progress}
               rarity={rarity}
               onToggle={toggleSelection}
-              viewMode={viewMode as 'equipped' | 'inventory'} // 타입 단언 필요
+              viewMode={viewMode as 'equipped' | 'inventory'}
             />
           ))}
         </div>
