@@ -10,7 +10,8 @@ interface Props {
   modulesState?: Record<string, any>;
 }
 
-export default function UwSummaryModal({ isOpen, onClose, progress, modulesState = {} }: Props) {
+// [Fix] 'modulesState'는 사용되지 않으므로 구조 분해 할당에서 제거
+export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
   if (!isOpen) return null;
 
   return (

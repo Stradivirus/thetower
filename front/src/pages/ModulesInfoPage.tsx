@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { saveModules } from '../api/modules';
-import { type EquippedModule, MODULE_TYPES } from '../components/Modules/ModuleConstants';
+// [Fixed] 사용하지 않는 type EquippedModule 제거
+import { MODULE_TYPES } from '../components/Modules/ModuleConstants';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
 import ModuleColumn from '../components/Modules/ModuleColumn';
@@ -9,7 +10,7 @@ import ModuleRerollView from '../components/Modules/RerollPanel';
 import ModuleDetailModal from '../components/Modules/ModuleDetailModal';
 
 export default function ModulesInfoPage() {
-  const [rarity, setRarity] = useState<number>(5); // 기본값 Ancestral(5)로 변경
+  const [rarity, setRarity] = useState<number>(5); // 기본값 Ancestral(5)
   const [isChanged, setIsChanged] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
@@ -131,7 +132,7 @@ export default function ModulesInfoPage() {
     setDetailModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // 4. 모달: 장착 (개선된 로직)
+  // 4. 모달: 장착
   const handleModalEquip = (slot: 'main' | 'sub') => {
     const { name, type, data } = detailModal;
     
@@ -151,19 +152,18 @@ export default function ModulesInfoPage() {
     const otherSlot = slot === 'main' ? 'sub' : 'main';
     const otherKey = `equipped_${type}_${otherSlot}`; // 반대편 슬롯
 
-    // [중요] 반대편 슬롯에 '나' 자신이 있다면 제거 (이동 처리)
+    // 반대편 슬롯에 '나' 자신이 있다면 제거 (이동 처리)
     if (newState[otherKey]?.name === name) {
       delete newState[otherKey];
     }
 
-    // 장착 데이터 준비 (모달의 현재 상태 or 기본값)
-    // data가 없을 경우 기본값: rarity 5 (Ancestral), effects []
+    // 장착 데이터 준비
     const moduleDataToEquip = { name, ...(data || { rarity: 5, effects: [] }) };
 
-    // 목표 슬롯에 장착 (기존에 있던건 덮어씌워짐)
+    // 목표 슬롯에 장착
     newState[targetKey] = moduleDataToEquip;
     
-    // 보유 리스트(owned) 안전장치: 없으면 생성
+    // 보유 리스트(owned) 안전장치
     if (!newState[`owned_${name}`]) {
        newState[`owned_${name}`] = { 
          rarity: moduleDataToEquip.rarity, 
@@ -226,8 +226,6 @@ export default function ModulesInfoPage() {
               moduleType={type}
               modules={modules}
               progress={progress}
-              // viewMode가 inventory일 때는 전체, equipped일 때는 장착된 것 위주로 정렬됨
-              // (ModuleColumn 내부 로직 따름)
               onModuleClick={handleModuleClick} 
               viewMode={viewMode as 'equipped' | 'inventory'}
               rarity={rarity} 
@@ -236,7 +234,6 @@ export default function ModulesInfoPage() {
         </div>
       )}
 
-      {/* 요약 모달 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
@@ -244,7 +241,6 @@ export default function ModulesInfoPage() {
         modulesState={modules}
       />
 
-      {/* 상세 설정 모달 */}
       <ModuleDetailModal 
         isOpen={detailModal.isOpen}
         onClose={() => setDetailModal(prev => ({ ...prev, isOpen: false }))}

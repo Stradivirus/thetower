@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { X, Save, Trash2, Shield, Zap, Target, Cpu } from 'lucide-react';
-import { RARITIES, RARITY, MODULE_TYPES as EFFECT_DATA } from './ModuleConstants';
+// [Fix] 사용하지 않는 'MODULE_TYPES as EFFECT_DATA' 제거
+import { RARITIES, RARITY } from './ModuleConstants';
 import { MODULE_TYPES } from '../../data/module_reroll_data'; 
 import SlotViewer, { type SimulationSlot } from './Reroll/SlotViewer';
 import ManualSelectorModal from './Reroll/ManualSelectorModal';

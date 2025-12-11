@@ -13,7 +13,8 @@ interface Props {
   viewMode: 'equipped' | 'inventory';
 }
 
-export default function ModuleColumn({ moduleType, modules, progress, rarity, onModuleClick, viewMode }: Props) {
+// [Fix] 'rarity'는 내부에서 계산된 값을 사용하므로 props 구조 분해에서 제거
+export default function ModuleColumn({ moduleType, modules, progress, onModuleClick, viewMode }: Props) {
   
   const slotIdMap: Record<string, string> = {
     'cannon': 'attack', 'armor': 'defense', 'generator': 'generator', 'core': 'core'
@@ -25,10 +26,8 @@ export default function ModuleColumn({ moduleType, modules, progress, rarity, on
     return -1;
   };
 
-  // [Modified] 효율(%) 가져오기 - sub_efficiency 참조
+  // 효율(%) 가져오기 - sub_efficiency 참조
   const getEfficiencyPercent = (level: number) => {
-    // moduleCosts에 sub_efficiency가 있다고 가정하고 접근
-    // (타입 에러 방지를 위해 any 캐스팅 사용 가능)
     const costs = moduleCosts as any;
     const efficiencyTable = costs.sub_efficiency || costs.common_efficiency; // fallback
 
@@ -79,10 +78,7 @@ export default function ModuleColumn({ moduleType, modules, progress, rarity, on
           
           // 2. 효율(%) 적용 (숫자인 경우에만)
           if (typeof baseVal === 'number') {
-            // 예: 10 * 50% = 5
             const calculated = baseVal * (efficiency / 100);
-            
-            // 소수점 2자리까지 표시 (필요시 조정)
             displayVal = Number.isInteger(calculated) ? calculated : parseFloat(calculated.toFixed(2));
           }
 
@@ -140,8 +136,6 @@ export default function ModuleColumn({ moduleType, modules, progress, rarity, on
   const unlockLevel = progress[unlockKey] || 0;
 
   // 효율 계산
-  // Main 슬롯: 항상 100%
-  // Sub 슬롯: sub_efficiency 테이블 참조
   const subEffLevel = progress[`module_${slotId}_sub`] || 0;
   const subEfficiency = getEfficiencyPercent(subEffLevel);
 
@@ -210,10 +204,14 @@ export default function ModuleColumn({ moduleType, modules, progress, rarity, on
 
           const activeRarity = RARITIES[displayRarityIdx] || RARITIES[0];
 
+          // [Fix] 클릭 시 모달로 보낼 데이터를 결정합니다.
+          const clickData = isMain ? mainModule : (isSub ? subModule : ownedData);
+
           return (
             <div 
               key={module.name}
-              onClick={() => onModuleClick(moduleType.id, module.name, ownedData)}
+              // [Fix] clickData 전달
+              onClick={() => onModuleClick(moduleType.id, module.name, clickData)}
               className={`
                 relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer group h-fit min-h-[100px]
                 ${isSelected 
@@ -244,7 +242,6 @@ export default function ModuleColumn({ moduleType, modules, progress, rarity, on
               </div>
 
               {viewMode === 'equipped' && isSelected ? (
-                 // [Modified] realRarityIdx와 currentEfficiency를 넘겨서 계산
                  renderSubEffects(activeEffects, displayRarityIdx, realRarityIdx, currentEfficiency)
               ) : (
                  <p className={`text-xs leading-relaxed break-keep ${isSelected ? 'text-slate-200' : 'text-slate-500 group-hover:text-slate-400'}`}>
