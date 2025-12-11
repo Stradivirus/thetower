@@ -18,11 +18,9 @@ const getRandomRarity = (maxCap: number) => {
   for (const item of chances) {
     accumulated += item.c;
     if (rand <= accumulated) {
-      // 선택된 등급이 제한(maxCap)보다 높으면 제한 등급으로 낮춤
       return item.r > maxCap ? maxCap : item.r;
     }
   }
-  // 혹시라도 소수점 오차로 빠져나오면 가장 높은 확률인 Common 반환
   return RARITY.COMMON;
 };
 
@@ -55,6 +53,33 @@ export function useRerollSimulation() {
     setTotalCost(0);
   }, [stopSimulation]);
 
+  // [New] 수동 장착 기능
+  const manualSetSlot = useCallback((slotIdx: number, effectId: string, rarity: number, value: any, unit: string) => {
+    setSlots(prev => prev.map((slot, idx) => {
+      if (idx === slotIdx) {
+        return {
+          ...slot,
+          effectId,
+          rarity,
+          value,
+          unit,
+          isLocked: true // 수동 장착 시 자동 잠금
+        };
+      }
+      return slot;
+    }));
+  }, []);
+
+  // [New] 슬롯 잠금 해제 기능 (선택 사항: 클릭해서 풀고 싶을 때)
+  const manualUnlockSlot = useCallback((slotIdx: number) => {
+    setSlots(prev => prev.map((slot, idx) => {
+      if (idx === slotIdx) {
+        return { ...slot, isLocked: false, effectId: null, value: '-' }; // 초기화
+      }
+      return slot;
+    }));
+  }, []);
+
   const startSimulation = useCallback((
     targetOptions: string[],
     bannedOptions: string[],
@@ -62,11 +87,20 @@ export function useRerollSimulation() {
     targetRarityCap: number,
     isBanMode: boolean
   ) => {
-    // 1. 유효성 검사
     if (targetOptions.length === 0) {
+      // 타겟이 없어도, 수동으로 잠긴 슬롯이 있으면 나머지만 돌릴 수 있어야 함
+      // 하지만 보통은 타겟을 정하고 돌리므로 경고 유지, 혹은 정책에 따라 변경 가능
+      // 여기서는 타겟 옵션이 없으면 경고
       alert("Please select target options first.");
       return;
     }
+    
+    // 활성 슬롯(타겟 개수만큼) 체크 -> 수동 장착으로 인해 slots 전체가 활성 대상이 될 수도 있음.
+    // 기존 로직: targetOptions.length 만큼만 앞에서부터 사용.
+    // 변경 제안: 수동 장착된 슬롯이 있다면, 그 슬롯 뒤쪽까지도 활성화되어야 자연스럽지만,
+    // 일단 기존 로직(Target 개수 = 활성 슬롯 개수)을 따르되, 
+    // "수동으로 넣은 슬롯이 비활성 영역(Target 개수보다 뒤)에 있다면 무시"되는 구조임.
+    // 따라서 사용자는 Target Wishlist에 옵션을 넉넉히 넣어서 슬롯을 열어두고 수동 장착을 해야 함.
     
     const activeSlots = slots.slice(0, targetOptions.length);
     if (activeSlots.every(s => s.isLocked)) return;
@@ -76,7 +110,6 @@ export function useRerollSimulation() {
       return;
     }
 
-    // 2. 시뮬레이션 시작
     setIsSimulating(true);
     
     intervalRef.current = setInterval(() => {
@@ -96,36 +129,21 @@ export function useRerollSimulation() {
 
         // 슬롯 업데이트
         const newSlots = prevSlots.map((slot, idx) => {
-          // 비활성 슬롯은 초기화 상태 유지
-          if (idx >= numActive) {
-            return { ...slot, effectId: null, value: '-', isLocked: false, rarity: 0 }; 
-          }
-
-          // 이미 잠긴 슬롯은 패스
+          if (idx >= numActive) return { ...slot, effectId: null, value: '-', isLocked: false, rarity: 0 }; 
           if (slot.isLocked) return slot; 
 
-          // [수정된 로직 1] 등급을 먼저 뽑습니다.
           const newRarity = getRandomRarity(targetRarityCap);
 
-          // [수정된 로직 2] 해당 등급에서 '유효한(값이 있는)' 옵션만 추립니다.
           const validOptions = currentEffects.filter(e => {
-            // 잠긴 옵션 제외
             if (activeLockedIds.includes(e.id)) return false;
-            // 밴 된 옵션 제외
             if (bannedOptions.includes(e.id)) return false;
-            // [중요] 해당 등급에 값이 없는(null) 옵션 제외 (예: Common 죽음극복 방지)
             if (e.values[newRarity] === null || e.values[newRarity] === undefined) return false;
-            
             return true;
           });
 
-          // 뽑을 수 있는 옵션이 없으면(매우 드문 경우) 이번 턴은 스킵 (기존 슬롯 유지)
           if (validOptions.length === 0) return slot;
 
-          // [수정된 로직 3] 유효한 옵션 중에서 랜덤 선택
           const newOption = validOptions[Math.floor(Math.random() * validOptions.length)];
-
-          // 타겟 달성 여부 체크
           const isTargetMet = targetOptions.includes(newOption.id) && newRarity >= targetRarityCap;
 
           return {
@@ -138,7 +156,6 @@ export function useRerollSimulation() {
           };
         });
 
-        // 종료 조건: 활성 슬롯이 모두 잠기면 정지
         const allActiveLocked = newSlots.slice(0, numActive).every(s => s.isLocked);
         if (allActiveLocked) {
           stopSimulation();
@@ -146,7 +163,7 @@ export function useRerollSimulation() {
 
         return newSlots;
       });
-    }, 20); // 20ms 간격
+    }, 20); 
   }, [slots, stopSimulation]);
 
   useEffect(() => {
@@ -159,6 +176,8 @@ export function useRerollSimulation() {
     isSimulating,
     startSimulation,
     stopSimulation,
-    resetSimulation
+    resetSimulation,
+    manualSetSlot,   // [New]
+    manualUnlockSlot // [New]
   };
 }

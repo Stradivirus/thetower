@@ -16,6 +16,9 @@ interface Props {
   isBanMode: boolean;
   banCount: number;
   onConfirmBans: () => void;
+
+  // [New] 사용 중인 슬롯 개수 (수동 잠금 + 타겟)
+  usedSlotCount: number;
 }
 
 export default function WishlistSelector({ 
@@ -26,10 +29,10 @@ export default function WishlistSelector({
   bannedOptions,
   isBanMode,
   banCount,
-  onConfirmBans
+  onConfirmBans,
+  usedSlotCount // [New]
 }: Props) {
   return (
-    // [Modified] min-h-0 제거
     <div className="flex flex-col">
       
       {/* Header */}
@@ -49,15 +52,15 @@ export default function WishlistSelector({
         ) : (
           <>
             <span className="text-xs font-bold text-slate-400">Target Wishlist</span>
-            <span className={`text-[10px] font-bold ${targetOptions.length >= 8 ? 'text-blue-500' : 'text-slate-600'}`}>
-              {targetOptions.length} / 8
+            {/* [Modified] usedSlotCount로 표시 변경 */}
+            <span className={`text-[10px] font-bold ${usedSlotCount >= 8 ? 'text-blue-500' : 'text-slate-400'}`}>
+              {usedSlotCount} / 8
             </span>
           </>
         )}
       </div>
 
       {/* List Body */}
-      {/* [Modified] overflow-y-auto 제거, 단순 나열(space-y-1) */}
       <div className="space-y-1">
         {availableEffects.map((effect) => {
           const isTarget = targetOptions.includes(effect.id);
@@ -81,7 +84,8 @@ export default function WishlistSelector({
               isDisabled = true; 
             } else if (isTarget) {
               containerStyle = "bg-blue-500/10 border-blue-500/30 text-blue-100"; 
-            } else if (targetOptions.length >= 8) {
+            } else if (usedSlotCount >= 8) { 
+              // [Modified] 8개 꽉 차면 비활성화 (타겟 선택 불가)
               isDisabled = true; 
               containerStyle += " opacity-50";
             }

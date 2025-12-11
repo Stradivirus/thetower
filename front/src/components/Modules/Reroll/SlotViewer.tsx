@@ -1,4 +1,4 @@
-import { Lock, Zap } from 'lucide-react';
+import { Lock, Zap, Plus } from 'lucide-react'; 
 import { RARITY, RARITY_LABELS } from '../../../data/module_reroll_data';
 
 export interface SimulationSlot {
@@ -20,9 +20,10 @@ interface Props {
   isSimulating: boolean;
   availableEffects: EffectData[];
   activeCount: number;
+  onSlotClick: (idx: number) => void; 
 }
 
-export default function SlotViewer({ slots, isSimulating, availableEffects, activeCount }: Props) {
+export default function SlotViewer({ slots, isSimulating, availableEffects, activeCount, onSlotClick }: Props) {
   
   const getRarityColor = (r: number) => {
     switch (r) {
@@ -37,27 +38,40 @@ export default function SlotViewer({ slots, isSimulating, availableEffects, acti
   };
 
   return (
-    // [Modified] overflow-y-auto 제거, space-y-2로 나열
     <div className="space-y-2">
       {slots.map((slot, idx) => {
         const effectName = availableEffects.find(e => e.id === slot.effectId)?.name || 'Empty Slot';
-        const isActive = idx < activeCount;
+        
+        // [Modified] 활성 상태 판정 로직 수정
+        // 시뮬레이션 중일 때는 계산된 activeCount를 따르지만, 
+        // 멈춰있을 때는 모든 슬롯을 활성화(편집 가능) 상태로 보여줌
+        const isActive = isSimulating ? idx < activeCount : true;
+        
+        // [Modified] 시뮬레이션 중이 아니면 무조건 클릭 가능
+        const isClickable = !isSimulating;
 
         return (
-          <div key={idx} className={`relative px-3 py-2 rounded-lg border transition-all h-14 flex items-center justify-between ${
-            !isActive 
-              ? 'bg-slate-950/30 border-slate-900 opacity-30' 
-              : slot.isLocked 
-                ? 'bg-slate-900 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]' 
-                : 'bg-slate-950/50 border-slate-800'
-          }`}>
+          <div 
+            key={idx} 
+            onClick={() => isClickable && onSlotClick(idx)}
+            className={`
+              relative px-3 py-2 rounded-lg border transition-all h-14 flex items-center justify-between select-none
+              ${!isActive 
+                ? 'bg-slate-950/30 border-slate-900 opacity-30 cursor-default' // 시뮬 중 비활성 슬롯 (흐리게)
+                : slot.isLocked 
+                  ? 'bg-slate-900 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.1)] cursor-pointer hover:bg-slate-800' // 잠긴 슬롯
+                  : 'bg-slate-950/50 border-slate-800 cursor-pointer hover:border-slate-600 hover:bg-slate-900' // 빈 슬롯 (편집 가능)
+              }
+            `}
+          >
             
             {/* Left: Slot Info */}
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="shrink-0 w-4">
+              <div className="shrink-0 w-4 flex justify-center">
                   {slot.isLocked ? (
                     <Lock size={14} className="text-blue-400" />
                   ) : (
+                    // 시뮬 중이 아니면 그냥 숫자 표시
                     <span className={`text-[10px] font-mono ${isActive ? 'text-slate-600' : 'text-slate-800'}`}>
                       {idx + 1}
                     </span>
@@ -66,7 +80,7 @@ export default function SlotViewer({ slots, isSimulating, availableEffects, acti
 
               <div className="flex flex-col min-w-0">
                 <span className={`text-sm font-bold truncate ${
-                  !isActive ? 'text-slate-700' : slot.isLocked ? 'text-white' : 'text-slate-600'
+                  !isActive ? 'text-slate-700' : slot.isLocked ? 'text-white' : 'text-slate-500'
                 }`}>
                   {effectName}
                 </span>
@@ -78,7 +92,7 @@ export default function SlotViewer({ slots, isSimulating, availableEffects, acti
               </div>
             </div>
 
-            {/* Right: Value Display */}
+            {/* Right: Value Display or Action Hint */}
             <div className="text-right pl-2">
               {isActive ? (
                 slot.effectId ? (
@@ -87,7 +101,12 @@ export default function SlotViewer({ slots, isSimulating, availableEffects, acti
                     <span className="text-xs ml-0.5">{slot.unit}</span>
                   </span>
                 ) : (
-                  <Zap size={14} className={`text-slate-800 ${isSimulating ? 'animate-pulse text-slate-700' : ''}`} />
+                  // 빈 슬롯일 때 표시: 시뮬 중엔 번개, 아닐 땐 플러스(추가) 아이콘
+                  isSimulating ? (
+                    <Zap size={14} className="text-slate-700 animate-pulse" />
+                  ) : (
+                    <Plus size={14} className="text-slate-700 group-hover:text-slate-500" />
+                  )
                 )
               ) : (
                 <span className="text-slate-800 text-xs">Disabled</span>
