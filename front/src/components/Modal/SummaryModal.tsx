@@ -1,4 +1,5 @@
-import { SummaryModules } from './SummaryModules';
+// [Fix] SummaryModules는 default export이므로 중괄호 {} 제거
+import SummaryModules from './SummaryModules';
 import { SummaryCards } from './SummaryCards';
 import { SummaryWeapons } from './SummaryWeapons';
 
@@ -9,7 +10,8 @@ interface Props {
   modulesState?: Record<string, any>;
 }
 
-export default function UwSummaryModal({ isOpen, onClose, progress, modulesState = {} }: Props) {
+// [Fix] 'modulesState'는 사용되지 않으므로 구조 분해 할당에서 제거
+export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
   if (!isOpen) return null;
 
   return (
@@ -24,8 +26,8 @@ export default function UwSummaryModal({ isOpen, onClose, progress, modulesState
 
         {/* 메인 컨텐츠 - 3단 레이아웃 */}
         <div className="flex-1 overflow-hidden flex gap-4 p-6">
-          {/* 왼쪽: 장착된 모듈 */}
-          <SummaryModules modulesState={modulesState} progress={progress} />
+          {/* 왼쪽: 장착된 모듈 (수정됨) */}
+          <SummaryModules />
           
           {/* 오른쪽: 카드 + 궁무 */}
           <div className="flex-1 flex flex-col gap-4 overflow-hidden">
