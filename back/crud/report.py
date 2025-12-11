@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, load_only
 from sqlalchemy import func
 from models import BattleMain, BattleDetail
 from datetime import datetime, timedelta, timezone
@@ -19,10 +19,6 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
     db.merge(battle_main)
     db.merge(battle_detail)
     db.commit()
-    
-    # 캐시 무효화 로직은 stats.py 최적화로 인해 필요 없으나, 
-    # 혹시 다른 곳에서 쓸 수 있으므로 남겨두거나 삭제 가능.
-    # 여기서는 안전하게 패스합니다.
     return battle_main
 
 def count_reports(db: Session) -> int:
@@ -33,22 +29,27 @@ def get_cutoff_date():
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return midnight - timedelta(days=7)
 
-# [Legacy] 기존 대시보드용 최근 기록 (필요 시 유지)
+# [Legacy] 기존 대시보드용 최근 기록
 def get_recent_reports(db: Session, user_id: int):
     cutoff_date = get_cutoff_date()
     cutoff_date_naive = cutoff_date.replace(tzinfo=None)
     
+    # [Optimized] 목록 조회 시에는 combat_json만 필요함 (나머지 무거운 JSON 제외)
     return db.query(BattleMain)\
-             .options(joinedload(BattleMain.detail))\
+             .options(
+                 joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
+             )\
              .filter(BattleMain.owner_id == user_id)\
              .filter(BattleMain.battle_date >= cutoff_date_naive)\
              .order_by(BattleMain.battle_date.desc())\
              .all()
 
-# [Legacy] 단순 목록 조회 (필요 시 유지)
+# [Legacy] 단순 목록 조회
 def get_history_reports(db: Session, user_id: int, skip: int = 0, limit: int = 100):
     return db.query(BattleMain)\
-             .options(joinedload(BattleMain.detail))\
+             .options(
+                 joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
+             )\
              .filter(BattleMain.owner_id == user_id)\
              .order_by(BattleMain.battle_date.desc())\
              .offset(skip).limit(limit).all()
@@ -60,16 +61,17 @@ def get_history_view(db: Session, user_id: int):
     cutoff_date = now_utc - timedelta(days=7)
 
     # 1. 최근 7일치 상세 데이터 (Recent List)
-    # 상세 정보가 필요하므로 BattleMain 그대로 조회
+    # [Optimized] 상세 정보 조회 시 불필요한 JSON 데이터 로딩 제외
     recent_reports = db.query(BattleMain)\
-        .options(joinedload(BattleMain.detail))\
+        .options(
+            joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
+        )\
         .filter(BattleMain.owner_id == user_id)\
         .filter(BattleMain.battle_date >= cutoff_date)\
         .order_by(BattleMain.battle_date.desc())\
         .all()
 
     # 2. 7일 이전 데이터 월별 요약 (Monthly Aggregation)
-    # PostgreSQL의 to_char(date, format) 함수 사용
     monthly_groups = db.query(
         func.to_char(BattleMain.battle_date, 'YYYY-MM').label('month_key'),
         func.count(BattleMain.battle_date).label('count'),
@@ -101,18 +103,21 @@ def get_history_view(db: Session, user_id: int):
         "monthly_summaries": monthly_summaries
     }
 
-# 특정 월의 상세 기록 조회 (Lazy Loading 용)
+# [Optimized] 특정 월의 상세 기록 조회 (Lazy Loading 용)
 def get_reports_by_month(db: Session, user_id: int, month_key: str):
     # month_key format: "YYYY-MM"
-    # 해당 월의 1일부터 말일까지 조회
+    # [Optimized] 월별 상세 조회 시에도 무거운 JSON 데이터는 제외하고 가져옴
     return db.query(BattleMain)\
-        .options(joinedload(BattleMain.detail))\
+        .options(
+            joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
+        )\
         .filter(BattleMain.owner_id == user_id)\
         .filter(func.to_char(BattleMain.battle_date, 'YYYY-MM') == month_key)\
         .order_by(BattleMain.battle_date.desc())\
         .all()
 
 def get_full_report(db: Session, battle_date: datetime, user_id: int):
+    # 상세 페이지에서는 모든 정보가 필요하므로 load_only를 쓰지 않음
     main = db.query(BattleMain).options(joinedload(BattleMain.detail)).filter(
         BattleMain.battle_date == battle_date,
         BattleMain.owner_id == user_id
