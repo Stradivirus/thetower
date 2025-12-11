@@ -54,17 +54,7 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
     if (!selectingState) return;
     const { selected, count, type } = selectingState;
 
-    // 9번째(마지막) 버튼 클릭 -> 즉시 전체 자동 해금
-    const lastWeaponKey = allWeaponKeys[allWeaponKeys.length - 1];
-    if (uwKey === lastWeaponKey) {
-        const available = allWeaponKeys.filter(k => {
-            if (type === 'base') return !unlockedBase.includes(k);
-            else return unlockedBase.includes(k) && !unlockedPlus.includes(k);
-        });
-        const autoSelected = available.slice(0, count);
-        performUnlock(type, autoSelected);
-        return;
-    }
+    // [Fix] 마지막 무기 자동 해금 로직 삭제됨 (정상적인 선택 동작 보장)
 
     let newSelected = [...selected];
     if (selected.includes(uwKey)) {

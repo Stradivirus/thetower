@@ -1,20 +1,15 @@
-// src/components/Modules/ModuleHeader.tsx 수정
-import { List, Layers, Box, Dices } from 'lucide-react'; // Dices 추가
-import { RARITIES } from './ModuleConstants';
+// src/components/Modules/ModuleHeader.tsx
+import { List, Layers, Box, Dices } from 'lucide-react';
 
 interface Props {
-  rarity: number;
-  setRarity: (r: number) => void;
   handleSave: () => void;
   isChanged: boolean;
   token: string | null;
-  // viewMode 타입에 'reroll' 추가
   viewMode: 'equipped' | 'inventory' | 'reroll';
   setViewMode: (mode: 'equipped' | 'inventory' | 'reroll') => void;
 }
 
 export default function ModuleHeader({ 
-  rarity, setRarity, 
   handleSave, isChanged, token,
   viewMode, setViewMode 
 }: Props) {
@@ -43,7 +38,6 @@ export default function ModuleHeader({
         >
           <Box size={16} /> 보유 현황
         </button>
-        {/* [추가] 부옵션 리롤 탭 */}
         <button
           onClick={() => setViewMode('reroll')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
@@ -56,44 +50,21 @@ export default function ModuleHeader({
         </button>
       </div>
 
-      <div className="flex items-center gap-4">
-        {/* 장착 모드일 때만 등급 선택 표시 */}
-        {viewMode === 'equipped' && (
-          <div className="flex items-center gap-2 bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-800 animate-fade-in">
-            <span className="text-xs font-bold text-slate-500 mr-2">
-              Preview Rarity
-            </span>
-            <div className="flex gap-1">
-              {RARITIES.map((r) => (
-                <button
-                  key={r.id}
-                  onClick={() => setRarity(r.id)}
-                  className={`w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold border transition-all ${rarity === r.id ? `${r.bg} ${r.color} ${r.border}` : 'border-transparent text-slate-600 hover:bg-slate-800'}`}
-                  title={r.label}
-                >
-                  {r.short}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 리롤 모드가 아닐 때만 저장 버튼 표시 */}
-        {viewMode !== 'reroll' && (
-          <button 
-            onClick={handleSave}
-            disabled={!token}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm
-              ${token
-                ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20' 
-                : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
-            `}
-          >
-            <List size={16} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
-          </button>
-        )}
-      </div>
+      {/* 리롤 모드가 아닐 때만 저장 버튼 표시 */}
+      {viewMode !== 'reroll' && (
+        <button 
+          onClick={handleSave}
+          disabled={!token}
+          className={`
+            flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm
+            ${token
+              ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20' 
+              : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
+          `}
+        >
+          <List size={16} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
+        </button>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ interface Props {
 }
 
 export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoading }: Props) {
+  // ... (기존 state 코드는 그대로 유지) ...
   const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
   const [resourceType, setResourceType] = useState<'coin' | 'cell'>('coin');
   
@@ -56,14 +57,18 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     }));
   }, [viewMode, dailyData, weeklyData, resourceType]);
 
+  // [수정 1] summary 계산 로직에 dailyAvg 추가
   const summary = useMemo(() => {
-    if (chartData.length === 0) return { total: 0, avgGrowth: 0 };
+    if (chartData.length === 0) return { total: 0, avgGrowth: 0, dailyAvg: 0 };
     
     const total = chartData.reduce((acc, cur) => acc + cur.amount, 0);
     const growthSum = chartData.reduce((acc, cur) => acc + cur.currentGrowth, 0);
     const avgGrowth = growthSum / chartData.length;
+    
+    // 평균 계산 (데이터 개수로 나눔)
+    const dailyAvg = total / chartData.length;
 
-    return { total, avgGrowth };
+    return { total, avgGrowth, dailyAvg };
   }, [chartData]);
 
   const COLORS = {
@@ -110,15 +115,29 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
           </span>
         </div>
 
-        {/* Center */}
+        {/* Center: [수정 2] Total | Daily Avg | Avg Growth 순서로 배치 */}
         <div className="flex items-center gap-4 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800">
+          {/* 1. Total */}
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">Total:</span>
             <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               {formatNumber(summary.total)}
             </span>
           </div>
+
           <div className="w-px h-3 bg-slate-700"></div>
+
+          {/* 2. Daily Avg (New) */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-slate-500">{viewMode === 'daily' ? 'Daily Avg:' : 'Weekly Avg:'}</span>
+            <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
+              {formatNumber(summary.dailyAvg)}
+            </span>
+          </div>
+
+          <div className="w-px h-3 bg-slate-700"></div>
+
+          {/* 3. Avg Growth */}
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">Avg Growth:</span>
             <span className={`font-mono font-bold text-sm flex items-center gap-0.5 ${trendColor}`}>
@@ -141,6 +160,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 animate-fade-in shadow-xl">
+      {/* ... (이하 JSX 구조는 기존과 동일) ... */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
