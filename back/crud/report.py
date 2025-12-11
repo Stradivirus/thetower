@@ -34,25 +34,29 @@ def get_recent_reports(db: Session, user_id: int):
     cutoff_date = get_cutoff_date()
     cutoff_date_naive = cutoff_date.replace(tzinfo=None)
     
-    # [Optimized] 목록 조회 시에는 combat_json만 필요함 (나머지 무거운 JSON 제외)
-    return db.query(BattleMain)\
-             .options(
-                 joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
-             )\
-             .filter(BattleMain.owner_id == user_id)\
-             .filter(BattleMain.battle_date >= cutoff_date_naive)\
-             .order_by(BattleMain.battle_date.desc())\
-             .all()
+    return (
+        db.query(BattleMain)
+        .options(
+            joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
+        )
+        .filter(BattleMain.owner_id == user_id)
+        .filter(BattleMain.battle_date >= cutoff_date_naive)
+        .order_by(BattleMain.battle_date.desc())
+        .all()
+    )
 
 # [Legacy] 단순 목록 조회
 def get_history_reports(db: Session, user_id: int, skip: int = 0, limit: int = 100):
-    return db.query(BattleMain)\
-             .options(
-                 joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
-             )\
-             .filter(BattleMain.owner_id == user_id)\
-             .order_by(BattleMain.battle_date.desc())\
-             .offset(skip).limit(limit).all()
+    return (
+        db.query(BattleMain)
+        .options(
+            joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
+        )
+        .filter(BattleMain.owner_id == user_id)
+        .order_by(BattleMain.battle_date.desc())
+        .offset(skip).limit(limit)
+        .all()
+    )
 
 # [New] 기록실 최적화 뷰 (최근 7일 상세 + 나머지 월별 요약)
 def get_history_view(db: Session, user_id: int):
@@ -61,33 +65,39 @@ def get_history_view(db: Session, user_id: int):
     cutoff_date = now_utc - timedelta(days=7)
 
     # 1. 최근 7일치 상세 데이터 (Recent List)
-    # [Optimized] 상세 정보 조회 시 불필요한 JSON 데이터 로딩 제외
-    recent_reports = db.query(BattleMain)\
+    recent_reports = (
+        db.query(BattleMain)
         .options(
             joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
-        )\
-        .filter(BattleMain.owner_id == user_id)\
-        .filter(BattleMain.battle_date >= cutoff_date)\
-        .order_by(BattleMain.battle_date.desc())\
+        )
+        .filter(BattleMain.owner_id == user_id)
+        .filter(BattleMain.battle_date >= cutoff_date)
+        .order_by(BattleMain.battle_date.desc())
         .all()
+    )
 
     # 2. 7일 이전 데이터 월별 요약 (Monthly Aggregation)
-    monthly_groups = db.query(
-        func.to_char(BattleMain.battle_date, 'YYYY-MM').label('month_key'),
-        func.count(BattleMain.battle_date).label('count'),
-        func.sum(BattleMain.coin_earned).label('total_coins'),
-        func.sum(BattleMain.cells_earned).label('total_cells'),
-        func.sum(BattleMain.reroll_shards_earned).label('total_shards')
-    ).filter(
-        BattleMain.owner_id == user_id,
-        BattleMain.battle_date < cutoff_date
-    ).group_by(
-        func.to_char(BattleMain.battle_date, 'YYYY-MM')
-    ).order_by(
-        func.to_char(BattleMain.battle_date, 'YYYY-MM').desc()
-    ).all()
+    monthly_groups = (
+        db.query(
+            func.to_char(BattleMain.battle_date, 'YYYY-MM').label('month_key'),
+            func.count(BattleMain.battle_date).label('count'),
+            func.sum(BattleMain.coin_earned).label('total_coins'),
+            func.sum(BattleMain.cells_earned).label('total_cells'),
+            func.sum(BattleMain.reroll_shards_earned).label('total_shards')
+        )
+        .filter(
+            BattleMain.owner_id == user_id,
+            BattleMain.battle_date < cutoff_date
+        )
+        .group_by(
+            func.to_char(BattleMain.battle_date, 'YYYY-MM')
+        )
+        .order_by(
+            func.to_char(BattleMain.battle_date, 'YYYY-MM').desc()
+        )
+        .all()
+    )
 
-    # 스키마 형식 변환
     monthly_summaries = []
     for row in monthly_groups:
         monthly_summaries.append({
@@ -105,23 +115,32 @@ def get_history_view(db: Session, user_id: int):
 
 # [Optimized] 특정 월의 상세 기록 조회 (Lazy Loading 용)
 def get_reports_by_month(db: Session, user_id: int, month_key: str):
-    # month_key format: "YYYY-MM"
-    # [Optimized] 월별 상세 조회 시에도 무거운 JSON 데이터는 제외하고 가져옴
-    return db.query(BattleMain)\
+    now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    cutoff_date = now_utc - timedelta(days=7)
+
+    # 괄호()로 감싸서 들여쓰기 문제 원천 차단
+    return (
+        db.query(BattleMain)
         .options(
             joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
-        )\
-        .filter(BattleMain.owner_id == user_id)\
-        .filter(func.to_char(BattleMain.battle_date, 'YYYY-MM') == month_key)\
-        .order_by(BattleMain.battle_date.desc())\
+        )
+        .filter(BattleMain.owner_id == user_id)
+        .filter(func.to_char(BattleMain.battle_date, 'YYYY-MM') == month_key)
+        .filter(BattleMain.battle_date < cutoff_date)
+        .order_by(BattleMain.battle_date.desc())
         .all()
+    )
 
 def get_full_report(db: Session, battle_date: datetime, user_id: int):
-    # 상세 페이지에서는 모든 정보가 필요하므로 load_only를 쓰지 않음
-    main = db.query(BattleMain).options(joinedload(BattleMain.detail)).filter(
-        BattleMain.battle_date == battle_date,
-        BattleMain.owner_id == user_id
-    ).first()
+    main = (
+        db.query(BattleMain)
+        .options(joinedload(BattleMain.detail))
+        .filter(
+            BattleMain.battle_date == battle_date,
+            BattleMain.owner_id == user_id
+        )
+        .first()
+    )
     
     if not main:
         return None
@@ -132,10 +151,14 @@ def get_full_report(db: Session, battle_date: datetime, user_id: int):
     }
 
 def delete_battle_record(db: Session, battle_date: datetime, user_id: int) -> bool:
-    record = db.query(BattleMain).filter(
-        BattleMain.battle_date == battle_date,
-        BattleMain.owner_id == user_id
-    ).first()
+    record = (
+        db.query(BattleMain)
+        .filter(
+            BattleMain.battle_date == battle_date,
+            BattleMain.owner_id == user_id
+        )
+        .first()
+    )
 
     if record:
         db.delete(record)
