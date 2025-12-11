@@ -63,11 +63,11 @@ export default function ModulesInfoPage() {
         const currentRarity = newState[ownedKey]; 
 
         if (currentRarity === undefined) {
-            newState[ownedKey] = 3; // 없으면 Ancestral(3)부터 시작
+            newState[ownedKey] = 3; 
         } else if (currentRarity > 0) {
-            newState[ownedKey] = currentRarity - 1; // 등급 내리기
+            newState[ownedKey] = currentRarity - 1; 
         } else {
-            delete newState[ownedKey]; // Epic(0)에서 한 번 더 누르면 삭제
+            delete newState[ownedKey]; 
         }
     } else {
         const mainKey = `equipped_${moduleType}_main`;
@@ -98,8 +98,6 @@ export default function ModulesInfoPage() {
   };
 
   return (
-    // [Modified] 고정 높이 제거 (h-[calc...] -> min-h-screen 또는 제거)
-    // flex-col은 유지하되 전체 스크롤을 허용
     <div className="w-full px-4 pb-12 animate-fade-in flex flex-col">
       <ModuleHeader 
         rarity={rarity}
@@ -112,12 +110,11 @@ export default function ModulesInfoPage() {
       />
 
       {viewMode === 'reroll' ? (
-        // [Modified] 리롤 뷰는 독립적인 높이를 가질 수 있으므로 h-fit 또는 적절히 조정
-        <div className="flex-1 mt-4 h-[calc(100vh-140px)]">
+        // [Modified] 높이 제한(h-[calc...]) 제거 -> 내용물만큼 늘어남
+        <div className="mt-4">
           <ModuleRerollView />
         </div>
       ) : (
-        // [Modified] overflow-y-auto 제거, min-h-0 제거 -> 자연스럽게 늘어나도록 변경
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-4 items-start">
           {MODULE_TYPES.map(type => (
             <ModuleColumn 

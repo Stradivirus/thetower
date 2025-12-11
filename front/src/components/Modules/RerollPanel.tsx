@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { Info, BarChart3, Target, Shield, Zap, Cpu } from 'lucide-react';
 import { RARITY, MODULE_TYPES } from '../../data/module_reroll_data'; 
-
-// Custom Hook Import
 import { useRerollSimulation } from '../../hooks/useRerollSimulation';
-
 import RerollControls from './Reroll/RerollControls';
 import WishlistSelector from './Reroll/WishlistSelector';
 import SlotViewer from './Reroll/SlotViewer';
@@ -25,23 +22,18 @@ const MAX_BAN_COUNTS: Record<string, number> = {
 };
 
 export default function RerollPanel() {
-  // --- 1. Settings State (UI 설정값) ---
   const [selectedModuleType, setSelectedModuleType] = useState('cannon');
   const currentModuleInfo = MODULE_ICONS[selectedModuleType as keyof typeof MODULE_ICONS];
   const currentEffects = MODULE_TYPES[selectedModuleType] || [];
   const maxBans = MAX_BAN_COUNTS[selectedModuleType] || 0;
 
   const [targetOptions, setTargetOptions] = useState<string[]>([]); 
-  
-  // [Modified] 기본값을 MYTHIC -> ANCESTRAL 로 변경
   const [targetRarityCap, setTargetRarityCap] = useState<number>(RARITY.ANCESTRAL);
 
-  // [밴 관련 State]
   const [banCount, setBanCount] = useState<number>(0);
   const [bannedOptions, setBannedOptions] = useState<string[]>([]);
   const [isBanMode, setIsBanMode] = useState(false);
 
-  // --- 2. Simulation Hook (엔진 연결) ---
   const { 
     slots, 
     totalCost, 
@@ -53,12 +45,9 @@ export default function RerollPanel() {
 
   const lockedCount = slots.filter(s => s.isLocked).length;
 
-  // --- 3. Handlers (UI 조작) ---
   const handleModuleChange = (typeId: string) => {
     if (isSimulating) stopSimulation();
     setSelectedModuleType(typeId);
-    
-    // 모든 상태 초기화
     setTargetOptions([]); 
     setBanCount(0);
     setBannedOptions([]);
@@ -70,7 +59,6 @@ export default function RerollPanel() {
     setBanCount(count);
     if (count > 0) {
       setIsBanMode(true);
-      // 밴 개수가 줄어들면 리스트 자르기
       if (bannedOptions.length > count) {
         setBannedOptions(prev => prev.slice(0, count));
       }
@@ -85,7 +73,6 @@ export default function RerollPanel() {
       setBannedOptions(prev => {
         if (prev.includes(id)) return prev.filter(item => item !== id);
         if (prev.length >= banCount) return prev;
-        
         if (targetOptions.includes(id)) {
           setTargetOptions(curr => curr.filter(t => t !== id));
         }
@@ -93,7 +80,6 @@ export default function RerollPanel() {
       });
     } else {
       if (bannedOptions.includes(id)) return;
-
       setTargetOptions(prev => {
         if (prev.includes(id)) return prev.filter(item => item !== id);
         if (prev.length >= 8) return prev; 
@@ -105,13 +91,13 @@ export default function RerollPanel() {
   const toggleSimulation = () => {
     if (isSimulating) stopSimulation();
     else {
-      // 훅에 현재 설정값들을 넘겨주며 시작
       startSimulation(targetOptions, bannedOptions, currentEffects, targetRarityCap, isBanMode);
     }
   };
 
   return (
-    <div className="flex h-full w-full gap-4 overflow-hidden">
+    // [Modified] h-full, overflow-hidden 제거 -> h-fit / items-start 적용
+    <div className="flex gap-4 items-start w-full">
       
       {/* Left Sidebar */}
       <RerollSidebar 
@@ -122,7 +108,8 @@ export default function RerollPanel() {
       />
 
       {/* Right Main Panel */}
-      <div className="flex-1 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl p-6 overflow-hidden">
+      {/* [Modified] overflow-hidden 제거 */}
+      <div className="flex-1 flex flex-col bg-slate-900 border border-slate-800 rounded-2xl p-6">
         
         {/* Header */}
         <div className="flex items-center justify-between mb-4 shrink-0">
@@ -162,7 +149,8 @@ export default function RerollPanel() {
         </div>
 
         {/* Main Content (Split View) */}
-        <div className="flex-1 flex gap-6 min-h-0">
+        {/* [Modified] min-h-0 제거 -> 높이 제한 해제 */}
+        <div className="flex gap-6">
           <div className="w-1/2 flex flex-col border-r border-slate-800 pr-6">
             <WishlistSelector 
               targetOptions={targetOptions}
