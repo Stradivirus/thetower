@@ -1,17 +1,18 @@
-// [Fix] SummaryModules는 default export이므로 중괄호 {} 제거
 import SummaryModules from './SummaryModules';
 import { SummaryCards } from './SummaryCards';
 import { SummaryWeapons } from './SummaryWeapons';
+import useEscKey from '../../hooks/useEscKey'; // [New] Import
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   progress: Record<string, any>;
-  modulesState?: Record<string, any>;
 }
 
-// [Fix] 'modulesState'는 사용되지 않으므로 구조 분해 할당에서 제거
 export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
+  // [New] ESC 키 처리
+  useEscKey(onClose, isOpen);
+
   if (!isOpen) return null;
 
   return (
@@ -26,7 +27,7 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
 
         {/* 메인 컨텐츠 - 3단 레이아웃 */}
         <div className="flex-1 overflow-hidden flex gap-4 p-6">
-          {/* 왼쪽: 장착된 모듈 (수정됨) */}
+          {/* 왼쪽: 장착된 모듈 */}
           <SummaryModules />
           
           {/* 오른쪽: 카드 + 궁무 */}

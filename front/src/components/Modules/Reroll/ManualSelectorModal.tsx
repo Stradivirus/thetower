@@ -1,5 +1,6 @@
 import { X, CheckCircle2 } from 'lucide-react';
 import { RARITY, RARITY_LABELS } from '../../../data/module_reroll_data';
+import useEscKey from '../../../hooks/useEscKey'; // [New] Import
 
 interface EffectData {
   id: string;
@@ -14,7 +15,7 @@ interface Props {
   onSelect: (effectId: string) => void;
   effects: EffectData[];
   targetRarity: number;
-  excludedIds?: string[]; // [New] 제외할 옵션 ID 목록
+  excludedIds?: string[];
 }
 
 export default function ManualSelectorModal({ 
@@ -23,13 +24,15 @@ export default function ManualSelectorModal({
   onSelect, 
   effects, 
   targetRarity, 
-  excludedIds = [] // [New] 기본값 빈 배열
+  excludedIds = [] 
 }: Props) {
+  // [New] ESC 키 처리
+  useEscKey(onClose, isOpen);
+
   if (!isOpen) return null;
 
   const rarityLabel = RARITY_LABELS[targetRarity];
   
-  // 등급별 텍스트 색상 (일관성 유지)
   const getRarityColor = (r: number) => {
     switch (r) {
       case RARITY.EPIC: return 'text-purple-400';
@@ -41,8 +44,12 @@ export default function ManualSelectorModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[80vh]">
+    <div 
+      // [New] 배경 클릭 시 닫기
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4 cursor-pointer"
+    >
+      <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[80vh] cursor-default">
         
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-slate-950/50 rounded-t-2xl">
@@ -60,11 +67,9 @@ export default function ManualSelectorModal({
         {/* List */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-2">
           {effects
-            // [New] 이미 선택된 옵션(excludedIds)은 목록에서 제외
             .filter(effect => !excludedIds.includes(effect.id))
             .map((effect) => {
               const value = effect.values[targetRarity];
-              // 해당 등급에 값이 없는 옵션(예: Common 등급의 특정 옵션)은 비활성화 처리
               const isValid = value !== null && value !== undefined;
 
               return (
