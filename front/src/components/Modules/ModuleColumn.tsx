@@ -8,7 +8,6 @@ interface Props {
   moduleType: { id: string; label: string; color: string; border: string };
   modules: Record<string, any>;
   progress: Record<string, any>;
-  rarity: number;
   onModuleClick: (type: string, name: string, data: any) => void;
   viewMode: 'equipped' | 'inventory';
 }

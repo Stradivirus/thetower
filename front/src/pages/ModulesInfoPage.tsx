@@ -9,7 +9,6 @@ import ModuleRerollView from '../components/Modules/RerollPanel';
 import ModuleDetailModal from '../components/Modules/ModuleDetailModal';
 
 export default function ModulesInfoPage() {
-  const [rarity, setRarity] = useState<number>(5); // 기본값 Ancestral(5)
   const [isChanged, setIsChanged] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
@@ -204,8 +203,6 @@ export default function ModulesInfoPage() {
   return (
     <div className="w-full px-4 pb-12 animate-fade-in flex flex-col">
       <ModuleHeader 
-        rarity={rarity}
-        setRarity={setRarity}
         handleSave={handleSaveProgress}
         isChanged={isChanged}
         token={token}
@@ -227,7 +224,6 @@ export default function ModulesInfoPage() {
               progress={progress}
               onModuleClick={handleModuleClick} 
               viewMode={viewMode as 'equipped' | 'inventory'}
-              rarity={rarity} 
             />
           ))}
         </div>
