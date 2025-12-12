@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+// front/src/pages/MainPage.tsx
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Search, X, List } from 'lucide-react';
 import type { BattleMain } from '../types/report';
@@ -13,16 +14,16 @@ interface MainPageProps {
 
 export default function MainPage({ reports }: MainPageProps) {
   const navigate = useNavigate();
-  const { progress } = useGameData(); // [Fix] modules 사용 안함
+  const { progress } = useGameData();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
-  const handleSelectReport = (date: string) => {
+  const handleSelectReport = useCallback((date: string) => {
     navigate(`/report/${date}`);
-  };
+  }, [navigate]);
 
-  // 1. 검색 필터링 (7일치 전체 대상)
+  // [Optimization] 검색 필터링 최적화
   const filteredReports = useMemo(() => {
     if (!searchTerm.trim()) return reports;
     
@@ -43,12 +44,11 @@ export default function MainPage({ reports }: MainPageProps) {
     });
   }, [reports, searchTerm]);
 
-  // 2. 리스트 표시용 데이터 (최근 3일치만 필터링)
+  // [Optimization] 리스트 표시용 데이터 계산 최적화
   const listDisplayReports = useMemo(() => {
-    if (searchTerm) return filteredReports; // 검색 중이면 다 보여줌
+    if (searchTerm) return filteredReports;
 
     const now = new Date();
-    // 오늘 포함 최근 3일 (Today, D-1, D-2) 계산
     const cutoffDate = new Date(now);
     cutoffDate.setDate(now.getDate() - 2); 
     cutoffDate.setHours(0, 0, 0, 0);
@@ -56,25 +56,23 @@ export default function MainPage({ reports }: MainPageProps) {
     return filteredReports.filter(r => new Date(r.battle_date) >= cutoffDate);
   }, [filteredReports, searchTerm]);
 
-  const handleOpenSummary = () => {
+  const handleOpenSummary = useCallback(() => {
     const token = localStorage.getItem('access_token');
     if (!token) {
         alert("로그인이 필요합니다.");
         return;
     }
     setIsSummaryOpen(true);
-  };
+  }, []);
 
   return (
     <>
-      {/* 대시보드에는 7일치 원본 데이터(filteredReports) 전달 */}
       <Dashboard reports={filteredReports} />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
           <Calendar className="text-slate-500" /> 전투 기록
           <span className="text-sm font-normal text-slate-500 ml-2">
-            {/* 전체 개수는 7일치 기준으로 보여줌 */}
             (최근 {filteredReports.length}개)
           </span>
         </h2>
@@ -111,7 +109,6 @@ export default function MainPage({ reports }: MainPageProps) {
       </div>
 
       {listDisplayReports.length > 0 ? (
-        // 리스트에는 3일치만 잘린 데이터(listDisplayReports) 전달
         <ReportList reports={listDisplayReports} onSelectReport={handleSelectReport} />
       ) : (
         <div className="text-center py-20 text-slate-500 bg-slate-900/30 rounded-xl border border-slate-800 border-dashed">
@@ -119,7 +116,6 @@ export default function MainPage({ reports }: MainPageProps) {
         </div>
       )}
 
-      {/* 3일 이상 데이터가 있을 때만 더보기 안내 문구 표시 */}
       {!searchTerm && filteredReports.length > listDisplayReports.length && (
         <div className="text-center mt-4">
             <button 
@@ -131,7 +127,6 @@ export default function MainPage({ reports }: MainPageProps) {
         </div>
       )}
 
-      {/* [Fix] modulesState prop 제거 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
