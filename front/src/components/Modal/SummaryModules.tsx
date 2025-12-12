@@ -47,7 +47,7 @@ export default function SummaryModules() {
     return effData ? effData.value : 1; 
   };
 
-  // 개별 모듈 렌더링 헬퍼 (메인/어시스트 공용)
+  // 개별 모듈 렌더링 헬퍼
   const renderModuleItem = (
     typeId: string,
     moduleData: EquippedModule | undefined,
@@ -57,7 +57,6 @@ export default function SummaryModules() {
   ) => {
     if (!moduleData) return null;
 
-    // 시각적 등급 제한 (어시스트 슬롯만 해당)
     let visualRarity = moduleData.rarity;
     if (slotType === 'ASSIST') {
       const maxRarityIndex = unlockLevel > 0 ? Math.min(5, unlockLevel + 1) : 0;
@@ -66,38 +65,38 @@ export default function SummaryModules() {
 
     const rarityInfo = RARITIES[visualRarity] || RARITIES[0];
     const availableEffects = REROLL_DATA[typeId] || [];
+    const hasMetaInfo = slotType === 'ASSIST' && (moduleData.rarity > visualRarity || true);
 
     return (
       <div className={`relative ${slotType === 'ASSIST' ? 'mt-4 pt-4 border-t-2 border-slate-700/50' : ''}`}>
-        {/* 모듈 헤더 (이름 + 뱃지) */}
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${slotType === 'MAIN' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/50' : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/50'}`}>
-                {slotType}
-              </span>
-              <h4 className="font-bold text-slate-100 text-sm truncate">{moduleData.name}</h4>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${rarityInfo.color} ${rarityInfo.border} ${rarityInfo.bg}`}>
-                {rarityInfo.label}
-              </span>
-              {slotType === 'ASSIST' && moduleData.rarity > visualRarity && (
-                <span className="text-[10px] text-slate-500">
-                  (Real: {RARITIES[moduleData.rarity].short})
-                </span>
-              )}
-              {slotType === 'ASSIST' && (
-                 <span className="text-[10px] text-slate-500">
-                   Eff: {efficiency}%
-                 </span>
-              )}
-            </div>
+        <div className="flex justify-between items-center mb-1 gap-2">
+          <h4 className="font-bold text-slate-100 text-sm truncate flex-1 min-w-0" title={moduleData.name}>
+            {moduleData.name}
+          </h4>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${rarityInfo.color} ${rarityInfo.border} ${rarityInfo.bg}`}>
+              {rarityInfo.label}
+            </span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${slotType === 'MAIN' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/50' : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/50'}`}>
+              {slotType}
+            </span>
           </div>
         </div>
 
-        {/* 부옵션 리스트 */}
+        {hasMetaInfo && (slotType === 'ASSIST') && (
+          <div className="flex items-center gap-2 mb-2 text-[10px] text-slate-500">
+             {moduleData.rarity > visualRarity && (
+               <span className="whitespace-nowrap">
+                 (Real: {RARITIES[moduleData.rarity].short})
+               </span>
+             )}
+             <span className="whitespace-nowrap">
+               Eff: {efficiency}%
+             </span>
+          </div>
+        )}
+        {slotType === 'MAIN' && <div className="mb-2"></div>}
+
         {moduleData.effects && moduleData.effects.length > 0 ? (
           <div className="space-y-1 bg-slate-950/30 p-2 rounded-lg border border-slate-800/50">
             {moduleData.effects.map((effectId, idx) => {
@@ -105,7 +104,6 @@ export default function SummaryModules() {
               const effectData = availableEffects.find(e => e.id === effectId);
               if (!effectData) return null;
 
-              // 실제 등급 기준 값 (어시스트는 효율 적용)
               const baseVal = effectData.values[moduleData.rarity];
               let displayVal = baseVal;
 
@@ -132,7 +130,9 @@ export default function SummaryModules() {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4 content-start overflow-y-auto pr-2 custom-scrollbar max-h-full pb-4">
+    // [Modified] 자체 스크롤 제거 (overflow-y-auto 제거, max-h-full 제거)
+    // grid layout만 남겨둠
+    <div className="grid grid-cols-2 gap-4 content-start">
       {DISPLAY_ORDER.map((typeId) => {
         const typeConfig = MODULE_TYPES.find(t => t.id === typeId);
         if (!typeConfig) return null;
@@ -157,8 +157,6 @@ export default function SummaryModules() {
             key={typeId} 
             className={`bg-slate-900 border-2 ${colors.border} ${colors.shadow} hover:${colors.glow} rounded-xl overflow-hidden h-fit transition-all duration-300`}
           >
-            
-            {/* Header */}
             <div className={`px-4 py-3 border-b-2 ${colors.border} flex items-center justify-between ${typeConfig.bg}`}>
               <div className="flex items-center gap-2">
                 <typeConfig.icon size={18} className={typeConfig.color} />
@@ -168,9 +166,7 @@ export default function SummaryModules() {
               </div>
             </div>
 
-            {/* Body */}
             <div className="p-3">
-              {/* Main Module */}
               {mainModule ? (
                 renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100)
               ) : (
@@ -179,7 +175,6 @@ export default function SummaryModules() {
                 </div>
               )}
 
-              {/* Assist Module */}
               {subModule ? (
                 renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, subEfficiency)
               ) : (
