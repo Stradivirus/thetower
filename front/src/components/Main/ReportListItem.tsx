@@ -1,8 +1,8 @@
 import React from 'react';
 import { Zap, Layers, Skull } from 'lucide-react';
-import type { BattleMain } from '../../../types/report';
-// [수정] 상대 경로를 한 단계 낮춥니다.
-import { formatNumber, formatTimeOnly, parseDurationToHours } from '../../utils/format'; 
+// [수정 1] 경로 수정: components/Main에서 types까지는 두 단계 위입니다.
+import type { BattleMain, DamageItem } from '../../types/report'; 
+import { formatNumber, formatTimeOnly, parseDurationToHours } from '../../utils/format';
 
 interface Props {
   report: BattleMain;
@@ -16,7 +16,8 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
 
   const utilityKeywords = ['오브', '블랙홀'];
   const mainDamages = (report.top_damages || [])
-    .filter(d => !utilityKeywords.includes(d.name))
+    // [수정 2] filter 파라미터 'd'에 DamageItem 타입을 명시합니다.
+    .filter((d: DamageItem) => !utilityKeywords.includes(d.name)) 
     .slice(0, 3);
 
   return (
@@ -70,7 +71,8 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
       <div className="md:col-span-3 flex flex-col justify-center border-l border-slate-800/50 pl-4 h-full py-0.5 min-w-0">
         {mainDamages.length > 0 ? (
           <div className="grid grid-cols-3 gap-2 mb-1.5">
-            {mainDamages.map((dmg, idx) => (
+            {/* [수정 3 & 4] map 파라미터 'dmg'와 'idx'에 각각 타입(DamageItem, number)을 명시합니다. */}
+            {mainDamages.map((dmg: DamageItem, idx: number) => (
               <div key={idx} className="flex flex-col items-start min-w-0">
                 <span className={`text-[11px] font-bold truncate w-full ${idx === 0 ? 'text-rose-400' : 'text-slate-400'}`}>
                   {idx + 1}. {dmg.name}
