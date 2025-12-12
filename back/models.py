@@ -1,51 +1,10 @@
+# back/models.py
 from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey, Text, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
 from datetime import datetime, timezone
-import re
-
-# [Fix] The Tower 게임 단위 파싱 (aa, ab, ac 추가)
-def parse_game_number(value_str: str) -> float:
-    if not value_str: return 0.0
-    clean_str = str(value_str).strip().replace(',', '')
-    
-    # 단위 정의 (게임 내 표기법 기준)
-    # 주의: 긴 단위(2글자)를 짧은 단위(1글자)보다 먼저 검사해야 안전합니다.
-    multipliers = {
-        # [New] 새로 찾은 단위들 (aa ~ ac)
-        'ac': 10**42, # Tredecillion
-        'ab': 10**39, # Duodecillion
-        'aa': 10**36, # Undecillion
-        
-        # 기존 단위들
-        'q': 10**15, 'Q': 10**18, 
-        's': 10**21, 'S': 10**24,
-        'o': 10**27, 'O': 10**27,
-        'n': 10**30, 'N': 10**30,
-        'd': 10**33, 'D': 10**33,
-        'U': 10**36,  # 혹시 몰라 기존 대문자 U도 남겨둠
-        
-        't': 10**12, 'T': 10**12, 
-        'b': 10**9, 'B': 10**9, 
-        'm': 10**6, 'M': 10**6, 
-        'k': 10**3, 'K': 10**3
-    }
-    
-    multiplier = 1.0
-    
-    # 위에서 정의한 순서대로(긴 것부터) suffix 매칭 시도
-    for suffix, mult in multipliers.items():
-        if clean_str.endswith(suffix):
-            multiplier = float(mult)
-            # 단위 부분 제거 (숫자만 남김)
-            clean_str = clean_str[:-len(suffix)]
-            break
-            
-    try:
-        return float(clean_str) * multiplier
-    except:
-        return 0.0
+from crud.utils import parse_game_number_safe as parse_game_number
 
 class User(Base):
     __tablename__ = "users"

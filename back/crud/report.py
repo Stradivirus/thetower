@@ -1,3 +1,4 @@
+# back/crud/report.py
 from sqlalchemy.orm import Session, joinedload, load_only
 from sqlalchemy import func
 from models import BattleMain, BattleDetail
@@ -118,15 +119,21 @@ def get_reports_by_month(db: Session, user_id: int, month_key: str):
     now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
     cutoff_date = now_utc - timedelta(days=7)
 
-    # 괄호()로 감싸서 들여쓰기 문제 원천 차단
+    # 월 시작/종료 날짜 계산
+    start_date = datetime.strptime(f"{month_key}-01", "%Y-%m-%d")
+    # 다음 달 1일 계산
+    end_date = (start_date + timedelta(days=32)).replace(day=1)
+
     return (
         db.query(BattleMain)
         .options(
             joinedload(BattleMain.detail).load_only(BattleDetail.combat_json)
         )
-        .filter(BattleMain.owner_id == user_id)
-        .filter(func.to_char(BattleMain.battle_date, 'YYYY-MM') == month_key)
-        .filter(BattleMain.battle_date < cutoff_date)
+        .filter(
+            BattleMain.owner_id == user_id,
+            BattleMain.battle_date >= start_date,
+            BattleMain.battle_date < min(end_date, cutoff_date)
+        )
         .order_by(BattleMain.battle_date.desc())
         .all()
     )
