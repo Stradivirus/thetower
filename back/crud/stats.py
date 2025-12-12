@@ -1,6 +1,6 @@
 # back/crud/stats.py
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, literal
 from models import BattleMain
 from datetime import datetime, timedelta, timezone
 
@@ -75,9 +75,10 @@ def get_weekly_trends(db: Session, user_id: int):
     fetch_start_date = yesterday - timedelta(days=63)
     
     # [Optimized] DB에서 주차 계산 및 그룹화
+    # PostgreSQL에서 날짜 차이를 초 단위로 계산
     results = db.query(
         func.floor(
-            func.extract('epoch', func.cast(yesterday, db.bind.dialect.TIMESTAMP) - BattleMain.battle_date) / (7 * 86400)
+            func.extract('epoch', literal(yesterday) - BattleMain.battle_date) / (7 * 86400)
         ).label('week_offset'),
         func.sum(BattleMain.coin_earned).label('total_coins'),
         func.sum(BattleMain.cells_earned).label('total_cells')
