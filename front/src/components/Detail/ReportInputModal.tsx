@@ -1,6 +1,6 @@
-// [New] src/components/ReportInputModal.tsx
+// src/components/Detail/ReportInputModal.tsx
 import { useState } from 'react';
-import { X, Save, FileText } from 'lucide-react';
+import { X, Save, FileText, Trophy } from 'lucide-react';
 import { createReport } from '../../api/reports';
 
 interface Props {
@@ -48,13 +48,26 @@ export default function ReportInputModal({ onClose, onSuccess }: Props) {
           className="w-full h-64 bg-slate-950 border border-slate-700 rounded-lg p-4 text-slate-300 font-mono text-sm focus:outline-none focus:border-blue-500 resize-none mb-4"
         />
 
-        <input
-          type="text"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="메모를 입력하세요 (예: 신규 모듈 테스트)"
-          className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-300 text-sm focus:outline-none focus:border-blue-500 mb-4"
-        />
+        {/* 버튼과 입력창을 가로로 배치 (flex) */}
+        <div className="flex gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => setNotes('토너')}
+            className="flex items-center gap-2 px-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 transition-colors whitespace-nowrap"
+            title="메모에 '토너' 자동 입력"
+          >
+            <Trophy size={16} className="text-yellow-500" />
+            <span>토너</span>
+          </button>
+
+          <input
+            type="text"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="메모를 입력하세요 (예: 신규 모듈 테스트)"
+            className="flex-1 bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-300 text-sm focus:outline-none focus:border-blue-500"
+          />
+        </div>
 
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 

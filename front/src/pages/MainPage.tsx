@@ -1,7 +1,7 @@
 // front/src/pages/MainPage.tsx
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Search, X, List } from 'lucide-react';
+import { Calendar, Search, X, List, Trophy } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import Dashboard from '../components/Main/Dashboard';
 import ReportList from '../components/Main/ReportList';
@@ -78,6 +78,7 @@ export default function MainPage({ reports }: MainPageProps) {
         </h2>
         
         <div className="flex items-center gap-2 w-full md:w-auto">
+          {/* 1. 검색창 */}
           <div className="relative group flex-1 md:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={16} />
             <input 
@@ -97,6 +98,17 @@ export default function MainPage({ reports }: MainPageProps) {
             )}
           </div>
 
+          {/* 2. [New] 토너 버튼 (검색창과 모듈 버튼 사이 배치) */}
+          <button 
+            onClick={() => setSearchTerm('토너')}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/20 whitespace-nowrap"
+            title="토너먼트 기록만 보기"
+          >
+            <Trophy size={16} /> 
+            <span className="hidden sm:inline">토너</span>
+          </button>
+
+          {/* 3. 궁무 및 모듈 버튼 */}
           <button 
             onClick={handleOpenSummary}
             className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20 whitespace-nowrap"

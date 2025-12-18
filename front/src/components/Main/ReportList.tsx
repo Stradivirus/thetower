@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Zap, Layers, ChevronDown, ChevronUp } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
-// [수정] ReportListItem 컴포넌트로 분리되면서 불필요한 import 제거
 import { formatNumber, formatDateHeader } from '../../utils/format'; 
-// [추가] ReportListItem 컴포넌트 import
 import ReportListItem from './ReportListItem'; 
 
 interface Props {

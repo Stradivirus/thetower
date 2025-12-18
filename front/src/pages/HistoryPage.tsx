@@ -1,7 +1,7 @@
-// front/src/pages/HistoryPage.tsx
+// src/pages/HistoryPage.tsx
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Archive, Search, X, Calendar, ChevronDown, ChevronUp, Loader2, Zap, Layers } from 'lucide-react';
+import { Archive, Search, X, Calendar, ChevronDown, ChevronUp, Loader2, Zap, Layers, Trophy } from 'lucide-react';
 import type { BattleMain, MonthlySummary } from '../types/report';
 import type { WeeklyStatsResponse } from '../api/reports'; 
 import { getWeeklyStats, getHistoryView, getReportsByMonth } from '../api/reports';
@@ -45,7 +45,9 @@ export default function HistoryPage() {
   }, []);
 
   const handleSelectReport = (date: string) => {
-    navigate(`/report/${date}`);
+    // API 등에서 id가 넘어오는지 확인 필요, 보통은 id나 date를 사용
+    // 여기서는 기존 로직대로 date를 넘기거나 id가 있다면 id를 넘기도록 수정 가능
+    navigate(`/reports/${date}`); // URL 경로 확인 필요 (/report -> /reports 등)
   };
 
   const toggleMonth = async (monthKey: string) => {
@@ -89,7 +91,8 @@ export default function HistoryPage() {
     return recentReports.filter(r => 
       r.notes?.toLowerCase().includes(lower) || 
       r.killer?.toLowerCase().includes(lower) ||
-      r.tier?.toLowerCase().includes(lower)
+      r.tier?.toLowerCase().includes(lower) ||
+      r.battle_date.includes(searchTerm)
     );
   }, [recentReports, searchTerm]);
 
@@ -103,18 +106,31 @@ export default function HistoryPage() {
           </span>
         </h2>
         
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={16} />
-          <input 
-            type="text" 
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="최근 기록 검색..." 
-            className="bg-slate-900 border border-slate-800 rounded-full pl-10 pr-10 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 w-full md:w-72 transition-all" 
-          />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"><X size={14} /></button>
-          )}
+        {/* 검색 및 필터 버튼 영역 */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="relative group flex-1 md:flex-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={16} />
+            <input 
+              type="text" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="기록 검색..." 
+              className="bg-slate-900 border border-slate-800 rounded-full pl-10 pr-10 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 w-full md:w-72 transition-all" 
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"><X size={14} /></button>
+            )}
+          </div>
+
+          {/* 토너 버튼 (오른쪽 배치) */}
+          <button
+            onClick={() => setSearchTerm('토너')}
+            className="flex items-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-full text-xs text-slate-300 hover:text-white transition-all whitespace-nowrap shadow-sm"
+            title="토너먼트 기록만 보기"
+          >
+            <Trophy size={14} className="text-yellow-500" />
+            <span className="font-medium">토너</span>
+          </button>
         </div>
       </div>
 
@@ -130,6 +146,7 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-4">
           
+          {/* 최근 7일 기록 */}
           {filteredRecent.length > 0 && (
             <div className="animate-fade-in mb-6">
               <div className="text-xs font-bold text-slate-500 mb-2 px-1">최근 7일 기록</div>
@@ -142,21 +159,26 @@ export default function HistoryPage() {
             </div>
           )}
 
+          {/* 월별 아카이브 */}
           <div>
             {monthlySummaries.map((summary) => {
                 const isExpanded = expandedMonths.has(summary.month_key);
                 const isLoadingMonth = loadingMonths.has(summary.month_key);
                 
                 let details = monthlyDetails[summary.month_key] || [];
+                
+                // 검색 시 월별 상세 데이터도 필터링
                 if (searchTerm) {
                   const lower = searchTerm.toLowerCase();
                   details = details.filter(r => 
                     r.notes?.toLowerCase().includes(lower) || 
                     r.killer?.toLowerCase().includes(lower) ||
-                    r.tier?.toLowerCase().includes(lower)
+                    r.tier?.toLowerCase().includes(lower) ||
+                    r.battle_date.includes(searchTerm)
                   );
                 }
 
+                // 검색 중일 때: 결과가 없고 펼쳐지지도 않았으면 숨김 (결과가 있으면 보여줌)
                 if (searchTerm && details.length === 0 && !isExpanded) return null;
 
                 return (
