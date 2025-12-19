@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from database import get_db, get_db_read
-# [Modified] 새로 추가된 스키마 import
 from schemas import (
     BattleMainResponse, 
     FullReportResponse, 
@@ -47,7 +46,7 @@ def create_report(
 
 # 2. 통계 및 목록 조회
 
-# [New] 기록실 메인 뷰 (최근 7일 상세 + 월별 요약) - 최적화된 API
+# 기록실 메인 뷰 (최근 7일 상세 + 월별 요약)
 @router.get("/view", response_model=HistoryViewResponse)
 def get_history_view_api(
     db: Session = Depends(get_db_read),
@@ -55,7 +54,7 @@ def get_history_view_api(
 ):
     return crud.get_history_view(db, current_user.id)
 
-# [New] 월별 상세 기록 조회 (Lazy Load)
+# 월별 상세 기록 조회 (Lazy Load)
 @router.get("/month/{month_key}", response_model=List[BattleMainResponse])
 def get_reports_by_month_api(
     month_key: str,

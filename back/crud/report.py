@@ -30,7 +30,6 @@ def get_cutoff_date():
     midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
     return midnight - timedelta(days=7)
 
-# [Legacy] 기존 대시보드용 최근 기록
 def get_recent_reports(db: Session, user_id: int):
     cutoff_date = get_cutoff_date()
     cutoff_date_naive = cutoff_date.replace(tzinfo=None)
@@ -46,7 +45,6 @@ def get_recent_reports(db: Session, user_id: int):
         .all()
     )
 
-# [Legacy] 단순 목록 조회
 def get_history_reports(db: Session, user_id: int, skip: int = 0, limit: int = 100):
     return (
         db.query(BattleMain)
@@ -59,7 +57,7 @@ def get_history_reports(db: Session, user_id: int, skip: int = 0, limit: int = 1
         .all()
     )
 
-# [New] 기록실 최적화 뷰 (최근 7일 상세 + 나머지 월별 요약)
+# 기록실 최적화 뷰 (최근 7일 상세 + 나머지 월별 요약)
 def get_history_view(db: Session, user_id: int):
     # 기준: 최근 7일
     now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
@@ -114,7 +112,7 @@ def get_history_view(db: Session, user_id: int):
         "monthly_summaries": monthly_summaries
     }
 
-# [Optimized] 특정 월의 상세 기록 조회 (Lazy Loading 용)
+# 특정 월의 상세 기록 조회 (Lazy Loading 용)
 def get_reports_by_month(db: Session, user_id: int, month_key: str):
     now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
     cutoff_date = now_utc - timedelta(days=7)

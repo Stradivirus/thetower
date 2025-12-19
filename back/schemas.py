@@ -2,9 +2,7 @@ from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-# ==========================================
 # 1. 유저 및 인증 (User & Auth) - [기존 코드 복구]
-# ==========================================
 class UserBase(BaseModel):
     username: str
 
@@ -24,9 +22,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-# ==========================================
-# 2. 게임 진행도 및 모듈 (Progress) - [기존 코드 복구]
-# ==========================================
+# 2. 게임 진행도 및 모듈 (Progress)
 class ProgressBase(BaseModel):
     progress_json: Dict[str, Any]
 
@@ -44,9 +40,7 @@ class UserModulesResponse(UserModulesBase):
     class Config:
         from_attributes = True
 
-# ==========================================
-# 3. 전투 기록 (Report) - [최적화 적용]
-# ==========================================
+# 3. 전투 기록 (Report)
 
 class DamageItem(BaseModel):
     name: str
@@ -73,7 +67,6 @@ class BattleMainResponse(BaseModel):
     
     notes: Optional[str] = None
     
-    # [Modified] Dict 대신 명확한 스키마 사용
     top_damages: List[DamageItem] = []
 
     class Config:
@@ -92,9 +85,7 @@ class FullReportResponse(BaseModel):
     main: BattleMainResponse
     detail: BattleDetailResponse
 
-# ==========================================
 # 4. 통계 (Stats)
-# ==========================================
 class DailyStat(BaseModel):
     date: str
     total_coins: int
@@ -115,9 +106,7 @@ class WeeklyTrendStat(BaseModel):
 class WeeklyTrendResponse(BaseModel):
     weekly_stats: List[WeeklyTrendStat]
 
-# ==========================================
-# 5. 기록실 최적화 뷰 (History View) - [New]
-# ==========================================
+# 5. 기록실 최적화 뷰 (History View)
 class MonthlySummary(BaseModel):
     month_key: str        # 예: "2023-12"
     count: int            # 게임 수

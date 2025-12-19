@@ -4,14 +4,14 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 import database, schemas, crud, auth
-import slack # [New] 슬랙 모듈 임포트
+import slack
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 @router.post("/register", response_model=schemas.UserResponse)
 def register(
     user: schemas.UserCreate, 
-    background_tasks: BackgroundTasks, # [New] 백그라운드 태스크 의존성 추가
+    background_tasks: BackgroundTasks,
     db: Session = Depends(database.get_db)
 ):
     if len(user.username) < 4:
@@ -26,11 +26,9 @@ def register(
     hashed_pw = auth.get_password_hash(user.password)
     new_user = crud.create_user(db=db, user=user, hashed_password=hashed_pw)
 
-    # [New] 10명 단위 알림 로직
     try:
         total_count = crud.count_users(db)
         if total_count % 10 == 0:
-            # [Modified] ID 제거하고 카운트만 전송
             msg = f"🚀 [축] {total_count}번째 사용자가 가입했습니다!"
             background_tasks.add_task(slack.send_slack_notification, msg)
     except Exception as e:

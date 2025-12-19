@@ -4,7 +4,7 @@ from sqlalchemy import func, literal
 from models import BattleMain
 from datetime import datetime, timedelta, timezone
 
-# [New] 헬퍼 함수 - 시간 계산 중복 제거
+# 헬퍼 함수 - 시간 계산 중복 제거
 def get_yesterday():
     """UTC 기준 어제 자정 (naive datetime)"""
     now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
@@ -15,7 +15,7 @@ def get_weekly_stats(db: Session, user_id: int):
     yesterday = get_yesterday()
     fetch_start_date = yesterday - timedelta(days=7)
     
-    # [Optimized] DB 레벨에서 날짜별 그룹화 및 합계 계산
+    # DB 레벨에서 날짜별 그룹화 및 합계 계산
     results = db.query(
         func.to_char(BattleMain.battle_date, 'YYYY-MM-DD').label('date_str'),
         func.sum(BattleMain.coin_earned).label('total_coins'),
@@ -28,7 +28,6 @@ def get_weekly_stats(db: Session, user_id: int):
         func.to_char(BattleMain.battle_date, 'YYYY-MM-DD')
     ).all()
 
-    # DB 결과를 딕셔너리로 변환 (빠른 조회를 위해)
     daily_map = {
         r.date_str: {"coins": r.total_coins or 0, "cells": r.total_cells or 0}
         for r in results
@@ -74,8 +73,7 @@ def get_weekly_trends(db: Session, user_id: int):
     yesterday = get_yesterday()
     fetch_start_date = yesterday - timedelta(days=63)
     
-    # [Optimized] DB에서 주차 계산 및 그룹화
-    # PostgreSQL에서 날짜 차이를 초 단위로 계산
+    # DB에서 주차 계산 및 그룹화
     results = db.query(
         func.floor(
             func.extract('epoch', literal(yesterday) - BattleMain.battle_date) / (7 * 86400)

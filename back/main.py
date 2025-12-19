@@ -2,8 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 from routers import reports, auth, progress, modules
-from fastapi.middleware.gzip import GZipMiddleware
-# 테이블 생성
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="The Tower Battle Reports API")
@@ -22,7 +20,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.include_router(auth.router)
 app.include_router(reports.router)
 app.include_router(progress.router)
