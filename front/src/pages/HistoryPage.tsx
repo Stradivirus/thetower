@@ -45,9 +45,8 @@ export default function HistoryPage() {
   }, []);
 
   const handleSelectReport = (date: string) => {
-    // API 등에서 id가 넘어오는지 확인 필요, 보통은 id나 date를 사용
-    // 여기서는 기존 로직대로 date를 넘기거나 id가 있다면 id를 넘기도록 수정 가능
-    navigate(`/reports/${date}`); // URL 경로 확인 필요 (/report -> /reports 등)
+    // [Fix] 경로를 '/reports/'에서 '/report/'로 수정 (MainPage와 통일)
+    navigate(`/report/${date}`);
   };
 
   const toggleMonth = async (monthKey: string) => {
