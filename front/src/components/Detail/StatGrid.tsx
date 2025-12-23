@@ -48,7 +48,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     const spawnItems = entries.filter(([key]) => !key.includes('파괴'));
 
     const leftOrder = ['적 합계', '기본', '신속', '원거리', '탱킹', '수호자', '보스'];
-    const rightOrder = ['총 엘리트', '광선', '스캐터', '뱀파이어', '에누리', '방해 공작원', '사령관'];
+    const rightOrder = ['총 엘리트', '광선', '스캐터', '뱀파이어', '과전하', '파괴 공작원', '지휘관'];
 
     spawnItems.forEach(item => {
       const [key] = item;
