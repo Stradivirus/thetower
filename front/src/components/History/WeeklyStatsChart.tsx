@@ -13,7 +13,6 @@ interface Props {
 }
 
 export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoading }: Props) {
-  // ... (기존 state 코드는 그대로 유지) ...
   const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
   const [resourceType, setResourceType] = useState<'coin' | 'cell'>('coin');
   
@@ -39,6 +38,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   const isLoading = viewMode === 'daily' ? dailyLoading : weeklyLoading;
 
+  // [수정 1] 데이터 가공 시 선형 회귀(Linear Regression)로 추세선 계산
   const chartData = useMemo(() => {
     let rawData: any[] = [];
     if (viewMode === 'daily' && dailyData) {
@@ -47,7 +47,8 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
       rawData = weeklyData.weekly_stats;
     }
 
-    return rawData.map(d => ({
+    // 1. 기본 데이터 매핑
+    const mappedData = rawData.map(d => ({
       ...d,
       displayDate: viewMode === 'daily' 
         ? d.date.substring(5).replace('-', '/') 
@@ -55,17 +56,41 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
       currentGrowth: resourceType === 'coin' ? d.coin_growth : d.cell_growth,
       amount: resourceType === 'coin' ? d.total_coins : d.total_cells
     }));
+
+    // 2. 추세선(Trend Line) 계산 (최소자승법)
+    const n = mappedData.length;
+    if (n > 1) {
+      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+      
+      mappedData.forEach((d, i) => {
+        const x = i;          // X축: 인덱스 (0, 1, 2...)
+        const y = d.amount;   // Y축: 획득량
+        
+        sumX += x;
+        sumY += y;
+        sumXY += x * y;
+        sumXX += x * x;
+      });
+
+      // 기울기(slope)와 절편(intercept) 공식
+      const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+      const intercept = (sumY - slope * sumX) / n;
+
+      return mappedData.map((d, i) => ({
+        ...d,
+        trendValue: slope * i + intercept // y = ax + b
+      }));
+    }
+
+    return mappedData;
   }, [viewMode, dailyData, weeklyData, resourceType]);
 
-  // [수정 1] summary 계산 로직에 dailyAvg 추가
   const summary = useMemo(() => {
     if (chartData.length === 0) return { total: 0, avgGrowth: 0, dailyAvg: 0 };
     
     const total = chartData.reduce((acc, cur) => acc + cur.amount, 0);
     const growthSum = chartData.reduce((acc, cur) => acc + cur.currentGrowth, 0);
     const avgGrowth = growthSum / chartData.length;
-    
-    // 평균 계산 (데이터 개수로 나눔)
     const dailyAvg = total / chartData.length;
 
     return { total, avgGrowth, dailyAvg };
@@ -76,6 +101,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     cellBar: '#22d3ee',
     increase: '#ef4444',
     decrease: '#3b82f6',
+    trend: '#94a3b8', // 추세선 색상 (Slate-400)
   };
 
   const isCoin = resourceType === 'coin';
@@ -113,31 +139,27 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
           <span className="text-slate-300 font-bold">
             {isCoin ? "Coins Earned" : "Cells Earned"}
           </span>
+          {/* Legend에 추세선 설명 추가 (선택 사항) */}
+          <div className="w-4 h-0.5 border-t-2 border-dashed border-slate-400 ml-2"></div>
+          <span className="text-slate-400 font-medium">Trend</span>
         </div>
 
-        {/* Center: [수정 2] Total | Daily Avg | Avg Growth 순서로 배치 */}
+        {/* Center */}
         <div className="flex items-center gap-4 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800">
-          {/* 1. Total */}
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">Total:</span>
             <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               {formatNumber(summary.total)}
             </span>
           </div>
-
           <div className="w-px h-3 bg-slate-700"></div>
-
-          {/* 2. Daily Avg (New) */}
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">{viewMode === 'daily' ? 'Daily Avg:' : 'Weekly Avg:'}</span>
             <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               {formatNumber(summary.dailyAvg)}
             </span>
           </div>
-
           <div className="w-px h-3 bg-slate-700"></div>
-
-          {/* 3. Avg Growth */}
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">Avg Growth:</span>
             <span className={`font-mono font-bold text-sm flex items-center gap-0.5 ${trendColor}`}>
@@ -160,7 +182,6 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 animate-fade-in shadow-xl">
-      {/* ... (이하 JSX 구조는 기존과 동일) ... */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
@@ -216,11 +237,32 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
                   const color = num > 0 ? COLORS.increase : (num < 0 ? COLORS.decrease : '#94a3b8');
                   return [<span style={{ color }}>{value}%</span>, 'Growth Rate'];
                 }
+                if (name === 'Trend') {
+                  return [formatNumber(value), 'Trend'];
+                }
                 return [formatNumber(value), isCoin ? 'Coins' : 'Cells'];
               }}
             />
             <Legend content={renderCustomLegend} />
+            
+            {/* 막대 그래프 */}
             <Bar yAxisId="left" dataKey="amount" name={isCoin ? "Coins Earned" : "Cells Earned"} barSize={viewMode === 'daily' ? 24 : 36} radius={[6, 6, 0, 0]} fill={currentBarColor} fillOpacity={0.8} />
+            
+            {/* [수정 2] 추세선 (Trend Line) 추가 */}
+            <Line 
+              yAxisId="left"
+              type="linear"
+              dataKey="trendValue" 
+              name="Trend" 
+              stroke={COLORS.trend} 
+              strokeDasharray="5 5" 
+              strokeOpacity={0.5} 
+              strokeWidth={2}
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+            />
+
             <ReferenceLine y={0} yAxisId="right" stroke="#475569" strokeDasharray="3 3" />
             <Line yAxisId="right" type="monotone" dataKey="currentGrowth" name="Growth %" stroke="url(#splitColor)" strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2, stroke: '#64748b' }} activeDot={{ r: 6 }} connectNulls />
           </ComposedChart>
