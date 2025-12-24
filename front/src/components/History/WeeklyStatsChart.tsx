@@ -38,53 +38,64 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   const isLoading = viewMode === 'daily' ? dailyLoading : weeklyLoading;
 
-  // [수정 1] 데이터 가공 시 선형 회귀(Linear Regression)로 추세선 계산
-  const chartData = useMemo(() => {
-    let rawData: any[] = [];
+  // 1. 타입을 any[]로 명시하여 strict 타입 에러 방지
+  const rawData: any[] = useMemo(() => {
     if (viewMode === 'daily' && dailyData) {
-      rawData = dailyData.daily_stats;
+      return dailyData.daily_stats;
     } else if (viewMode === 'weekly' && weeklyData) {
-      rawData = weeklyData.weekly_stats;
+      return weeklyData.weekly_stats;
     }
+    return [];
+  }, [viewMode, dailyData, weeklyData]);
 
-    // 1. 기본 데이터 매핑
-    const mappedData = rawData.map(d => ({
-      ...d,
-      displayDate: viewMode === 'daily' 
-        ? d.date.substring(5).replace('-', '/') 
-        : `${d.week_start_date.substring(5).replace('-', '/')}~`,
-      currentGrowth: resourceType === 'coin' ? d.coin_growth : d.cell_growth,
-      amount: resourceType === 'coin' ? d.total_coins : d.total_cells
+  // 2. 추세(Trend) 정보 미리 계산 (기울기 및 절편)
+  const trendInfo = useMemo(() => {
+    const n = rawData.length;
+    if (n <= 1) return { slope: 0, intercept: 0 };
+
+    const points = rawData.map((d, i) => ({
+      x: i,
+      y: resourceType === 'coin' ? d.total_coins : d.total_cells
     }));
 
-    // 2. 추세선(Trend Line) 계산 (최소자승법)
-    const n = mappedData.length;
-    if (n > 1) {
-      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+    points.forEach(p => {
+      sumX += p.x;
+      sumY += p.y;
+      sumXY += p.x * p.y;
+      sumXX += p.x * p.x;
+    });
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    return { slope, intercept };
+  }, [rawData, resourceType]);
+
+  // 3. 차트용 데이터 매핑
+  const chartData = useMemo(() => {
+    return rawData.map((d, i) => {
+      const displayDate = viewMode === 'daily' 
+        ? d.date.substring(5).replace('-', '/') 
+        : `${d.week_start_date.substring(5).replace('-', '/')}~`;
       
-      mappedData.forEach((d, i) => {
-        const x = i;          // X축: 인덱스 (0, 1, 2...)
-        const y = d.amount;   // Y축: 획득량
-        
-        sumX += x;
-        sumY += y;
-        sumXY += x * y;
-        sumXX += x * x;
-      });
+      const currentGrowth = resourceType === 'coin' ? d.coin_growth : d.cell_growth;
+      const amount = resourceType === 'coin' ? d.total_coins : d.total_cells;
+      
+      // 추세선 값 계산 (y = ax + b)
+      const trendValue = trendInfo.slope * i + trendInfo.intercept;
 
-      // 기울기(slope)와 절편(intercept) 공식
-      const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-      const intercept = (sumY - slope * sumX) / n;
-
-      return mappedData.map((d, i) => ({
+      return {
         ...d,
-        trendValue: slope * i + intercept // y = ax + b
-      }));
-    }
+        displayDate,
+        currentGrowth,
+        amount,
+        trendValue
+      };
+    });
+  }, [rawData, viewMode, resourceType, trendInfo]);
 
-    return mappedData;
-  }, [viewMode, dailyData, weeklyData, resourceType]);
-
+  // 4. 통계 요약 계산
   const summary = useMemo(() => {
     if (chartData.length === 0) return { total: 0, avgGrowth: 0, dailyAvg: 0 };
     
@@ -96,16 +107,29 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     return { total, avgGrowth, dailyAvg };
   }, [chartData]);
 
+  // 색상 팔레트 정의
   const COLORS = {
     coinBar: '#fbbf24',
     cellBar: '#22d3ee',
     increase: '#ef4444',
     decrease: '#3b82f6',
-    trend: '#94a3b8', // 추세선 색상 (Slate-400)
+    trendUp: '#4ade80',   // Green (성장)
+    trendDown: '#3b82f6', // Blue (하락)
+    trendFlat: '#94a3b8'  // Gray (보합)
   };
 
   const isCoin = resourceType === 'coin';
   const currentBarColor = isCoin ? COLORS.coinBar : COLORS.cellBar;
+  
+  // [수정됨] 추세선 색상 결정 로직: 평균 성장률(avgGrowth)이 1% 이상일 때만 Green
+  const currentTrendColor = useMemo(() => {
+    if (summary.avgGrowth >= 1.0) {
+      return COLORS.trendUp;    // 1% 이상 성장 시 초록색
+    } else if (summary.avgGrowth <= -1.0) {
+      return COLORS.trendDown;  // -1% 이하 하락 시 파란색
+    }
+    return COLORS.trendFlat;    // -1% ~ 1% 사이는 회색 (보합)
+  }, [summary.avgGrowth]);
 
   const gradientOffset = () => {
     if (chartData.length === 0) return 0;
@@ -139,9 +163,8 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
           <span className="text-slate-300 font-bold">
             {isCoin ? "Coins Earned" : "Cells Earned"}
           </span>
-          {/* Legend에 추세선 설명 추가 (선택 사항) */}
-          <div className="w-4 h-0.5 border-t-2 border-dashed border-slate-400 ml-2"></div>
-          <span className="text-slate-400 font-medium">Trend</span>
+          <div className="w-4 h-0.5 border-t-2 border-dashed ml-2" style={{ borderColor: currentTrendColor }}></div>
+          <span style={{ color: currentTrendColor }} className="font-medium">Trend</span>
         </div>
 
         {/* Center */}
@@ -238,25 +261,23 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
                   return [<span style={{ color }}>{value}%</span>, 'Growth Rate'];
                 }
                 if (name === 'Trend') {
-                  return [formatNumber(value), 'Trend'];
+                  return [<span style={{ color: currentTrendColor }}>{formatNumber(value)}</span>, 'Trend'];
                 }
                 return [formatNumber(value), isCoin ? 'Coins' : 'Cells'];
               }}
             />
             <Legend content={renderCustomLegend} />
             
-            {/* 막대 그래프 */}
             <Bar yAxisId="left" dataKey="amount" name={isCoin ? "Coins Earned" : "Cells Earned"} barSize={viewMode === 'daily' ? 24 : 36} radius={[6, 6, 0, 0]} fill={currentBarColor} fillOpacity={0.8} />
             
-            {/* [수정 2] 추세선 (Trend Line) 추가 */}
             <Line 
               yAxisId="left"
               type="linear"
               dataKey="trendValue" 
               name="Trend" 
-              stroke={COLORS.trend} 
+              stroke={currentTrendColor} 
               strokeDasharray="5 5" 
-              strokeOpacity={0.5} 
+              strokeOpacity={0.8} 
               strokeWidth={2}
               dot={false}
               activeDot={false}
