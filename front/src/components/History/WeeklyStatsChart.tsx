@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { BarChart3, Zap, CircleDollarSign, RefreshCw, CalendarDays, CalendarRange } from 'lucide-react';
 import { getWeeklyTrends } from '../../api/reports';
 import type { WeeklyStatsResponse, WeeklyTrendResponse } from '../../api/reports';
-import GrowthTrendChart from './GrowthTrendChart'; // [신규] 분리된 컴포넌트 임포트
+import GrowthTrendChart from './GrowthTrendChart';
 
 interface Props {
   data: WeeklyStatsResponse | null;
@@ -45,18 +45,27 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     return [];
   }, [viewMode, dailyData, weeklyData]);
 
-  // 2. 유효 데이터 필터링 (데이터가 시작되는 지점부터 자르기)
+  // 2. 유효 데이터 필터링 및 [최근 N개 제한]
   const effectiveData = useMemo(() => {
     if (rawData.length === 0) return [];
+
+    // 1) 0보다 큰 데이터가 시작되는 지점 찾기 (앞부분 빈 공간 제거)
     const firstIndex = rawData.findIndex(d => {
       const val = resourceType === 'coin' ? d.total_coins : d.total_cells;
       return val > 0;
     });
-    if (firstIndex === -1) return rawData;
-    return rawData.slice(firstIndex);
-  }, [rawData, resourceType]);
+    
+    // 데이터가 없으면 원본 그대로, 있으면 유효한 구간만 자름
+    const validData = firstIndex === -1 ? rawData : rawData.slice(firstIndex);
 
-  // 3. 추세(Trend) 정보 계산
+    // 2) 화면 모드에 따라 최대 개수 제한 (일간 7개, 주간 8개)
+    const limit = viewMode === 'daily' ? 7 : 8;
+    
+    // 배열의 뒤에서부터 limit 개수만큼만 가져옴
+    return validData.slice(-limit); 
+  }, [rawData, resourceType, viewMode]);
+
+  // 3. 추세(Trend) 정보 계산 (effectiveData 기준)
   const trendInfo = useMemo(() => {
     const n = effectiveData.length;
     if (n <= 1) return { slope: 0, intercept: 0 };
@@ -89,6 +98,8 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
       
       const currentGrowth = resourceType === 'coin' ? d.coin_growth : d.cell_growth;
       const amount = resourceType === 'coin' ? d.total_coins : d.total_cells;
+      
+      // 추세선 값 계산 (y = ax + b)
       const trendValue = trendInfo.slope * i + trendInfo.intercept;
 
       return {
@@ -156,7 +167,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
         </div>
       </div>
 
-      {/* 그래프 컴포넌트 주입 */}
+      {/* 분리된 그래프 컴포넌트 렌더링 */}
       <GrowthTrendChart 
         data={chartData} 
         summary={summary} 
