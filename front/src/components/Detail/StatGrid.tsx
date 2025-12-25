@@ -44,8 +44,11 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   let enemyKillItems: [string, string | number][] = [];
 
   if (isEnemy) {
-    enemyKillItems = entries.filter(([key]) => key.includes('파괴'));
-    const spawnItems = entries.filter(([key]) => !key.includes('파괴'));
+    // [수정] '파괴' 단어가 포함되어 있어도 '파괴 공작원'은 처치 통계가 아니므로 제외
+    enemyKillItems = entries.filter(([key]) => key.includes('파괴') && key !== '파괴 공작원');
+    
+    // [수정] 반대로 일반 유닛 목록에는 '파괴 공작원'을 포함시킴
+    const spawnItems = entries.filter(([key]) => !key.includes('파괴') || key === '파괴 공작원');
 
     const leftOrder = ['적 합계', '기본', '신속', '원거리', '탱킹', '수호자', '보스'];
     const rightOrder = ['총 엘리트', '광선', '스캐터', '뱀파이어', '과전하', '파괴 공작원', '지휘관'];
@@ -82,7 +85,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
 
     entries.forEach(item => {
       const [key] = item;
-      // [Modified] 파편이거나 이름에 '봇'이 포함되면 오른쪽으로 보냄
+      // 파편이거나 이름에 '봇'이 포함되면 오른쪽으로 보냄
       if (shards.includes(key) || key.includes('파편') || key.includes('봇')) {
         botRightItems.push(item);
       } else {
