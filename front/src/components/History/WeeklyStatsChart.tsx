@@ -38,14 +38,52 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   const isLoading = viewMode === 'daily' ? dailyLoading : weeklyLoading;
 
+  // 로직 통합: [원본 선택] -> [어제 기준 필터] -> [0 시작점 제거] -> [최근 N개]
   const rawData: any[] = useMemo(() => {
+    let sourceData: any[] = [];
+
+    // 1. 소스 데이터 선택
     if (viewMode === 'daily' && dailyData) {
-      return dailyData.daily_stats;
+      sourceData = dailyData.daily_stats;
     } else if (viewMode === 'weekly' && weeklyData) {
-      return weeklyData.weekly_stats;
+      sourceData = weeklyData.weekly_stats;
     }
-    return [];
-  }, [viewMode, dailyData, weeklyData]);
+
+    if (sourceData.length === 0) return [];
+
+    // 2. 오늘 날짜 구하기 (로컬 시간 기준 YYYY-MM-DD)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+
+    // 3. "어제 기준" 필터링 (데이터 날짜 < 오늘 날짜)
+    const dateFiltered = sourceData.filter(d => {
+      const dateStr = viewMode === 'daily' ? d.date : d.week_start_date;
+      return dateStr < todayStr;
+    });
+
+    if (dateFiltered.length === 0) return [];
+
+    // 4. "0 데이터" 앞부분 제거 (주신 코드의 로직 적용)
+    // 데이터 값이 0보다 큰 지점을 찾습니다.
+    const firstIndex = dateFiltered.findIndex(d => {
+      const val = resourceType === 'coin' ? d.total_coins : d.total_cells;
+      return val > 0;
+    });
+
+    // 모든 데이터가 0이거나 데이터가 없으면 빈 배열 혹은 전체 반환
+    // firstIndex가 -1이면(전부 0이면) 그냥 빈 배열 처리하거나 전체를 보여줄 수 있는데, 
+    // 여기선 유효한 데이터가 없으므로 빈 배열로 처리하는 게 깔끔합니다.
+    // 하지만 "0이어도 보여줘라"일 수 있으니, 유효 데이터가 없으면 뒤에서부터 자르도록 전체를 넘깁니다.
+    const validData = firstIndex === -1 ? dateFiltered : dateFiltered.slice(firstIndex);
+
+    // 5. 최근 N개 자르기 (일간 7, 주간 8)
+    const limit = viewMode === 'daily' ? 7 : 8;
+
+    return validData.slice(-limit);
+  }, [viewMode, dailyData, weeklyData, resourceType]);
 
   const trendInfo = useMemo(() => {
     const n = rawData.length;
@@ -210,7 +248,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 mb-8 animate-fade-in shadow-xl">
-      {/* 헤더 섹션 수정 */}
+      {/* 헤더 섹션 */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         
         {/* 타이틀 및 설명 */}
@@ -219,8 +257,6 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
                 <h3 className="text-slate-300 text-lg font-bold flex items-center gap-2">
                   <BarChart3 size={20} className="text-slate-400" /> 성장 분석
                 </h3>
-                
-                {/* 모바일 컨트롤 (타이틀 옆에 배치하고 싶으면 여기, 현재 요청은 한 줄 유지이므로 아래 로직 참고) */}
             </div>
             {/* 모바일: 설명 텍스트를 블록 요소로 줄바꿈 */}
             <div className="block mt-1">
@@ -242,7 +278,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
               </button>
            </div>
 
-           {/* 일간/주간 버튼 (코인/셀 버튼 옆으로 이동) */}
+           {/* 일간/주간 버튼 */}
            <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit flex-shrink-0">
              <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarDays size={14} /> 일간
