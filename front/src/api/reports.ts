@@ -52,7 +52,7 @@ export const createReport = async (reportText: string, notes: string): Promise<B
   return response.json();
 };
 
-// [New] 기록실 뷰 데이터 조회 (최근 7일 + 월별 요약)
+// [New] 기록실 뷰 데이터 조회 (최근 7일 + 월별 요약) - (이제 안 쓸 수도 있지만 호환성을 위해 둠)
 export const getHistoryView = async (): Promise<HistoryViewResponse> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/view`, {
     headers: getAuthHeaders(),
@@ -62,13 +62,23 @@ export const getHistoryView = async (): Promise<HistoryViewResponse> => {
   return response.json();
 };
 
-// [New] 특정 월의 상세 기록 조회 (Lazy Loading)
+// [New] 특정 월의 상세 기록 조회 (Lazy Loading) - (이제 안 쓸 수도 있지만 호환성을 위해 둠)
 export const getReportsByMonth = async (monthKey: string): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/month/${monthKey}`, {
     headers: getAuthHeaders(),
   });
   
   if (!response.ok) throw new Error('Failed to fetch monthly reports');
+  return response.json();
+};
+
+// [Added] 전체 기록 조회 (검색 및 전체 통계용)
+// limit을 10000으로 설정하여 사실상 모든 기록을 가져옵니다.
+export const getAllReports = async (): Promise<BattleMain[]> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/history?skip=0&limit=10000`, {
+    headers: getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Failed to fetch all reports');
   return response.json();
 };
 
