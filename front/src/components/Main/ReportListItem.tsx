@@ -10,7 +10,7 @@ interface Props {
 }
 
 const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
-  // 공통 로직: 시간당 셀 & 딜량 필터링
+  // 공통 로직
   const durationHours = parseDurationToHours(report.real_time);
   const cellsPerHour = durationHours > 0 ? report.cells_earned / durationHours : 0;
 
@@ -20,14 +20,17 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
     .slice(0, 3);
 
   // --------------------------------------------------------------------------
-  // 1. [Mobile View] 모바일용 카드 디자인 (방금 만드신 것)
+  // 1. [Mobile View] 모바일용 카드 디자인
+  // - 상단: 날짜, 시간, 웨이브
+  // - 중단: 코인, 셀, 리롤 (확실하게 다음 줄로 내림!)
+  // - 하단: 딜량, 사망 원인
   // --------------------------------------------------------------------------
   const MobileView = () => (
     <div 
       onClick={() => onSelectReport(report.battle_date)}
       className="group relative bg-slate-900/40 border border-slate-800/60 hover:border-blue-500/30 hover:bg-slate-800/60 p-4 rounded-xl cursor-pointer transition-all mb-3 shadow-sm md:hidden block"
     >
-      {/* 상단: 날짜/시간 & 웨이브 */}
+      {/* 1행: 날짜/시간 & 웨이브 */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800/50">
         <div className="flex items-center gap-2">
             <span className="text-slate-500 text-xs font-mono">{formatTimeOnly(report.battle_date)}</span>
@@ -40,17 +43,19 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 메인 스탯: 코인 -> 셀 -> 리롤 */}
-      <div className="space-y-2 mb-3">
+      {/* 2행: 코인 / 셀 / 리롤 (화면 넘어가지 않게 세로 스택 or 그리드 배치) */}
+      <div className="grid grid-cols-1 gap-2 mb-3">
         {/* 코인 */}
         <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <div className="text-yellow-500 font-bold text-xs bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20">C</div>
-                <span className="text-yellow-400 font-bold font-mono text-lg">
+             <div className="flex items-center gap-2">
+                <div className="p-1 bg-yellow-500/10 rounded border border-yellow-500/20">
+                    <Coins size={12} className="text-yellow-500"/>
+                </div>
+                <span className="text-yellow-400 font-bold font-mono text-base">
                     {formatNumber(report.coin_earned)}
                 </span>
             </div>
-            <div className="text-slate-400 font-mono text-xs">
+            <div className="text-slate-500 font-mono text-xs">
                 {formatNumber(report.coins_per_hour)}/h
             </div>
         </div>
@@ -58,40 +63,43 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         {/* 셀 */}
         <div className="flex items-center justify-between">
              <div className="flex items-center gap-2">
-                <div className="text-cyan-400 bg-cyan-500/10 px-1 py-0.5 rounded border border-cyan-500/20 flex items-center justify-center">
-                    <Zap size={12} fill="currentColor" />
+                <div className="p-1 bg-cyan-500/10 rounded border border-cyan-500/20">
+                    <Zap size={12} className="text-cyan-400"/>
                 </div>
-                <span className="text-cyan-300 font-mono font-bold text-lg">
+                <span className="text-cyan-300 font-bold font-mono text-base">
                     {formatNumber(report.cells_earned)}
                 </span>
             </div>
-            <div className="text-cyan-300 font-mono font-bold text-xs">
+            <div className="text-cyan-600/70 font-mono text-xs font-bold">
                 {formatNumber(Math.round(cellsPerHour))}/h
             </div>
         </div>
 
         {/* 리롤 */}
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-                <div className="text-green-400 bg-green-500/10 px-1 py-0.5 rounded border border-green-500/20 flex items-center justify-center">
-                    <RefreshCw size={12} />
-                </div>
-                <span className="text-green-400 font-mono font-bold text-lg">
-                    {formatNumber(report.reroll_shards_earned)}
-                </span>
-            </div>
+        <div className="flex items-center gap-2">
+             <div className="p-1 bg-green-500/10 rounded border border-green-500/20">
+                <RefreshCw size={12} className="text-green-400"/>
+             </div>
+             <span className="text-green-400 font-bold font-mono text-base">
+                 {formatNumber(report.reroll_shards_earned)}
+             </span>
+             <span className="text-slate-600 text-xs ml-auto">Shards</span>
         </div>
       </div>
 
-      {/* 하단: 딜량 & 킬러 */}
+      {/* 3행: 딜량 & 킬러 (50:50 배치) */}
       <div className="pt-2 border-t border-slate-800/50">
-          <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 overflow-hidden min-w-0 flex-1">
+          <div className="grid grid-cols-2 gap-4">
+              {/* 왼쪽: 딜량 */}
+              <div className="flex flex-col justify-center min-w-0">
                 {mainDamages.length > 0 ? (
                     mainDamages.map((dmg: DamageItem, idx: number) => (
-                        <div key={idx} className="flex items-center gap-1 text-[10px] truncate flex-shrink-0 max-w-[100px]">
-                            <span className={idx === 0 ? "text-rose-400 font-bold" : "text-slate-500 font-medium"}>
-                                {idx + 1}. {dmg.name}
+                        <div key={idx} className="flex items-center gap-1 text-[10px] truncate w-full">
+                            <span className={`font-bold mr-1 ${idx === 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                                {idx + 1}.
+                            </span>
+                            <span className={`${idx === 0 ? 'text-rose-400' : 'text-slate-500'} truncate`}>
+                                {dmg.name}
                             </span>
                         </div>
                     ))
@@ -99,15 +107,23 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
                     <span className="text-slate-700 text-[10px]">-</span>
                 )}
               </div>
-              {report.killer && (
-                <div className="flex items-center gap-1.5 flex-shrink-0 pl-3 border-l border-slate-800/50">
-                    <Skull size={12} className="text-rose-500/70" />
-                    <span className="text-rose-300 font-bold text-[11px] truncate max-w-[80px]">
-                        {report.killer}
-                    </span>
-                </div>
-              )}
+
+              {/* 오른쪽: 킬러 */}
+              <div className="flex items-center justify-end gap-1.5 pl-3 border-l border-slate-800/50 min-w-0">
+                {report.killer ? (
+                    <>
+                        <Skull size={14} className="text-rose-500/70 flex-shrink-0" />
+                        <span className="text-rose-300 font-bold text-xs truncate text-right">
+                            {report.killer}
+                        </span>
+                    </>
+                ) : (
+                    <span className="text-slate-700 text-[10px]">-</span>
+                )}
+              </div>
           </div>
+          
+          {/* 메모 */}
           {report.notes && (
              <div className="mt-2 flex justify-end">
                  <div className="bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 rounded text-[10px] text-blue-300 truncate max-w-full inline-block">
@@ -120,7 +136,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
   );
 
   // --------------------------------------------------------------------------
-  // 2. [Desktop View] PC용 그리드 리스트 (원래 쓰시던 디자인 복구)
+  // 2. [Desktop View] PC용 그리드 리스트 (기존 디자인 유지)
   // --------------------------------------------------------------------------
   const DesktopView = () => (
     <div 
@@ -150,7 +166,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
           <div className="text-slate-300 font-mono font-medium text-sm truncate">{formatNumber(report.coins_per_hour)}/h</div>
       </div>
 
-      {/* 4. Cell/h (원하시는 색상 적용) */}
+      {/* 4. Cell/h */}
       <div className="col-span-1 text-center">
           <div className="text-cyan-300 font-mono font-bold text-sm truncate">
             {formatNumber(Math.round(cellsPerHour))}/h
