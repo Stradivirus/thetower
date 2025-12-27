@@ -69,10 +69,11 @@ export default function Dashboard({ reports }: Props) {
   }, [recentReports]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    // [수정] Grid 설정: 모바일에서는 2열(grid-cols-2)로 시작
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
       
-      {/* 1. 최근 코인 획득 흐름 - 세로 배치 */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
+      {/* 1. 최근 코인 획득 흐름 - [수정] 모바일에서 2칸 차지 (col-span-2) -> 한 줄 꽉 채움 */}
+      <div className="col-span-2 md:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-40 h-40 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 transition-all group-hover:bg-yellow-500/10"></div>
         <h3 className="text-slate-400 text-base font-bold flex items-center justify-center gap-2 z-10 mb-3">
           <CalendarDays size={14} className="text-yellow-500" /> 최근 코인 획득
@@ -85,7 +86,6 @@ export default function Dashboard({ reports }: Props) {
               {formatNumber(todayCoins)}
             </div>
           </div>
-          
           
           {/* 어제 */}
           <div className="flex items-center justify-between w-full px-4 opacity-80">
@@ -101,8 +101,8 @@ export default function Dashboard({ reports }: Props) {
         </div>
       </div>
 
-      {/* 2. 오늘 주요 자원 */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
+      {/* 2. 오늘 주요 자원 - [수정] 모바일에서 2칸 차지 (col-span-2) -> 한 줄 꽉 채움 */}
+      <div className="col-span-2 md:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-cyan-500/10 group-hover:bg-cyan-500/20"></div>
         <h3 className="text-slate-400 text-base font-bold mb-3 flex items-center justify-center gap-2 z-10">
           오늘 주요 자원
@@ -129,55 +129,62 @@ export default function Dashboard({ reports }: Props) {
         </div>
       </div>
 
-      {/* 3. 최근 위협 (죽은 이유) */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
+      {/* 3. 최근 위협 (죽은 이유) - [수정] 모바일에서 1칸 차지 -> 옆 친구랑 나란히 섬 */}
+      <div className="bg-slate-900 border border-slate-800 p-2 md:p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-rose-500/10 group-hover:bg-rose-500/20"></div>
-        <h3 className="text-slate-400 text-base font-bold mb-3 flex items-center justify-center gap-2 z-10">
-          <Skull size={14} className="text-rose-500"/> 
-          <span>죽은 이유 <span className="text-slate-600 font-normal text-xs">(최근 1주일)</span></span>
+        <h3 className="text-slate-400 font-bold mb-2 md:mb-3 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 z-10 text-xs md:text-base">
+          <div className="flex items-center gap-1">
+            <Skull size={14} className="text-rose-500"/> 
+            <span>죽은 이유</span>
+          </div>
+          {/* 모바일에서는 '최근 1주일' 숨김 처리하여 공간 확보 */}
+          <span className="text-slate-600 font-normal text-[10px] hidden md:inline">(최근 1주일)</span>
         </h3>
         <div className="flex-1 flex flex-col justify-center w-full z-10">
           {recentKillers.length > 0 ? (
-            <div className="space-y-3 px-2 w-full">
+            <div className="space-y-1.5 md:space-y-3 px-1 md:px-2 w-full">
               {recentKillers.map((killer, idx) => (
-                <div key={killer.name} className="flex justify-between items-center relative z-10 border-b border-slate-800/50 pb-2 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full bg-slate-800 border border-slate-700 ${idx === 0 ? 'text-rose-500 border-rose-500/30' : 'text-slate-500'}`}>
+                <div key={killer.name} className="flex justify-between items-center relative z-10 border-b border-slate-800/50 pb-1 md:pb-2 last:border-0 last:pb-0">
+                  <div className="flex items-center gap-1.5 md:gap-2 min-w-0">
+                    <span className={`text-[10px] md:text-xs font-bold w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded-full bg-slate-800 border border-slate-700 flex-shrink-0 ${idx === 0 ? 'text-rose-500 border-rose-500/30' : 'text-slate-500'}`}>
                       {idx + 1}
                     </span>
-                    <span className="text-slate-200 font-medium text-sm truncate max-w-[100px]">{killer.name}</span>
+                    <span className="text-slate-200 font-medium text-[11px] md:text-sm truncate max-w-[50px] md:max-w-[100px]">{killer.name}</span>
                   </div>
-                  <div className="text-right flex items-center gap-1">
-                    <span className="text-rose-400 font-bold text-base">{killer.count}회</span>
+                  <div className="text-right flex items-center gap-1 flex-shrink-0">
+                    <span className="text-rose-400 font-bold text-xs md:text-base">{killer.count}회</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-slate-600 text-sm mt-2 text-center">데이터 없음</div>
+            <div className="text-slate-600 text-[10px] md:text-sm mt-2 text-center">데이터 없음</div>
           )}
         </div>
       </div>
 
-      {/* 4. 주간 딜 순위 */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
+      {/* 4. 주간 딜 순위 - [수정] 모바일에서 1칸 차지 -> 옆 친구랑 나란히 섬 */}
+      <div className="bg-slate-900 border border-slate-800 p-2 md:p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-purple-500/10 group-hover:bg-purple-500/20"></div>
-        <h3 className="text-slate-400 text-base font-bold mb-1 flex items-center justify-center gap-2 z-10">
-          <Sword size={14} className="text-purple-500"/> 
-          <span>딜 순위 <span className="text-slate-600 font-normal text-xs">(최근 1주일)</span></span>
+        <h3 className="text-slate-400 font-bold mb-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 z-10 text-xs md:text-base">
+          <div className="flex items-center gap-1">
+             <Sword size={14} className="text-purple-500"/> 
+             <span>딜 순위</span>
+          </div>
+          <span className="text-slate-600 font-normal text-[10px] hidden md:inline">(최근 1주일)</span>
         </h3>
-        <div className="text-[10px] text-slate-600 text-center mb-3 z-10">(오브, 블랙홀 제외)</div>
+        <div className="text-[10px] text-slate-600 text-center mb-2 md:mb-3 z-10 hidden md:block">(오브, 블랙홀 제외)</div>
         
         <div className="flex-1 flex flex-col justify-center w-full z-10">
           {topDamages.length > 0 ? (
-            <div className="space-y-3 px-2 w-full">
+            <div className="space-y-1.5 md:space-y-3 px-1 md:px-2 w-full">
               {topDamages.map((dmg, idx) => (
-                <div key={dmg.name} className="flex justify-between items-center relative z-10 border-b border-slate-800/50 pb-2 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-2 w-full">
-                    <span className={`text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full bg-slate-800 border border-slate-700 ${idx === 0 ? 'text-purple-400 border-purple-500/30' : 'text-slate-500'}`}>
+                <div key={dmg.name} className="flex justify-between items-center relative z-10 border-b border-slate-800/50 pb-1 md:pb-2 last:border-0 last:pb-0">
+                  <div className="flex items-center gap-1.5 md:gap-2 w-full min-w-0">
+                    <span className={`text-[10px] md:text-xs font-bold w-4 h-4 md:w-5 md:h-5 flex items-center justify-center rounded-full bg-slate-800 border border-slate-700 flex-shrink-0 ${idx === 0 ? 'text-purple-400 border-purple-500/30' : 'text-slate-500'}`}>
                       {dmg.rank}
                     </span>
-                    <span className={`font-medium text-sm truncate w-full ${idx === 0 ? 'text-purple-300' : 'text-slate-300'}`}>
+                    <span className={`font-medium text-[11px] md:text-sm truncate w-full ${idx === 0 ? 'text-purple-300' : 'text-slate-300'}`}>
                       {dmg.name}
                     </span>
                   </div>
@@ -185,7 +192,7 @@ export default function Dashboard({ reports }: Props) {
               ))}
             </div>
           ) : (
-            <div className="text-slate-600 text-sm mt-2 text-center">데이터 없음</div>
+            <div className="text-slate-600 text-[10px] md:text-sm mt-2 text-center">데이터 없음</div>
           )}
         </div>
       </div>

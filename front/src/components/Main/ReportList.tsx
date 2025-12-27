@@ -34,9 +34,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // [제거] renderItem 함수를 ReportListItem.tsx로 분리함
-  // renderItem 함수 로직이 ReportListItem으로 이동했습니다.
-
   return (
     <>
       {!hideHeader && (
@@ -55,7 +52,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
       )}
 
       <div className="space-y-6 mt-4">
-        {/* [Fixed] 불필요한 index 매개변수 제거 */}
         {groupedReports.map(([dateHeader, groupItems]) => {
           const reportDate = new Date(groupItems[0].battle_date);
           reportDate.setHours(0, 0, 0, 0);
@@ -64,7 +60,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           const isOld = diffDays >= collapseThresholdDays;
           const isExpanded = expandedDates[dateHeader];
           
-          // [New] 현재 날짜의 합계 계산
+          // 현재 날짜의 합계 계산
           const totalCoins = groupItems.reduce((acc, r) => acc + r.coin_earned, 0);
           const totalCells = groupItems.reduce((acc, r) => acc + r.cells_earned, 0);
           const totalShards = groupItems.reduce((acc, r) => acc + r.reroll_shards_earned, 0);
@@ -76,7 +72,37 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                   onClick={() => toggleDate(dateHeader)}
                   className="flex items-center justify-between py-4 px-4 hover:bg-slate-900/50 cursor-pointer transition-colors group select-none"
                 >
-                  <div className="flex items-center gap-6">
+                  {/* [New] 모바일 뷰: 2줄 레이아웃 (md:hidden) */}
+                  <div className="md:hidden flex flex-col gap-3 flex-1 mr-4">
+                      {/* 1열: 일자 + 게임수 */}
+                      <div className="flex items-center justify-between">
+                          <h3 className="text-slate-200 font-bold text-sm">
+                             {dateHeader.split(' ').slice(0, 3).join(' ')}
+                          </h3>
+                          <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-medium text-xs whitespace-nowrap">
+                             {groupItems.length} Games
+                          </span>
+                      </div>
+                      
+                      {/* 2열: 코인 | 셀 | 리롤 합산들 */}
+                      <div className="flex items-center justify-between pr-2">
+                           <div className="flex items-center gap-1.5 text-yellow-500">
+                               <span className="font-bold text-xs border border-yellow-500/30 px-1 rounded">C</span>
+                               <span className="font-mono font-bold text-sm">{formatNumber(totalCoins)}</span>
+                           </div>
+                           <div className="flex items-center gap-1.5 text-cyan-400">
+                               <Zap size={14} fill="currentColor"/>
+                               <span className="font-mono font-bold text-sm">{formatNumber(totalCells)}</span>
+                           </div>
+                           <div className="flex items-center gap-1.5 text-green-500">
+                               <Layers size={14} />
+                               <span className="font-mono font-bold text-sm">{formatNumber(totalShards)}</span>
+                           </div>
+                      </div>
+                  </div>
+
+                  {/* [Existing] 데스크톱 뷰: 기존 디자인 유지 (hidden md:flex) */}
+                  <div className="hidden md:flex items-center gap-6">
                     <div className="w-32 flex-shrink-0">
                       <h3 className="text-slate-400 group-hover:text-slate-200 font-bold text-sm transition-colors">
                         {dateHeader.split(' ').slice(0, 3).join(' ')}
@@ -106,14 +132,16 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                       </span>
                     </div>
                   </div>
+                  
+                  {/* 접기/펼치기 아이콘 (공통) */}
                   <div className="text-slate-500 group-hover:text-white transition-colors">
                     {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </div>
                 </div>
+
                 {isExpanded && (
                   <div className="px-4 pb-4 bg-slate-950/30 animate-fade-in border-t border-slate-800/30 pt-4">
                     {groupItems.map(report => (
-                      // [변경] ReportListItem 사용
                       <ReportListItem 
                         key={report.battle_date} 
                         report={report} 
@@ -147,7 +175,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
               <div className="flex flex-col gap-1">
                 {groupItems.map(report => (
-                  // [변경] ReportListItem 사용
                   <ReportListItem 
                     key={report.battle_date} 
                     report={report} 
