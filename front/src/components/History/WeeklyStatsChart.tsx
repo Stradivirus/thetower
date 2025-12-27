@@ -38,7 +38,6 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
   const isLoading = viewMode === 'daily' ? dailyLoading : weeklyLoading;
 
-  // 1. 타입을 any[]로 명시하여 strict 타입 에러 방지
   const rawData: any[] = useMemo(() => {
     if (viewMode === 'daily' && dailyData) {
       return dailyData.daily_stats;
@@ -48,7 +47,6 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     return [];
   }, [viewMode, dailyData, weeklyData]);
 
-  // 2. 추세(Trend) 정보 미리 계산 (기울기 및 절편)
   const trendInfo = useMemo(() => {
     const n = rawData.length;
     if (n <= 1) return { slope: 0, intercept: 0 };
@@ -72,7 +70,6 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     return { slope, intercept };
   }, [rawData, resourceType]);
 
-  // 3. 차트용 데이터 매핑
   const chartData = useMemo(() => {
     return rawData.map((d, i) => {
       const displayDate = viewMode === 'daily' 
@@ -82,7 +79,6 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
       const currentGrowth = resourceType === 'coin' ? d.coin_growth : d.cell_growth;
       const amount = resourceType === 'coin' ? d.total_coins : d.total_cells;
       
-      // 추세선 값 계산 (y = ax + b)
       const trendValue = trendInfo.slope * i + trendInfo.intercept;
 
       return {
@@ -95,7 +91,6 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     });
   }, [rawData, viewMode, resourceType, trendInfo]);
 
-  // 4. 통계 요약 계산
   const summary = useMemo(() => {
     if (chartData.length === 0) return { total: 0, avgGrowth: 0, dailyAvg: 0 };
     
@@ -107,28 +102,26 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     return { total, avgGrowth, dailyAvg };
   }, [chartData]);
 
-  // 색상 팔레트 정의
   const COLORS = {
     coinBar: '#fbbf24',
     cellBar: '#22d3ee',
     increase: '#ef4444',
     decrease: '#3b82f6',
-    trendUp: '#4ade80',   // Green (성장)
-    trendDown: '#3b82f6', // Blue (하락)
-    trendFlat: '#94a3b8'  // Gray (보합)
+    trendUp: '#4ade80',
+    trendDown: '#3b82f6',
+    trendFlat: '#94a3b8'
   };
 
   const isCoin = resourceType === 'coin';
   const currentBarColor = isCoin ? COLORS.coinBar : COLORS.cellBar;
   
-  // [수정됨] 추세선 색상 결정 로직: 평균 성장률(avgGrowth)이 1% 이상일 때만 Green
   const currentTrendColor = useMemo(() => {
     if (summary.avgGrowth >= 1.0) {
-      return COLORS.trendUp;    // 1% 이상 성장 시 초록색
+      return COLORS.trendUp;
     } else if (summary.avgGrowth <= -1.0) {
-      return COLORS.trendDown;  // -1% 이하 하락 시 파란색
+      return COLORS.trendDown;
     }
-    return COLORS.trendFlat;    // -1% ~ 1% 사이는 회색 (보합)
+    return COLORS.trendFlat;
   }, [summary.avgGrowth]);
 
   const gradientOffset = () => {
@@ -156,34 +149,46 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     const trendColor = isPositive ? 'text-green-400' : 'text-blue-400';
 
     return (
-      <div className="flex items-center justify-between px-2 mt-4 border-t border-slate-800/50 pt-3 text-xs">
-        {/* Left */}
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: currentBarColor }}></div>
-          <span className="text-slate-300 font-bold">
-            {isCoin ? "Coins Earned" : "Cells Earned"}
-          </span>
-          <div className="w-4 h-0.5 border-t-2 border-dashed ml-2" style={{ borderColor: currentTrendColor }}></div>
-          <span style={{ color: currentTrendColor }} className="font-medium">Trend</span>
+      <div className="flex flex-col md:flex-row md:items-center justify-between px-2 mt-4 border-t border-slate-800/50 pt-3 text-xs gap-3 md:gap-0">
+        {/* Left: 범례 (데스크톱/모바일 공통 상단 배치) */}
+        <div className="flex items-center justify-between md:justify-start gap-4 w-full md:w-auto">
+           <div className="flex items-center gap-2">
+             <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: currentBarColor }}></div>
+             <span className="text-slate-300 font-bold">
+               {isCoin ? "Coins Earned" : "Cells Earned"}
+             </span>
+             <div className="w-4 h-0.5 border-t-2 border-dashed ml-2" style={{ borderColor: currentTrendColor }}></div>
+             <span style={{ color: currentTrendColor }} className="font-medium">Trend</span>
+           </div>
+
+           {/* 모바일에서만 Growth 범례를 같은 줄 오른쪽에 표시 */}
+           <div className="md:hidden flex items-center gap-2">
+              <span className="text-slate-300 font-bold">Growth %</span>
+              <div className="w-8 h-0.5 bg-gradient-to-r from-red-500 to-blue-500 relative">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-900 border-2 border-slate-500"></div>
+              </div>
+           </div>
         </div>
 
-        {/* Center */}
-        <div className="flex items-center gap-4 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800">
-          <div className="flex items-center gap-1.5">
+        {/* Center: 통계 정보 (모바일에서는 세로 배치, 데스크톱 가로 배치) */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4 bg-slate-950/50 p-3 md:px-3 md:py-1.5 rounded-xl md:rounded-full border border-slate-800 w-full md:w-auto">
+          <div className="flex items-center justify-between md:justify-start gap-1.5">
             <span className="text-slate-500">Total:</span>
             <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               {formatNumber(summary.total)}
             </span>
           </div>
-          <div className="w-px h-3 bg-slate-700"></div>
-          <div className="flex items-center gap-1.5">
+          <div className="hidden md:block w-px h-3 bg-slate-700"></div> {/* 데스크톱 구분선 */}
+          
+          <div className="flex items-center justify-between md:justify-start gap-1.5 border-t border-slate-800/50 pt-2 md:border-none md:pt-0">
             <span className="text-slate-500">{viewMode === 'daily' ? 'Daily Avg:' : 'Weekly Avg:'}</span>
             <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               {formatNumber(summary.dailyAvg)}
             </span>
           </div>
-          <div className="w-px h-3 bg-slate-700"></div>
-          <div className="flex items-center gap-1.5">
+          <div className="hidden md:block w-px h-3 bg-slate-700"></div> {/* 데스크톱 구분선 */}
+          
+          <div className="flex items-center justify-between md:justify-start gap-1.5 border-t border-slate-800/50 pt-2 md:border-none md:pt-0">
             <span className="text-slate-500">Avg Growth:</span>
             <span className={`font-mono font-bold text-sm flex items-center gap-0.5 ${trendColor}`}>
               <TrendIcon size={12} />
@@ -192,8 +197,8 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
           </div>
         </div>
 
-        {/* Right */}
-        <div className="flex items-center gap-2">
+        {/* Right: Growth 범례 (데스크톱 전용) */}
+        <div className="hidden md:flex items-center gap-2">
           <span className="text-slate-300 font-bold">Growth %</span>
           <div className="w-8 h-0.5 bg-gradient-to-r from-red-500 to-blue-500 relative">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-900 border-2 border-slate-500"></div>
@@ -204,19 +209,41 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 mb-8 animate-fade-in shadow-xl">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col">
-            <h3 className="text-slate-300 text-lg font-bold flex items-center gap-2">
-              <BarChart3 size={20} className="text-slate-400" /> 성장 분석
-            </h3>
-            <span className="text-[11px] text-slate-500 font-medium ml-7">
-              * 오늘을 제외한 {viewMode === 'daily' ? '최근 7일' : '최근 8주'} 데이터 (어제 기준)
-            </span>
-          </div>
-          
-          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit self-start mt-1">
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 mb-8 animate-fade-in shadow-xl">
+      {/* 헤더 섹션 수정 */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        
+        {/* 타이틀 및 설명 */}
+        <div className="flex flex-col w-full md:w-auto">
+            <div className="flex justify-between items-center w-full md:w-auto">
+                <h3 className="text-slate-300 text-lg font-bold flex items-center gap-2">
+                  <BarChart3 size={20} className="text-slate-400" /> 성장 분석
+                </h3>
+                
+                {/* 모바일 컨트롤 (타이틀 옆에 배치하고 싶으면 여기, 현재 요청은 한 줄 유지이므로 아래 로직 참고) */}
+            </div>
+            {/* 모바일: 설명 텍스트를 블록 요소로 줄바꿈 */}
+            <div className="block mt-1">
+               <span className="text-[11px] text-slate-500 font-medium">
+                  * 오늘을 제외한 {viewMode === 'daily' ? '최근 7일' : '최근 8주'} 데이터 (어제 기준)
+               </span>
+            </div>
+        </div>
+        
+        {/* 컨트롤 버튼 그룹 (데스크톱: 오른쪽 정렬, 모바일: 한 줄 배치) */}
+        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+           {/* 코인/셀 버튼 */}
+           <div className="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-800 flex-shrink-0">
+              <button onClick={() => setResourceType('coin')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isCoin ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
+                <CircleDollarSign size={14} /> Coins
+              </button>
+              <button onClick={() => setResourceType('cell')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isCoin ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
+                <Zap size={14} /> Cells
+              </button>
+           </div>
+
+           {/* 일간/주간 버튼 (코인/셀 버튼 옆으로 이동) */}
+           <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit flex-shrink-0">
              <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarDays size={14} /> 일간
              </button>
@@ -224,15 +251,6 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
                <CalendarRange size={14} /> 주간
              </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-800">
-          <button onClick={() => setResourceType('coin')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isCoin ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
-            <CircleDollarSign size={14} /> Coins
-          </button>
-          <button onClick={() => setResourceType('cell')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isCoin ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
-            <Zap size={14} /> Cells
-          </button>
         </div>
       </div>
 

@@ -74,42 +74,46 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
   );
 
   // --------------------------------------------------------------------------
-  // [Desktop Header] 기존 디자인 유지 (한 줄)
+  // [Desktop Header] 수정됨: 자원 정보를 날짜 옆(왼쪽)으로 이동
   // --------------------------------------------------------------------------
   const DesktopHeader = () => (
     <div className="hidden md:flex w-full items-center justify-between">
-       <span className="text-white font-bold text-lg flex items-center gap-2">
-          <Calendar size={18} className="text-slate-500" />
-          {formatMonthKey(group.monthKey)}
-       </span>
+       {/* 왼쪽 그룹: 날짜 + 게임수 + 자원 정보 */}
+       <div className="flex items-center gap-6">
+           <span className="text-white font-bold text-lg flex items-center gap-2 min-w-[120px]">
+              <Calendar size={18} className="text-slate-500" />
+              {formatMonthKey(group.monthKey)}
+           </span>
 
-       <div className="flex items-center gap-5">
-          <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-xs border border-slate-700 font-medium">
-             {group.summary.count} Games
-          </span>
-          
-          <div className="h-4 w-px bg-slate-800"></div>
+           <div className="flex items-center gap-4">
+              <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-xs border border-slate-700 font-medium whitespace-nowrap">
+                 {group.summary.count} Games
+              </span>
+              
+              <div className="h-4 w-px bg-slate-800"></div>
 
-          <div className="flex items-center gap-4 text-sm">
-             <span className="flex items-center gap-1.5">
-                <Coins size={14} className="text-yellow-500"/>
-                <span className="text-yellow-400 font-mono font-bold">{formatNumber(group.summary.total_coins)}</span>
-             </span>
-             <span className="flex items-center gap-1.5">
-                <Zap size={14} className="text-cyan-400"/>
-                <span className="text-cyan-400 font-mono font-bold">{formatNumber(group.summary.total_cells)}</span>
-             </span>
-             {group.summary.total_shards > 0 && (
-                 <span className="flex items-center gap-1.5">
-                    <Layers size={14} className="text-green-500"/>
-                    <span className="text-green-400 font-mono font-bold">{formatNumber(group.summary.total_shards)}</span>
+              <div className="flex items-center gap-4 text-sm">
+                 <span className="flex items-center gap-1.5" title="Coins">
+                    <Coins size={14} className="text-yellow-500"/>
+                    <span className="text-yellow-400 font-mono font-bold">{formatNumber(group.summary.total_coins)}</span>
                  </span>
-             )}
-          </div>
+                 <span className="flex items-center gap-1.5" title="Cells">
+                    <Zap size={14} className="text-cyan-400"/>
+                    <span className="text-cyan-400 font-mono font-bold">{formatNumber(group.summary.total_cells)}</span>
+                 </span>
+                 {group.summary.total_shards > 0 && (
+                     <span className="flex items-center gap-1.5" title="Reroll Shards">
+                        <Layers size={14} className="text-green-500"/>
+                        <span className="text-green-400 font-mono font-bold">{formatNumber(group.summary.total_shards)}</span>
+                     </span>
+                 )}
+              </div>
+           </div>
+       </div>
 
-          <div className="text-slate-500 ml-2 group-hover:text-white transition-colors">
-              {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-          </div>
+       {/* 오른쪽 그룹: 화살표 */}
+       <div className="text-slate-500 ml-2 group-hover:text-white transition-colors">
+          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
        </div>
     </div>
   );
