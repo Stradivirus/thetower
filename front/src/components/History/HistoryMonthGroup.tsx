@@ -1,4 +1,3 @@
-import React from 'react';
 import { Calendar, ChevronDown, ChevronUp, Zap, Coins, Layers } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber } from '../../utils/format';
