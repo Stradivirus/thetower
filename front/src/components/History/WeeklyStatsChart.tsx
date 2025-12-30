@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
-  ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend 
+  ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, Cell 
 } from 'recharts';
-import { BarChart3, Zap, CircleDollarSign, RefreshCw, CalendarDays, CalendarRange, TrendingUp, TrendingDown } from 'lucide-react';
-import { getWeeklyTrends } from '../../api/reports';
-import type { WeeklyStatsResponse, WeeklyTrendResponse } from '../../api/reports';
+import { BarChart3, Zap, CircleDollarSign, RefreshCw, CalendarDays, CalendarRange, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { getWeeklyTrends, getMonthlyTrends } from '../../api/reports';
+import type { WeeklyStatsResponse, WeeklyTrendResponse, MonthlyTrendResponse } from '../../api/reports';
 import { formatNumber } from '../../utils/format';
 
 interface Props {
@@ -13,11 +13,14 @@ interface Props {
 }
 
 export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoading }: Props) {
-  const [viewMode, setViewMode] = useState<'daily' | 'weekly'>('daily');
+  const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [resourceType, setResourceType] = useState<'coin' | 'cell'>('coin');
   
   const [weeklyData, setWeeklyData] = useState<WeeklyTrendResponse | null>(null);
+  const [monthlyData, setMonthlyData] = useState<MonthlyTrendResponse | null>(null);
+  
   const [weeklyLoading, setWeeklyLoading] = useState(false);
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
 
   useEffect(() => {
     if (viewMode === 'weekly' && !weeklyData) {
@@ -34,9 +37,25 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
       };
       fetchWeekly();
     }
-  }, [viewMode, weeklyData]);
+    if (viewMode === 'monthly' && !monthlyData) {
+      const fetchMonthly = async () => {
+        setMonthlyLoading(true);
+        try {
+          const res = await getMonthlyTrends();
+          setMonthlyData(res);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setMonthlyLoading(false);
+        }
+      };
+      fetchMonthly();
+    }
+  }, [viewMode, weeklyData, monthlyData]);
 
-  const isLoading = viewMode === 'daily' ? dailyLoading : weeklyLoading;
+  const isLoading = viewMode === 'daily' ? dailyLoading 
+                  : viewMode === 'weekly' ? weeklyLoading 
+                  : monthlyLoading;
 
   // 로직 통합: [원본 선택] -> [어제 기준 필터] -> [0 시작점 제거] -> [최근 N개]
   const rawData: any[] = useMemo(() => {
@@ -47,49 +66,54 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
       sourceData = dailyData.daily_stats;
     } else if (viewMode === 'weekly' && weeklyData) {
       sourceData = weeklyData.weekly_stats;
+    } else if (viewMode === 'monthly' && monthlyData) {
+      sourceData = monthlyData.monthly_stats;
     }
 
     if (sourceData.length === 0) return [];
 
     // 2. 오늘 날짜 구하기 (로컬 시간 기준 YYYY-MM-DD)
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const todayStr = `${year}-${month}-${day}`;
+    const todayStr = now.toISOString().slice(0, 10);
 
-    // 3. "어제 기준" 필터링 (데이터 날짜 < 오늘 날짜)
-    const dateFiltered = sourceData.filter(d => {
-      const dateStr = viewMode === 'daily' ? d.date : d.week_start_date;
-      return dateStr < todayStr;
-    });
+    // 3. 필터링
+    // 일간/주간: 어제까지 데이터만 사용 (오늘 데이터 제외)
+    // 월간: 백엔드에서 이미 처리해서 주므로 전체 사용 (진행 중인 달 포함)
+    let dateFiltered = sourceData;
+    if (viewMode === 'daily') {
+      dateFiltered = sourceData.filter(d => d.date < todayStr);
+    } else if (viewMode === 'weekly') {
+      dateFiltered = sourceData.filter(d => d.week_start_date < todayStr);
+    }
 
     if (dateFiltered.length === 0) return [];
 
-    // 4. "0 데이터" 앞부분 제거 (주신 코드의 로직 적용)
-    // 데이터 값이 0보다 큰 지점을 찾습니다.
+    // 4. "0 데이터" 앞부분 제거
     const firstIndex = dateFiltered.findIndex(d => {
       const val = resourceType === 'coin' ? d.total_coins : d.total_cells;
       return val > 0;
     });
 
-    // 모든 데이터가 0이거나 데이터가 없으면 빈 배열 혹은 전체 반환
-    // firstIndex가 -1이면(전부 0이면) 그냥 빈 배열 처리하거나 전체를 보여줄 수 있는데, 
-    // 여기선 유효한 데이터가 없으므로 빈 배열로 처리하는 게 깔끔합니다.
-    // 하지만 "0이어도 보여줘라"일 수 있으니, 유효 데이터가 없으면 뒤에서부터 자르도록 전체를 넘깁니다.
     const validData = firstIndex === -1 ? dateFiltered : dateFiltered.slice(firstIndex);
 
-    // 5. 최근 N개 자르기 (일간 7, 주간 8)
-    const limit = viewMode === 'daily' ? 7 : 8;
+    // 5. 최근 N개 자르기 (일간 7, 주간 8, 월간 6)
+    const limit = viewMode === 'daily' ? 7 : (viewMode === 'weekly' ? 8 : 6);
 
     return validData.slice(-limit);
-  }, [viewMode, dailyData, weeklyData, resourceType]);
+  }, [viewMode, dailyData, weeklyData, monthlyData, resourceType]);
 
   const trendInfo = useMemo(() => {
-    const n = rawData.length;
+    // 월간 모드일 때는 '이번 달(맨 마지막)'을 추세선 계산에서 뺍니다.
+    // (진행 중인 데이터가 추세를 망가뜨리지 않게 하기 위함)
+    let dataForTrend = rawData;
+    if (viewMode === 'monthly' && rawData.length > 1) {
+        dataForTrend = rawData.slice(0, -1); 
+    }
+
+    const n = dataForTrend.length;
     if (n <= 1) return { slope: 0, intercept: 0 };
 
-    const points = rawData.map((d, i) => ({
+    const points = dataForTrend.map((d, i) => ({
       x: i,
       y: resourceType === 'coin' ? d.total_coins : d.total_cells
     }));
@@ -106,25 +130,35 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
     const intercept = (sumY - slope * sumX) / n;
 
     return { slope, intercept };
-  }, [rawData, resourceType]);
+  }, [rawData, resourceType, viewMode]);
 
   const chartData = useMemo(() => {
     return rawData.map((d, i) => {
-      const displayDate = viewMode === 'daily' 
-        ? d.date.substring(5).replace('-', '/') 
-        : `${d.week_start_date.substring(5).replace('-', '/')}~`;
-      
-      const currentGrowth = resourceType === 'coin' ? d.coin_growth : d.cell_growth;
+      let displayDate = '';
+      if (viewMode === 'daily') displayDate = d.date.substring(5).replace('-', '/');
+      else if (viewMode === 'weekly') displayDate = `${d.week_start_date.substring(5).replace('-', '/')}~`;
+      else if (viewMode === 'monthly') displayDate = d.month; // "2024-12"
+
       const amount = resourceType === 'coin' ? d.total_coins : d.total_cells;
+      const currentGrowth = resourceType === 'coin' ? d.coin_growth : d.cell_growth;
       
-      const trendValue = trendInfo.slope * i + trendInfo.intercept;
+      // 추세선 값 계산
+      let trendValue: number | null = trendInfo.slope * i + trendInfo.intercept;
+      
+      // [월간] 마지막 데이터(진행 중)는 추세선 끊기
+      const isLastMonthly = (viewMode === 'monthly' && i === rawData.length - 1);
+      if (isLastMonthly) {
+          trendValue = null; 
+      }
 
       return {
         ...d,
         displayDate,
         currentGrowth,
         amount,
-        trendValue
+        trendValue,
+        isCurrent: d.is_current, // 백엔드에서 받은 플래그
+        isLastMonthly
       };
     });
   }, [rawData, viewMode, resourceType, trendInfo]);
@@ -132,13 +166,20 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
   const summary = useMemo(() => {
     if (chartData.length === 0) return { total: 0, avgGrowth: 0, dailyAvg: 0 };
     
-    const total = chartData.reduce((acc, cur) => acc + cur.amount, 0);
-    const growthSum = chartData.reduce((acc, cur) => acc + cur.currentGrowth, 0);
-    const avgGrowth = growthSum / chartData.length;
-    const dailyAvg = total / chartData.length;
+    // 월간 통계에서는 '진행 중인 이번 달'을 평균 성장률 계산 등에서 제외
+    const dataToSummarize = (viewMode === 'monthly' && chartData.length > 1) 
+                          ? chartData.slice(0, -1) 
+                          : chartData;
+
+    const total = dataToSummarize.reduce((acc, cur) => acc + cur.amount, 0);
+    const growthSum = dataToSummarize.reduce((acc, cur) => acc + cur.currentGrowth, 0);
+    const len = dataToSummarize.length || 1;
+    
+    const avgGrowth = growthSum / len;
+    const dailyAvg = total / len;
 
     return { total, avgGrowth, dailyAvg };
-  }, [chartData]);
+  }, [chartData, viewMode]);
 
   const COLORS = {
     coinBar: '#fbbf24',
@@ -188,7 +229,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
 
     return (
       <div className="flex flex-col md:flex-row md:items-center justify-between px-2 mt-4 border-t border-slate-800/50 pt-3 text-xs gap-3 md:gap-0">
-        {/* Left: 범례 (데스크톱/모바일 공통 상단 배치) */}
+        {/* Left: 범례 */}
         <div className="flex items-center justify-between md:justify-start gap-4 w-full md:w-auto">
            <div className="flex items-center gap-2">
              <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: currentBarColor }}></div>
@@ -199,7 +240,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
              <span style={{ color: currentTrendColor }} className="font-medium">Trend</span>
            </div>
 
-           {/* 모바일에서만 Growth 범례를 같은 줄 오른쪽에 표시 */}
+           {/* 모바일 Growth 범례 */}
            <div className="md:hidden flex items-center gap-2">
               <span className="text-slate-300 font-bold">Growth %</span>
               <div className="w-8 h-0.5 bg-gradient-to-r from-red-500 to-blue-500 relative">
@@ -208,7 +249,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
            </div>
         </div>
 
-        {/* Center: 통계 정보 (모바일에서는 세로 배치, 데스크톱 가로 배치) */}
+        {/* Center: 통계 정보 */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4 bg-slate-950/50 p-3 md:px-3 md:py-1.5 rounded-xl md:rounded-full border border-slate-800 w-full md:w-auto">
           <div className="flex items-center justify-between md:justify-start gap-1.5">
             <span className="text-slate-500">Total:</span>
@@ -216,15 +257,17 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
               {formatNumber(summary.total)}
             </span>
           </div>
-          <div className="hidden md:block w-px h-3 bg-slate-700"></div> {/* 데스크톱 구분선 */}
+          <div className="hidden md:block w-px h-3 bg-slate-700"></div> 
           
           <div className="flex items-center justify-between md:justify-start gap-1.5 border-t border-slate-800/50 pt-2 md:border-none md:pt-0">
-            <span className="text-slate-500">{viewMode === 'daily' ? 'Daily Avg:' : 'Weekly Avg:'}</span>
+            <span className="text-slate-500">
+                {viewMode === 'daily' ? 'Daily Avg:' : (viewMode === 'weekly' ? 'Weekly Avg:' : 'Monthly Avg:')}
+            </span>
             <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               {formatNumber(summary.dailyAvg)}
             </span>
           </div>
-          <div className="hidden md:block w-px h-3 bg-slate-700"></div> {/* 데스크톱 구분선 */}
+          <div className="hidden md:block w-px h-3 bg-slate-700"></div> 
           
           <div className="flex items-center justify-between md:justify-start gap-1.5 border-t border-slate-800/50 pt-2 md:border-none md:pt-0">
             <span className="text-slate-500">Avg Growth:</span>
@@ -235,7 +278,7 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
           </div>
         </div>
 
-        {/* Right: Growth 범례 (데스크톱 전용) */}
+        {/* Right: Growth 범례 (데스크톱) */}
         <div className="hidden md:flex items-center gap-2">
           <span className="text-slate-300 font-bold">Growth %</span>
           <div className="w-8 h-0.5 bg-gradient-to-r from-red-500 to-blue-500 relative">
@@ -258,15 +301,14 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
                   <BarChart3 size={20} className="text-slate-400" /> 성장 분석
                 </h3>
             </div>
-            {/* 모바일: 설명 텍스트를 블록 요소로 줄바꿈 */}
             <div className="block mt-1">
                <span className="text-[11px] text-slate-500 font-medium">
-                  * 오늘을 제외한 {viewMode === 'daily' ? '최근 7일' : '최근 8주'} 데이터 (어제 기준)
+                  * {viewMode === 'monthly' ? '최근 6개월 데이터 (진행 중 포함)' : '완료된 데이터 기준'}
                </span>
             </div>
         </div>
         
-        {/* 컨트롤 버튼 그룹 (데스크톱: 오른쪽 정렬, 모바일: 한 줄 배치) */}
+        {/* 컨트롤 버튼 그룹 */}
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
            {/* 코인/셀 버튼 */}
            <div className="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-800 flex-shrink-0">
@@ -278,13 +320,16 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
               </button>
            </div>
 
-           {/* 일간/주간 버튼 */}
+           {/* 기간 선택 버튼 (월간 추가됨) */}
            <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit flex-shrink-0">
              <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarDays size={14} /> 일간
              </button>
              <button onClick={() => setViewMode('weekly')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarRange size={14} /> 주간
+             </button>
+             <button onClick={() => setViewMode('monthly')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'monthly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
+               <Calendar size={14} /> 월간
              </button>
           </div>
         </div>
@@ -308,7 +353,13 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
               itemStyle={{ fontSize: '12px', fontWeight: 600 }}
               labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontSize: '12px' }}
-              formatter={(value: any, name: string) => {
+              formatter={(value: any, name: string, props: any) => {
+                // [Tooltip] 이번 달 데이터일 경우 표시 변경
+                if (viewMode === 'monthly' && props.payload.isCurrent) {
+                    if (name === 'Trend') return [null, null]; // 추세선 숨김
+                    return [`${formatNumber(value)} (진행 중)`, isCoin ? 'Coins' : 'Cells'];
+                }
+
                 if (name === 'Growth %') {
                   const num = Number(value);
                   const color = num > 0 ? COLORS.increase : (num < 0 ? COLORS.decrease : '#94a3b8');
@@ -322,8 +373,23 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
             />
             <Legend content={renderCustomLegend} />
             
-            <Bar yAxisId="left" dataKey="amount" name={isCoin ? "Coins Earned" : "Cells Earned"} barSize={viewMode === 'daily' ? 24 : 36} radius={[6, 6, 0, 0]} fill={currentBarColor} fillOpacity={0.8} />
+            {/* [Bar Chart] Cell을 이용해 마지막 막대(이번 달) 스타일 변경 */}
+            <Bar yAxisId="left" dataKey="amount" name={isCoin ? "Coins Earned" : "Cells Earned"} barSize={viewMode === 'daily' ? 24 : 36} radius={[6, 6, 0, 0]}>
+                {chartData.map((entry, index) => (
+                    <Cell 
+                        key={`cell-${index}`} 
+                        fill={currentBarColor} 
+                        // 월간이고 마지막 데이터면 투명도 0.3
+                        fillOpacity={(viewMode === 'monthly' && entry.isLastMonthly) ? 0.3 : 0.8}
+                        // 월간이고 마지막 데이터면 테두리 점선
+                        stroke={(viewMode === 'monthly' && entry.isLastMonthly) ? currentBarColor : 'none'}
+                        strokeDasharray={(viewMode === 'monthly' && entry.isLastMonthly) ? "4 4" : "0"}
+                        strokeWidth={1}
+                    />
+                ))}
+            </Bar>
             
+            {/* [Trend Line] connectNulls={false}로 설정하여 중간에 끊기게 함 */}
             <Line 
               yAxisId="left"
               type="linear"
@@ -336,10 +402,26 @@ export default function WeeklyStatsChart({ data: dailyData, loading: dailyLoadin
               dot={false}
               activeDot={false}
               isAnimationActive={false}
+              connectNulls={false}
             />
 
+            {/* [Growth Line] 마지막 점(진행 중인 달)은 그리지 않음 */}
             <ReferenceLine y={0} yAxisId="right" stroke="#475569" strokeDasharray="3 3" />
-            <Line yAxisId="right" type="monotone" dataKey="currentGrowth" name="Growth %" stroke="url(#splitColor)" strokeWidth={3} dot={{ r: 4, fill: '#0f172a', strokeWidth: 2, stroke: '#64748b' }} activeDot={{ r: 6 }} connectNulls />
+            <Line 
+                yAxisId="right" 
+                type="monotone" 
+                dataKey="currentGrowth" 
+                name="Growth %" 
+                stroke="url(#splitColor)" 
+                strokeWidth={3} 
+                connectNulls={false}
+                dot={(props: any) => {
+                    // 월간이고 마지막 점이면 숨김
+                    if (viewMode === 'monthly' && props.payload.isLastMonthly) return <></>;
+                    return <circle cx={props.cx} cy={props.cy} r={4} fill="#0f172a" stroke="#64748b" strokeWidth={2} />;
+                }}
+                activeDot={{ r: 6 }} 
+            />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

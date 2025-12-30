@@ -1,4 +1,3 @@
-# back/crud/stats.py
 from sqlalchemy.orm import Session
 from sqlalchemy import func, literal
 from models import BattleMain
@@ -133,3 +132,72 @@ def get_weekly_trends(db: Session, user_id: int):
         })
 
     return {"weekly_stats": trend_stats}
+
+# [New] 3. 월간 트렌드 (최근 6개월 표시를 위해 7개월 조회)
+def get_monthly_trends(db: Session, user_id: int):
+    # UTC 기준 현재 시간
+    now_utc = datetime.now(timezone.utc)
+    this_month_str = now_utc.strftime("%Y-%m") # 예: 2024-12 (이번 달)
+
+    # 7개월 전 1일 구하기 (6개월 표시 + 1개월 비교용)
+    start_date = (now_utc.replace(day=1) - timedelta(days=210)).replace(day=1)
+    
+    # DB 조회 (YYYY-MM 그룹화)
+    results = db.query(
+        func.to_char(BattleMain.battle_date, 'YYYY-MM').label('month_str'),
+        func.sum(BattleMain.coin_earned).label('total_coins'),
+        func.sum(BattleMain.cells_earned).label('total_cells')
+    ).filter(
+        BattleMain.owner_id == user_id,
+        BattleMain.battle_date >= start_date
+    ).group_by('month_str').order_by('month_str').all()
+
+    # 빠른 조회를 위해 딕셔너리로 변환
+    monthly_map = {
+        r.month_str: {"coins": r.total_coins or 0, "cells": r.total_cells or 0}
+        for r in results
+    }
+
+    trend_stats = []
+    
+    # 최근 7개월 리스트 생성 (이번 달 포함)
+    target_months = []
+    cursor = now_utc.replace(day=1)
+    
+    for _ in range(7):
+        target_months.append(cursor.strftime("%Y-%m"))
+        # 전달로 이동
+        cursor = (cursor - timedelta(days=1)).replace(day=1)
+        
+    target_months.reverse() # [6개월전, ..., 이번달]
+
+    # 데이터 조립 (맨 첫 달은 비교 대상이 없으므로 건너뛰고 6개만 생성)
+    for i in range(1, len(target_months)): 
+        curr_month = target_months[i]
+        prev_month = target_months[i-1]
+        
+        curr_data = monthly_map.get(curr_month, {"coins": 0, "cells": 0})
+        prev_data = monthly_map.get(prev_month, {"coins": 0, "cells": 0})
+        
+        # 성장률 계산
+        coin_growth = 0.0
+        if prev_data["coins"] > 0:
+            coin_growth = (curr_data["coins"] - prev_data["coins"]) / prev_data["coins"] * 100
+            
+        cell_growth = 0.0
+        if prev_data["cells"] > 0:
+            cell_growth = (curr_data["cells"] - prev_data["cells"]) / prev_data["cells"] * 100
+        
+        # [중요] 이번 달인지 체크
+        is_current = (curr_month == this_month_str)
+
+        trend_stats.append({
+            "month": curr_month,
+            "total_coins": curr_data["coins"],
+            "total_cells": curr_data["cells"],
+            "coin_growth": round(coin_growth, 1),
+            "cell_growth": round(cell_growth, 1),
+            "is_current": is_current 
+        })
+
+    return {"monthly_stats": trend_stats}

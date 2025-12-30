@@ -99,6 +99,14 @@ def get_weekly_trends_api(
 ):
     return crud.get_weekly_trends(db, current_user.id)
 
+# [New] 월간 트렌드 API
+@router.get("/monthly-trends")
+def get_monthly_trends_api(
+    db: Session = Depends(get_db_read),
+    current_user: User = Depends(get_current_user)
+):
+    return crud.get_monthly_trends(db, current_user.id)
+
 # 3. 상세 조회 및 삭제
 
 @router.get("/{battle_date}", response_model=FullReportResponse)
