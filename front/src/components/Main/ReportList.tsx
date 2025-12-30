@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Zap, Layers, ChevronDown, ChevronUp } from 'lucide-react';
+import { Zap, Layers, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
-import { formatNumber, formatDateHeader } from '../../utils/format'; 
+import { formatNumber, formatDateHeader, parseDurationToHours } from '../../utils/format'; 
 import ReportListItem from './ReportListItem'; 
 
 interface Props {
@@ -65,6 +65,21 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           const totalCells = groupItems.reduce((acc, r) => acc + r.cells_earned, 0);
           const totalShards = groupItems.reduce((acc, r) => acc + r.reroll_shards_earned, 0);
 
+          // [New] 시간 커버리지 계산 (24시간 기준)
+          const totalHours = groupItems.reduce((acc, r) => acc + parseDurationToHours(r.real_time), 0);
+          const totalMinutes = Math.round(totalHours * 60);
+          const hoursInt = Math.floor(totalMinutes / 60);
+          const minutesInt = totalMinutes % 60;
+          const coveragePercent = Math.round((totalHours / 24) * 100);
+
+          // [Modified] 색상 결정 로직 (6시간 단위)
+          let timeColor = "text-slate-500"; // 0~6시간 미만 (회색)
+          if (totalHours >= 18) timeColor = "text-lime-400";       // 18시간 이상 (형광 초록)
+          else if (totalHours >= 12) timeColor = "text-yellow-400"; // 12~18시간 (노랑)
+          else if (totalHours >= 6) timeColor = "text-rose-500";    // 6~12시간 (빨강)
+
+          const timeDisplay = `${hoursInt}h ${minutesInt}m (${coveragePercent}%)`;
+
           if (isOld) {
              return (
               <div key={dateHeader} className="border-b border-slate-800/50">
@@ -74,14 +89,20 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                 >
                   {/* [New] 모바일 뷰: 2줄 레이아웃 (md:hidden) */}
                   <div className="md:hidden flex flex-col gap-3 flex-1 mr-4">
-                      {/* 1열: 일자 + 게임수 */}
+                      {/* 1열: 일자 + [시간 표시] + 게임수 */}
                       <div className="flex items-center justify-between">
                           <h3 className="text-slate-200 font-bold text-sm">
                              {dateHeader.split(' ').slice(0, 3).join(' ')}
                           </h3>
-                          <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-medium text-xs whitespace-nowrap">
-                             {groupItems.length} Games
-                          </span>
+                          <div className="flex items-center gap-2">
+                             {/* 시간 표시 (모바일) */}
+                             <span className={`text-xs font-bold ${timeColor}`}>
+                                {timeDisplay}
+                             </span>
+                             <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-medium text-xs whitespace-nowrap">
+                                {groupItems.length} Games
+                             </span>
+                          </div>
                       </div>
                       
                       {/* 2열: 코인 | 셀 | 리롤 합산들 */}
@@ -130,6 +151,13 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                         <Layers size={14} className="text-green-500"/> 
                         <span className="text-green-500 font-mono font-bold text-base">{formatNumber(totalShards)}</span>
                       </span>
+
+                      {/* [New] Time Coverage (Desktop) */}
+                      <div className="h-4 w-px bg-slate-800 ml-2"></div>
+                      <span className={`flex items-center gap-1.5 font-mono font-bold text-base ${timeColor} ml-2`}>
+                        <Clock size={14} className={timeColor} />
+                        {timeDisplay}
+                      </span>
                     </div>
                   </div>
                   
@@ -171,6 +199,11 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                 </div>
                 
                 <div className="h-px bg-slate-800 flex-1"></div>
+
+                {/* [New] Time Coverage (Expanded View) */}
+                <div className={`flex items-center gap-1.5 text-sm font-bold ${timeColor}`}>
+                  {timeDisplay}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">
