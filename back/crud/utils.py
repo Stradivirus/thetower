@@ -1,7 +1,3 @@
-# 통계 캐시용 (간단한 인메모리 저장소)
-_stats_cache = {}
-CACHE_EXPIRE_MINUTES = 10
-
 def parse_game_number_safe(value_str: str) -> float:
     if not value_str: return 0.0
     clean_str = str(value_str).strip().replace(',', '')
