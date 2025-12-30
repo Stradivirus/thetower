@@ -1,3 +1,4 @@
+// front/src/components/Main/ReportList.tsx
 import { useMemo, useState } from 'react';
 import { Zap, Layers, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
@@ -25,7 +26,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(report);
     });
-    // 날짜 내림차순 정렬
     return Object.entries(groups).sort(([, a], [, b]) => 
       new Date(b[0].battle_date).getTime() - new Date(a[0].battle_date).getTime()
     );
@@ -60,26 +60,24 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           const isOld = diffDays >= collapseThresholdDays;
           const isExpanded = expandedDates[dateHeader];
           
-          // 현재 날짜의 합계 계산
           const totalCoins = groupItems.reduce((acc, r) => acc + r.coin_earned, 0);
           const totalCells = groupItems.reduce((acc, r) => acc + r.cells_earned, 0);
           const totalShards = groupItems.reduce((acc, r) => acc + r.reroll_shards_earned, 0);
 
-          // [New] 시간 커버리지 계산 (24시간 기준)
           const totalHours = groupItems.reduce((acc, r) => acc + parseDurationToHours(r.real_time), 0);
           const totalMinutes = Math.round(totalHours * 60);
           const hoursInt = Math.floor(totalMinutes / 60);
           const minutesInt = totalMinutes % 60;
           const coveragePercent = Math.round((totalHours / 24) * 100);
 
-          // [Modified] 색상 결정 로직 (6시간 단위)
-          let timeColor = "text-slate-500"; // 0~6시간 미만 (회색)
-          if (totalHours >= 18) timeColor = "text-lime-400";       // 18시간 이상 (형광 초록)
-          else if (totalHours >= 12) timeColor = "text-yellow-400"; // 12~18시간 (노랑)
-          else if (totalHours >= 6) timeColor = "text-rose-500";    // 6~12시간 (빨강)
+          let timeColor = "text-slate-500"; 
+          if (totalHours >= 18) timeColor = "text-lime-400";       
+          else if (totalHours >= 12) timeColor = "text-yellow-400"; 
+          else if (totalHours >= 6) timeColor = "text-rose-500";    
 
           const timeDisplay = `${hoursInt}h ${minutesInt}m (${coveragePercent}%)`;
 
+          // [Case 1] 접혀있는 오래된 기록 (Collapsed View)
           if (isOld) {
              return (
               <div key={dateHeader} className="border-b border-slate-800/50">
@@ -87,25 +85,25 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                   onClick={() => toggleDate(dateHeader)}
                   className="flex items-center justify-between py-4 px-4 hover:bg-slate-900/50 cursor-pointer transition-colors group select-none"
                 >
-                  {/* [New] 모바일 뷰: 2줄 레이아웃 (md:hidden) */}
+                  {/* Mobile View: 날짜 아래 시간 표시 */}
                   <div className="md:hidden flex flex-col gap-3 flex-1 mr-4">
-                      {/* 1열: 일자 + [시간 표시] + 게임수 */}
-                      <div className="flex items-center justify-between">
-                          <h3 className="text-slate-200 font-bold text-sm">
-                             {dateHeader.split(' ').slice(0, 3).join(' ')}
-                          </h3>
-                          <div className="flex items-center gap-2">
-                             {/* 시간 표시 (모바일) */}
-                             <span className={`text-xs font-bold ${timeColor}`}>
-                                {timeDisplay}
-                             </span>
+                      <div className="flex items-start justify-between">
+                          <div className="flex flex-col gap-1">
+                              <h3 className="text-slate-200 font-bold text-sm">
+                                 {dateHeader.split(' ').slice(0, 3).join(' ')}
+                              </h3>
+                              <span className={`text-xs font-bold ${timeColor}`}>
+                                 {timeDisplay}
+                              </span>
+                          </div>
+                          
+                          <div className="flex items-center">
                              <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-medium text-xs whitespace-nowrap">
                                 {groupItems.length} Games
                              </span>
                           </div>
                       </div>
                       
-                      {/* 2열: 코인 | 셀 | 리롤 합산들 */}
                       <div className="flex items-center justify-between pr-2">
                            <div className="flex items-center gap-1.5 text-yellow-500">
                                <span className="font-bold text-xs border border-yellow-500/30 px-1 rounded">C</span>
@@ -122,7 +120,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                       </div>
                   </div>
 
-                  {/* [Existing] 데스크톱 뷰: 기존 디자인 유지 (hidden md:flex) */}
+                  {/* Desktop View */}
                   <div className="hidden md:flex items-center gap-6">
                     <div className="w-32 flex-shrink-0">
                       <h3 className="text-slate-400 group-hover:text-slate-200 font-bold text-sm transition-colors">
@@ -134,25 +132,17 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                         {groupItems.length} Games
                       </span>
                       <div className="h-4 w-px bg-slate-800"></div>
-                      
-                      {/* Coins */}
                       <span className="flex items-center gap-1.5 text-slate-400">
                         <span className="text-yellow-500 font-mono font-bold text-base">{formatNumber(totalCoins)}</span>
                       </span>
-
-                      {/* Cells */}
                       <span className="flex items-center gap-1.5 text-slate-400 ml-2">
                         <Zap size={14} className="text-cyan-500"/> 
                         <span className="text-cyan-500 font-mono font-bold text-base">{formatNumber(totalCells)}</span>
                       </span>
-
-                      {/* Shards */}
                       <span className="flex items-center gap-1.5 text-slate-400 ml-2">
                         <Layers size={14} className="text-green-500"/> 
                         <span className="text-green-500 font-mono font-bold text-base">{formatNumber(totalShards)}</span>
                       </span>
-
-                      {/* [New] Time Coverage (Desktop) */}
                       <div className="h-4 w-px bg-slate-800 ml-2"></div>
                       <span className={`flex items-center gap-1.5 font-mono font-bold text-base ${timeColor} ml-2`}>
                         <Clock size={14} className={timeColor} />
@@ -161,7 +151,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                     </div>
                   </div>
                   
-                  {/* 접기/펼치기 아이콘 (공통) */}
                   <div className="text-slate-500 group-hover:text-white transition-colors">
                     {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                   </div>
@@ -182,28 +171,54 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
              );
           }
 
+          // [Case 2] 최신 기록 - 펼쳐진 뷰 (Expanded View)
+          // [Fix] 여기도 모바일에서 '날짜 아래 시간' 레이아웃 적용
           return (
             <div key={dateHeader} className="animate-fade-in">
-              <div className="flex items-center justify-between gap-4 mb-3 px-2">
-                <div className="flex items-center gap-4">
-                    <h3 className="text-white font-bold text-base whitespace-nowrap">
-                        {dateHeader.split(' ').slice(0, 3).join(' ')}
-                        <span className="text-slate-500 text-xs font-normal ml-2">
-                            {dateHeader.split(' ').slice(3).join(' ')}
-                        </span>
-                    </h3>
-                    
-                    <span className="text-xs text-slate-500 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                        {groupItems.length} Games
-                    </span>
-                </div>
-                
-                <div className="h-px bg-slate-800 flex-1"></div>
+              {/* Header Container */}
+              <div className="mb-3 px-2">
+                  
+                  {/* 1. Mobile Layout for Expanded Header */}
+                  <div className="md:hidden flex items-start justify-between">
+                      <div className="flex flex-col gap-1">
+                          <h3 className="text-white font-bold text-base whitespace-nowrap">
+                              {dateHeader.split(' ').slice(0, 3).join(' ')}
+                              <span className="text-slate-500 text-xs font-normal ml-2">
+                                  {dateHeader.split(' ').slice(3).join(' ')}
+                              </span>
+                          </h3>
+                          {/* 시간을 날짜 아래로 줄바꿈 */}
+                          <div className={`text-sm font-bold ${timeColor}`}>
+                              {timeDisplay}
+                          </div>
+                      </div>
 
-                {/* [New] Time Coverage (Expanded View) */}
-                <div className={`flex items-center gap-1.5 text-sm font-bold ${timeColor}`}>
-                  {timeDisplay}
-                </div>
+                      <span className="text-xs text-slate-500 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800 whitespace-nowrap">
+                          {groupItems.length} Games
+                      </span>
+                  </div>
+
+                  {/* 2. Desktop Layout for Expanded Header (기존 유지) */}
+                  <div className="hidden md:flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                          <h3 className="text-white font-bold text-base whitespace-nowrap">
+                              {dateHeader.split(' ').slice(0, 3).join(' ')}
+                              <span className="text-slate-500 text-xs font-normal ml-2">
+                                  {dateHeader.split(' ').slice(3).join(' ')}
+                              </span>
+                          </h3>
+                          
+                          <span className="text-xs text-slate-500 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                              {groupItems.length} Games
+                          </span>
+                      </div>
+                      
+                      <div className="h-px bg-slate-800 flex-1"></div>
+
+                      <div className={`flex items-center gap-1.5 text-sm font-bold ${timeColor}`}>
+                        {timeDisplay}
+                      </div>
+                  </div>
               </div>
 
               <div className="flex flex-col gap-1">

@@ -1,3 +1,4 @@
+// front/src/components/History/WeeklyStatsChart.tsx
 import { useMemo } from 'react';
 import { 
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, Cell 
@@ -119,7 +120,8 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 mb-8 animate-fade-in shadow-xl text-slate-300">
+    // [Modified] relative 추가 (모바일 버튼 배치를 위해)
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 mb-8 animate-fade-in shadow-xl text-slate-300 relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         
         <div className="flex flex-col w-full md:w-auto">
@@ -130,13 +132,14 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
             </div>
             <div className="block mt-1">
                <span className="text-[11px] text-slate-500 font-medium">
-                  * {viewMode === 'monthly' ? '최근 6개월 데이터 (진행 중 포함)' : '완료된 데이터 기준'}
+                 * {viewMode === 'monthly' ? '최근 6개월 데이터 (진행 중 포함)' : '오늘 제외'}
                </span>
             </div>
         </div>
         
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-           <div className="flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-800 flex-shrink-0">
+           {/* [Modified] 모바일: 우상단 절대 좌표(Top-Right), 데스크톱: 일반 배치(Static) */}
+           <div className="absolute top-4 right-4 md:static md:inset-auto flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-800 flex-shrink-0">
               <button onClick={() => setResourceType('coin')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isCoin ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
                 <CircleDollarSign size={14} /> Coins
               </button>
@@ -145,6 +148,7 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
               </button>
            </div>
 
+           {/* 기간 선택 버튼 (모바일에서는 제목 아래에 남음) */}
            <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit flex-shrink-0">
              <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarDays size={14} /> 일간
@@ -173,14 +177,12 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
             <YAxis yAxisId="left" tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }} tickFormatter={(val) => formatNumber(val)} axisLine={false} tickLine={false} width={50} />
             <YAxis yAxisId="right" orientation="right" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} tickFormatter={(val) => `${val}%`} axisLine={false} tickLine={false} width={40} domain={['auto', 'auto']} />
             
-            {/* [수정] Tooltip 내부 스타일 변경 */}
             <Tooltip 
               cursor={{ fill: '#1e293b', opacity: 0.4 }}
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
               itemStyle={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }} 
               labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontSize: '12px' }}
               formatter={(value: any, name: string, props: any) => {
-                // 월간 모드 (진행 중)
                 if (viewMode === 'monthly' && props.payload.isCurrent) {
                     if (name === 'Trend') return [null, null];
                     return [
@@ -189,19 +191,16 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
                     ];
                 }
                 
-                // Growth %
                 if (name === 'Growth %') {
                   const num = Number(value);
                   const color = num > 0 ? COLORS.increase : (num < 0 ? COLORS.decrease : '#94a3b8');
                   return [<span style={{ color }}>{value}%</span>, 'Growth Rate'];
                 }
                 
-                // Trend
                 if (name === 'Trend') {
                   return [<span style={{ color: currentTrendColor }}>{formatNumber(value)}</span>, 'Trend'];
                 }
                 
-                // [핵심 수정] 기본 막대 (Coins/Cells) 툴팁 색상 적용
                 return [
                     <span style={{ color: currentBarColor, fontWeight: 'bold' }}>{formatNumber(value)}</span>, 
                     <span style={{ color: currentBarColor, fontWeight: 'bold' }}>{isCoin ? 'Coins' : 'Cells'}</span>
