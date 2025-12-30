@@ -1,3 +1,4 @@
+# back/crud/__init__.py
 from .user import (
     get_user_by_username, 
     create_user, 
@@ -16,10 +17,11 @@ from .report import (
     get_reports_by_month    
 )
 
-# [Stats 관련]
+# [Stats 관련] - 여기에 get_monthly_trends 추가!
 from .stats import (
     get_weekly_stats,
-    get_weekly_trends
+    get_weekly_trends,
+    get_monthly_trends  # <--- 이 부분이 빠져 있어서 에러가 났습니다.
 )
 
 # [Game Data 관련]
