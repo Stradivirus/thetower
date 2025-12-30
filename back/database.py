@@ -21,7 +21,7 @@ DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERV
 engine = create_engine(
     DATABASE_URL,
     pool_size=5,         # [최적화] 워커 2개 기준 안전 설정
-    max_overflow=10,     # [최적화] 급할 때 여유분
+    max_overflow=15,     # [최적화] 급할 때 여유분
     pool_recycle=3600,
     pool_pre_ping=True
 )
@@ -37,8 +37,8 @@ DATABASE_URL_READ = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES
 
 engine_read = create_engine(
     DATABASE_URL_READ,
-    pool_size=5,         # [최적화] 워커 2개 기준 안전 설정
-    max_overflow=10,
+    pool_size=3,         # [최적화] 워커 2개 기준 안전 설정
+    max_overflow=15,
     pool_recycle=3600,
     pool_pre_ping=True
 )
