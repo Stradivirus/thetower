@@ -1,8 +1,9 @@
+# back/schemas.py
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-# 1. 유저 및 인증 (User & Auth) - [기존 코드 복구]
+# 1. 유저 및 인증 (User & Auth)
 class UserBase(BaseModel):
     username: str
 
@@ -45,7 +46,7 @@ class UserModulesResponse(UserModulesBase):
 class DamageItem(BaseModel):
     name: str
     value: str
-    raw: float = 0.0  # [New] 정렬 및 계산을 위한 숫자형 데이터
+    raw: float = 0.0
 
 class BattleMainResponse(BaseModel):
     battle_date: datetime
@@ -68,6 +69,10 @@ class BattleMainResponse(BaseModel):
     notes: Optional[str] = None
     
     top_damages: List[DamageItem] = []
+    
+    # [New] 비율 데이터 추가
+    death_wave_ratio: Optional[str] = None
+    spotlight_ratio: Optional[str] = None
 
     class Config:
         from_attributes = True

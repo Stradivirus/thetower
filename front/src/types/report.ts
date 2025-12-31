@@ -1,3 +1,4 @@
+// front/src/types/report.ts
 export interface DamageItem {
   name: string;
   value: string;
@@ -23,6 +24,10 @@ export interface BattleMain {
   notes?: string;
   
   top_damages: DamageItem[];
+  
+  // [New] 비율 데이터 추가
+  death_wave_ratio?: string;
+  spotlight_ratio?: string;
 }
 
 export interface BattleDetail {

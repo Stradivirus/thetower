@@ -86,6 +86,45 @@ class BattleMain(Base):
         damage_list.sort(key=lambda x: x['raw'], reverse=True)
         return damage_list
 
+    # [New] 데스웨이브 태그 비율 계산
+    @property
+    def death_wave_ratio(self):
+        if not self.detail: return None
+        
+        # 1. 전체 적 수 (분모)
+        enemy_json = self.detail.enemy_json or {}
+        total_enemies_str = str(enemy_json.get("적 합계", "0"))
+        total_enemies = parse_game_number(total_enemies_str)
+        
+        if total_enemies <= 0: return "-"
+
+        # 2. 데스웨이브 태그 수 (분자)
+        combat_json = self.detail.combat_json or {}
+        dw_tags_str = str(combat_json.get("데스웨이브에 의해 표시됨", "0"))
+        dw_tags = parse_game_number(dw_tags_str)
+        
+        ratio = (dw_tags / total_enemies) * 100
+        return f"{ratio:.1f}%"
+
+    # [New] 스포트라이트 킬 비율 계산
+    @property
+    def spotlight_ratio(self):
+        if not self.detail: return None
+        
+        # 1. 전체 적 수 (분모)
+        enemy_json = self.detail.enemy_json or {}
+        total_enemies_str = str(enemy_json.get("적 합계", "0"))
+        total_enemies = parse_game_number(total_enemies_str)
+        
+        if total_enemies <= 0: return "-"
+
+        # 2. 스포트라이트 킬 수 (분자)
+        sl_kill_str = str(enemy_json.get("스포트라이트로 파괴함", "0"))
+        sl_kills = parse_game_number(sl_kill_str)
+        
+        ratio = (sl_kills / total_enemies) * 100
+        return f"{ratio:.1f}%"
+
 class BattleDetail(Base):
     __tablename__ = "battle_details"
     

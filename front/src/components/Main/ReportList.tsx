@@ -36,6 +36,10 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
   return (
     <>
+      {/* [Header Grid 수정] 
+        기존: Time(2) Coins(2) C/h(1) Cl/h(1) Res(1) Ratio(1) Dmg(2) Killer(1) Memo(1)
+        변경: Time(2) Coins(2) C/h(1) Cl/h(1) Res(1) Ratio(1) Dmg&Killer(2) Memo(2)
+      */}
       {!hideHeader && (
         <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 text-center select-none items-end pb-2">
           <div className="col-span-2 text-xs font-bold text-slate-300">Time / Wave</div>
@@ -43,16 +47,23 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           <div className="col-span-1 text-xs font-bold text-slate-400">Coin/h</div>
           <div className="col-span-1 text-xs font-bold text-cyan-400">Cell/h</div>
           <div className="col-span-1 text-xs font-bold text-slate-400">Res.</div>
-          <div className="col-span-3 text-left pl-4">
+          
+          {/* Ratio Header */}
+          <div className="col-span-1 text-xs font-bold text-slate-400">Ratio</div>
+          
+          {/* [Merged] Damage & Killer Header (2칸) */}
+          <div className="col-span-2 text-left pl-4">
             <span className="text-xs font-bold text-rose-400">Damage & Killer</span>
-            <span className="text-[10px] text-slate-500 font-normal ml-1 block leading-none mt-0.5">(오브, 블랙홀 제외)</span>
           </div>
+
+          {/* [Expanded] Memo Header (2칸) */}
           <div className="col-span-2 text-xs font-bold text-slate-400">Memo</div>
         </div>
       )}
 
       <div className="space-y-6 mt-4">
         {groupedReports.map(([dateHeader, groupItems]) => {
+          // ... (이하 로직은 기존과 동일) ...
           const reportDate = new Date(groupItems[0].battle_date);
           reportDate.setHours(0, 0, 0, 0);
           const diffTime = today.getTime() - reportDate.getTime();
@@ -77,7 +88,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
           const timeDisplay = `${hoursInt}h ${minutesInt}m (${coveragePercent}%)`;
 
-          // [Case 1] 접혀있는 오래된 기록 (Collapsed View)
+          // [Case 1] 접혀있는 오래된 기록
           if (isOld) {
              return (
               <div key={dateHeader} className="border-b border-slate-800/50">
@@ -85,9 +96,10 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                   onClick={() => toggleDate(dateHeader)}
                   className="flex items-center justify-between py-4 px-4 hover:bg-slate-900/50 cursor-pointer transition-colors group select-none"
                 >
-                  {/* Mobile View: 날짜 아래 시간 표시 */}
+                  {/* Mobile Header (생략) */}
                   <div className="md:hidden flex flex-col gap-3 flex-1 mr-4">
-                      <div className="flex items-start justify-between">
+                      {/* ... 기존 모바일 헤더 ... */}
+                       <div className="flex items-start justify-between">
                           <div className="flex flex-col gap-1">
                               <h3 className="text-slate-200 font-bold text-sm">
                                  {dateHeader.split(' ').slice(0, 3).join(' ')}
@@ -103,7 +115,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                              </span>
                           </div>
                       </div>
-                      
                       <div className="flex items-center justify-between pr-2">
                            <div className="flex items-center gap-1.5 text-yellow-500">
                                <span className="font-bold text-xs border border-yellow-500/30 px-1 rounded">C</span>
@@ -120,7 +131,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                       </div>
                   </div>
 
-                  {/* Desktop View */}
+                  {/* Desktop Header */}
                   <div className="hidden md:flex items-center gap-6">
                     <div className="w-32 flex-shrink-0">
                       <h3 className="text-slate-400 group-hover:text-slate-200 font-bold text-sm transition-colors">
@@ -171,14 +182,10 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
              );
           }
 
-          // [Case 2] 최신 기록 - 펼쳐진 뷰 (Expanded View)
-          // [Fix] 여기도 모바일에서 '날짜 아래 시간' 레이아웃 적용
+          // [Case 2] 최신 기록
           return (
             <div key={dateHeader} className="animate-fade-in">
-              {/* Header Container */}
               <div className="mb-3 px-2">
-                  
-                  {/* 1. Mobile Layout for Expanded Header */}
                   <div className="md:hidden flex items-start justify-between">
                       <div className="flex flex-col gap-1">
                           <h3 className="text-white font-bold text-base whitespace-nowrap">
@@ -187,18 +194,15 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                                   {dateHeader.split(' ').slice(3).join(' ')}
                               </span>
                           </h3>
-                          {/* 시간을 날짜 아래로 줄바꿈 */}
                           <div className={`text-sm font-bold ${timeColor}`}>
                               {timeDisplay}
                           </div>
                       </div>
-
                       <span className="text-xs text-slate-500 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800 whitespace-nowrap">
                           {groupItems.length} Games
                       </span>
                   </div>
 
-                  {/* 2. Desktop Layout for Expanded Header (기존 유지) */}
                   <div className="hidden md:flex items-center justify-between gap-4">
                       <div className="flex items-center gap-4">
                           <h3 className="text-white font-bold text-base whitespace-nowrap">
@@ -207,14 +211,11 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                                   {dateHeader.split(' ').slice(3).join(' ')}
                               </span>
                           </h3>
-                          
                           <span className="text-xs text-slate-500 font-medium bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
                               {groupItems.length} Games
                           </span>
                       </div>
-                      
                       <div className="h-px bg-slate-800 flex-1"></div>
-
                       <div className={`flex items-center gap-1.5 text-sm font-bold ${timeColor}`}>
                         {timeDisplay}
                       </div>

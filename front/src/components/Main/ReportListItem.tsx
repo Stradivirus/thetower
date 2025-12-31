@@ -21,9 +21,6 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
 
   // --------------------------------------------------------------------------
   // 1. [Mobile View] 모바일용 카드 디자인
-  // - 상단: 날짜, 시간, 웨이브
-  // - 중단: 코인, 셀, 리롤 (확실하게 다음 줄로 내림!)
-  // - 하단: 딜량, 사망 원인
   // --------------------------------------------------------------------------
   const MobileView = () => (
     <div 
@@ -43,7 +40,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 2행: 코인 / 셀 / 리롤 (화면 넘어가지 않게 세로 스택 or 그리드 배치) */}
+      {/* 2행: 코인 / 셀 / 리롤 */}
       <div className="grid grid-cols-1 gap-2 mb-3">
         {/* 코인 */}
         <div className="flex items-center justify-between">
@@ -87,7 +84,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 3행: 딜량 & 킬러 (50:50 배치) */}
+      {/* 3행: 딜량 & 킬러 */}
       <div className="pt-2 border-t border-slate-800/50">
           <div className="grid grid-cols-2 gap-4">
               {/* 왼쪽: 딜량 */}
@@ -136,14 +133,15 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
   );
 
   // --------------------------------------------------------------------------
-  // 2. [Desktop View] PC용 그리드 리스트 (기존 디자인 유지)
+  // 2. [Desktop View] PC용 그리드 리스트
+  // Layout: [1-2 Time] [3-4 Coins] [5 C/h] [6 Cl/h] [7 Res] [8 Ratio] [9-10 Dmg&Kill] [11-12 Memo]
   // --------------------------------------------------------------------------
   const DesktopView = () => (
     <div 
       onClick={() => onSelectReport(report.battle_date)}
       className="hidden md:grid group bg-slate-900/40 border border-slate-800/60 hover:border-blue-500/30 hover:bg-slate-800 py-3 px-4 rounded-xl cursor-pointer transition-all grid-cols-12 gap-2 items-center mb-2"
     >
-      {/* 1. Time & Wave */}
+      {/* 1-2. Time & Wave */}
       <div className="col-span-2 flex flex-col items-center justify-center">
         <div className="flex items-center gap-2">
            <span className="text-white font-bold text-sm">{report.real_time}</span>
@@ -156,24 +154,24 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 2. Coins */}
+      {/* 3-4. Coins */}
       <div className="col-span-2 text-center">
         <div className="text-yellow-400 font-bold font-mono text-lg truncate">{formatNumber(report.coin_earned)}</div>
       </div>
 
-      {/* 3. Coin/h */}
+      {/* 5. Coin/h */}
       <div className="col-span-1 text-center">
           <div className="text-slate-300 font-mono font-medium text-sm truncate">{formatNumber(report.coins_per_hour)}/h</div>
       </div>
 
-      {/* 4. Cell/h */}
+      {/* 6. Cell/h */}
       <div className="col-span-1 text-center">
           <div className="text-cyan-300 font-mono font-bold text-sm truncate">
             {formatNumber(Math.round(cellsPerHour))}/h
           </div>
       </div>
 
-      {/* 5. Resources */}
+      {/* 7. Resources */}
       <div className="col-span-1 flex flex-col items-center gap-0.5 overflow-hidden">
         <div className="flex items-center gap-1.5" title="Cells">
            <span className="text-cyan-400 font-mono font-medium text-xs truncate">{formatNumber(report.cells_earned)}</span>
@@ -185,30 +183,61 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 6. Damage & Killer */}
-      <div className="col-span-3 flex flex-col justify-center border-l border-slate-800/50 pl-4 h-full py-0.5 min-w-0">
-        {mainDamages.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2 mb-1.5">
-            {mainDamages.map((dmg: DamageItem, idx: number) => (
-              <div key={idx} className="flex flex-col items-start min-w-0">
-                <span className={`text-[11px] font-bold truncate w-full ${idx === 0 ? 'text-rose-400' : 'text-slate-400'}`}>
-                  {idx + 1}. {dmg.name}
+      {/* 8. Ratio (죽파/스포트 비율) - 툴팁 적용됨 */}
+      <div className="col-span-1 flex flex-col justify-center items-center gap-0.5 border-l border-slate-800/50 pl-1 h-full">
+         <div 
+           className="text-[12px] leading-tight whitespace-nowrap cursor-help" 
+           title="전체 적 중 죽음의 파동의 영향을 받은 적"
+         >
+            <span className="text-purple-400 font-bold mr-1">죽파</span>
+            <span className="text-slate-300">{report.death_wave_ratio || '-'}</span>
+         </div>
+         <div 
+           className="text-[12px] leading-tight whitespace-nowrap cursor-help" 
+           title="전체 적 중 스포트라이트에서 죽은 적"
+         >
+            <span className="text-emerald-400 font-bold mr-1">스포트</span>
+            <span className="text-slate-300">{report.spotlight_ratio || '-'}</span>
+         </div>
+      </div>
+
+      {/* 9-10. [Merged] Damage & Killer (2칸) */}
+      <div className="col-span-2 flex items-center justify-between border-l border-slate-800/50 pl-3 h-full py-0.5 gap-2 min-w-0">
+        {/* Left: Damage List */}
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+          {mainDamages.length > 0 ? (
+            mainDamages.map((dmg: DamageItem, idx: number) => (
+              <div key={idx} className="flex items-center min-w-0">
+                <span className={`text-[11px] font-bold mr-1 ${idx === 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                  {idx + 1}.
+                </span>
+                <span className={`text-[11px] truncate ${idx === 0 ? 'text-rose-400' : 'text-slate-400'}`}>
+                  {dmg.name}
                 </span>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-xs text-slate-500 mb-1.5">No Data</div>
-        )}
-        <div className="flex items-center gap-1.5 text-xs">
-           <Skull size={10} className="text-slate-500" />
-           <span className="text-slate-500 text-[10px]">Killed by</span>
-           <span className="text-rose-300 font-bold text-[11px] truncate max-w-[120px]">{report.killer}</span>
+            ))
+          ) : (
+            <div className="text-xs text-slate-500">No Data</div>
+          )}
+        </div>
+
+        {/* Right: Killer (글씨 크기: text-xs, 아이콘: 13) */}
+        <div className="flex items-center justify-end min-w-0 pl-1 border-l border-slate-800/30">
+            {report.killer ? (
+                 <div className="flex flex-col items-center justify-center gap-0.5" title="Killed by">
+                    <Skull size={13} className="text-rose-500/70" />
+                    <span className="text-rose-300 font-bold text-xs truncate text-center max-w-[75px] leading-tight">
+                        {report.killer}
+                    </span>
+                 </div>
+            ) : (
+                <span className="text-slate-700 text-xs">-</span>
+            )}
         </div>
       </div>
 
-      {/* 7. Memo */}
-      <div className="col-span-2 flex justify-center items-center px-2">
+      {/* 11-12. [Expanded] Memo (2칸) */}
+      <div className="col-span-2 flex justify-center items-center px-1 border-l border-slate-800/50 h-full">
           {report.notes ? (
             <div className="bg-blue-500/10 border border-blue-500/30 px-2 py-1 rounded text-[10px] text-blue-300 truncate w-full text-center cursor-help" title={report.notes}>
               {report.notes}
