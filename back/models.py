@@ -34,7 +34,7 @@ class UserModules(Base):
 class BattleMain(Base):
     __tablename__ = "battle_mains"
     
-    # [Optimized] 복합 인덱스 (내 기록 조회 속도 향상)
+    # [Optimized] 복합 인덱스
     __table_args__ = (
         Index('idx_owner_date', 'owner_id', 'battle_date'),
     )
@@ -63,15 +63,17 @@ class BattleMain(Base):
 
     detail = relationship("BattleDetail", back_populates="main", uselist=False, cascade="all, delete-orphan")
 
-    # [최적화] @property 제거
-    # top_damages, death_wave_ratio, spotlight_ratio는 
-    # crud/report.py에서 DB 쿼리로 계산하여 반환
-
 class BattleDetail(Base):
     __tablename__ = "battle_details"
     
     battle_date = Column(DateTime, ForeignKey("battle_mains.battle_date"), primary_key=True)
     
+    # [최적화] 자주 통계 내는 데이터 정수형 컬럼 추가
+    total_enemies = Column(Integer, default=0)        # 적 합계
+    death_wave_kills = Column(Integer, default=0)     # 데스웨이브 킬 (표시됨)
+    spotlight_kills = Column(Integer, default=0)      # 스포트라이트 킬
+    
+    # 기존 JSON 데이터
     combat_json = Column(JSONB)
     utility_json = Column(JSONB)
     enemy_json = Column(JSONB)

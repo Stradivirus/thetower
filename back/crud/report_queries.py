@@ -4,7 +4,7 @@ SQL 쿼리 모음
 리포트 조회 시 사용되는 복잡한 SQL을 별도 관리
 """
 
-# 기본 리포트 조회 쿼리 (비율 계산 포함)
+# [최적화 완료] 정수형 컬럼 사용으로 연산 속도 및 CPU 부하 대폭 개선
 QUERY_REPORTS_WITH_RATIOS = """
     WITH parsed_damages AS (
         SELECT 
@@ -24,23 +24,17 @@ QUERY_REPORTS_WITH_RATIOS = """
             m.created_at,
             d.combat_json,
             
-            -- death_wave_ratio 계산
+            -- [최적화] 데스웨이브 비율 (JSON 파싱 제거 -> 컬럼 직접 사용)
             CASE 
-                WHEN NULLIF(REGEXP_REPLACE(d.enemy_json->>'적 합계', '[^0-9.]', '', 'g'), '')::numeric > 0 THEN
-                    ROUND((
-                        NULLIF(REGEXP_REPLACE(d.combat_json->>'데스웨이브에 의해 표시됨', '[^0-9.]', '', 'g'), '')::numeric / 
-                        NULLIF(REGEXP_REPLACE(d.enemy_json->>'적 합계', '[^0-9.]', '', 'g'), '')::numeric * 100
-                    )::numeric, 1)
+                WHEN d.total_enemies > 0 THEN
+                    ROUND((d.death_wave_kills::numeric / d.total_enemies::numeric * 100), 1)
                 ELSE 0
             END as death_wave_ratio,
             
-            -- spotlight_ratio 계산
+            -- [최적화] 스포트라이트 비율 (JSON 파싱 제거 -> 컬럼 직접 사용)
             CASE 
-                WHEN NULLIF(REGEXP_REPLACE(d.enemy_json->>'적 합계', '[^0-9.]', '', 'g'), '')::numeric > 0 THEN
-                    ROUND((
-                        NULLIF(REGEXP_REPLACE(d.enemy_json->>'스포트라이트로 파괴함', '[^0-9.]', '', 'g'), '')::numeric / 
-                        NULLIF(REGEXP_REPLACE(d.enemy_json->>'적 합계', '[^0-9.]', '', 'g'), '')::numeric * 100
-                    )::numeric, 1)
+                WHEN d.total_enemies > 0 THEN
+                    ROUND((d.spotlight_kills::numeric / d.total_enemies::numeric * 100), 1)
                 ELSE 0
             END as spotlight_ratio
             

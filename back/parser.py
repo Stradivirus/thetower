@@ -9,8 +9,12 @@ def parse_number(value_str: str):
     if not value_str:
         return 0
     
-    # 공백, $, x 등 불필요한 문자 제거
-    clean_str = value_str.strip().replace('$', '').replace('X', '').replace('x', '')
+    # 안전장치: 이미 숫자로 들어온 경우 바로 반환
+    if isinstance(value_str, (int, float)):
+         return int(value_str)
+
+    # 공백, $, x 등 불필요한 문자 제거 (문자열 변환 후 처리)
+    clean_str = str(value_str).strip().replace('$', '').replace('X', '').replace('x', '')
     
     # 단위 매핑 (대소문자 구분 - 게임 특화 단위)
     multipliers = {
@@ -59,7 +63,7 @@ def parse_battle_report(text: str) -> dict:
         '가디언': 'bot'
     }
 
-    print("--- [Section Parser] 시작 ---")
+    # print("--- [Section Parser] 시작 ---")
 
     for line in lines:
         line = line.strip()
@@ -100,6 +104,7 @@ def parse_battle_report(text: str) -> dict:
     # 3. 최종 데이터 조립
     repo = sections['report']
     comb = sections['combat']
+    enemy = sections['enemy']  # [중요] 적 파괴 섹션 참조 변수
     
     date_str = repo.get('전투 날짜', '')
     try:
@@ -129,7 +134,19 @@ def parse_battle_report(text: str) -> dict:
         'damage_taken': comb.get('받은 대미지', '0'),
     }
     
+    # [수정됨] 통계용 핵심 데이터를 숫자로 변환하여 별도 키로 추출
+    total_enemies = parse_number(enemy.get('적 합계', '0'))
+    # 주의: '데스웨이브에 의해 표시됨'은 '전투(combat)' 섹션에 있음
+    death_wave_kills = parse_number(comb.get('데스웨이브에 의해 표시됨', '0'))
+    spotlight_kills = parse_number(enemy.get('스포트라이트로 파괴함', '0'))
+
     detail_data = {
+        # DB 컬럼과 매칭될 필드들
+        'total_enemies': total_enemies,
+        'death_wave_kills': death_wave_kills,
+        'spotlight_kills': spotlight_kills,
+        
+        # 기존 JSON 데이터
         'combat_json': sections['combat'],
         'utility_json': sections['utility'],
         'enemy_json': sections['enemy'],
