@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, RefreshCw, Skull, Layers, Coins, Waves, Goal } from 'lucide-react';
+import { Zap, RefreshCw, Skull, Layers, Coins } from 'lucide-react';
 import type { BattleMain, DamageItem } from '../../types/report'; 
 import { formatNumber, formatTimeOnly, parseDurationToHours } from '../../utils/format';
 
