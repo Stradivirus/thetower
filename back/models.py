@@ -4,7 +4,6 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
 from datetime import datetime, timezone
-from crud.utils import parse_game_number_safe as parse_game_number
 
 class User(Base):
     __tablename__ = "users"
@@ -64,66 +63,9 @@ class BattleMain(Base):
 
     detail = relationship("BattleDetail", back_populates="main", uselist=False, cascade="all, delete-orphan")
 
-    @property
-    def top_damages(self):
-        if not self.detail or not self.detail.combat_json:
-            return []
-        
-        combat = self.detail.combat_json
-        exclude_keys = ["입힌 대미지", "받은 대미지", "장벽이 받은 대미지", "회복 패키지", "생명력 흡수", "죽음 저항"]
-        
-        damage_list = []
-        for key, val in combat.items():
-            if key in exclude_keys: continue
-            
-            if isinstance(val, (str, int, float)):
-                damage_list.append({
-                    "name": key.replace(" 대미지", ""), 
-                    "value": str(val),
-                    "raw": parse_game_number(str(val))
-                })
-        
-        damage_list.sort(key=lambda x: x['raw'], reverse=True)
-        return damage_list
-
-    # [New] 데스웨이브 태그 비율 계산
-    @property
-    def death_wave_ratio(self):
-        if not self.detail: return None
-        
-        # 1. 전체 적 수 (분모)
-        enemy_json = self.detail.enemy_json or {}
-        total_enemies_str = str(enemy_json.get("적 합계", "0"))
-        total_enemies = parse_game_number(total_enemies_str)
-        
-        if total_enemies <= 0: return "-"
-
-        # 2. 데스웨이브 태그 수 (분자)
-        combat_json = self.detail.combat_json or {}
-        dw_tags_str = str(combat_json.get("데스웨이브에 의해 표시됨", "0"))
-        dw_tags = parse_game_number(dw_tags_str)
-        
-        ratio = (dw_tags / total_enemies) * 100
-        return f"{ratio:.1f}%"
-
-    # [New] 스포트라이트 킬 비율 계산
-    @property
-    def spotlight_ratio(self):
-        if not self.detail: return None
-        
-        # 1. 전체 적 수 (분모)
-        enemy_json = self.detail.enemy_json or {}
-        total_enemies_str = str(enemy_json.get("적 합계", "0"))
-        total_enemies = parse_game_number(total_enemies_str)
-        
-        if total_enemies <= 0: return "-"
-
-        # 2. 스포트라이트 킬 수 (분자)
-        sl_kill_str = str(enemy_json.get("스포트라이트로 파괴함", "0"))
-        sl_kills = parse_game_number(sl_kill_str)
-        
-        ratio = (sl_kills / total_enemies) * 100
-        return f"{ratio:.1f}%"
+    # [최적화] @property 제거
+    # top_damages, death_wave_ratio, spotlight_ratio는 
+    # crud/report.py에서 DB 쿼리로 계산하여 반환
 
 class BattleDetail(Base):
     __tablename__ = "battle_details"
