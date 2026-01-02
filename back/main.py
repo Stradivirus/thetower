@@ -4,7 +4,8 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import reports, auth, progress, modules
+# [Modified] support 라우터 추가
+from routers import reports, auth, progress, modules, support
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -72,6 +73,8 @@ app.include_router(auth.router)
 app.include_router(reports.router)
 app.include_router(progress.router)
 app.include_router(modules.router)
+# [New] Support 라우터 등록
+app.include_router(support.router)
 
 @app.get("/")
 def root():

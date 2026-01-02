@@ -7,7 +7,7 @@ import ReportInputModal from './components/Detail/ReportInputModal';
 import AuthModal from './components/Auth/AuthModal';
 import NavBar from './components/Layout/NavBar';
 import { GameDataProvider } from './contexts/GameDataContext';
-
+import SupportButton from './components/Layout/SupportButton';
 // 페이지 Lazy Loading
 const MainPage = lazy(() => import('./pages/MainPage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
@@ -130,6 +130,7 @@ export default function App() {
           {isAuthModalOpen && (
             <AuthModal onClose={() => setIsAuthModalOpen(false)} onLoginSuccess={handleLoginSuccess} />
           )}
+          <SupportButton />
         </div>
       </GameDataProvider>
     </BrowserRouter>

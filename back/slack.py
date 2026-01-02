@@ -6,28 +6,69 @@ from dotenv import load_dotenv
 # 환경 변수 로드
 load_dotenv()
 
+# [기존] 시스템 알림용
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
+# [신규] 문의 접수용
+SLACK_INQUIRY_URL = os.getenv("SLACK_INQUIRY_URL")
 
-def send_slack_notification(message: str):
-    """
-    슬랙 웹훅으로 메시지를 전송합니다.
-    실패하더라도 메인 로직(회원가입/데이터저장)에는 영향을 주지 않도록 예외 처리합니다.
-    """
-    if not SLACK_WEBHOOK_URL:
-        print("[System] Slack Webhook URL not configured.")
+def _send_to_slack(url: str, payload: dict):
+    """내부 전송용 공통 함수"""
+    if not url:
+        print(f"[System] Slack URL not configured for payload: {payload}")
         return
 
-    payload = {"text": message}
     data = json.dumps(payload).encode("utf-8")
     
     try:
         req = urllib.request.Request(
-            SLACK_WEBHOOK_URL, 
+            url, 
             data=data, 
             headers={"Content-Type": "application/json"}
         )
         with urllib.request.urlopen(req) as response:
             if response.status != 200:
-                print(f"[System] Failed to send Slack notification: Status {response.status}")
+                print(f"[System] Failed to send Slack: Status {response.status}")
     except Exception as e:
-        print(f"[System] Error sending Slack notification: {e}")
+        print(f"[System] Error sending Slack: {e}")
+
+def send_slack_notification(message: str):
+    """
+    [기존] 시스템 알림 전송 (단순 텍스트)
+    """
+    payload = {"text": message}
+    _send_to_slack(SLACK_WEBHOOK_URL, payload)
+
+def send_inquiry(content: str):
+    """
+    [신규] 문의 접수 알림 전송 (Block Kit 사용)
+    - contact 관련 로직 완전 삭제
+    """
+    
+    # 블록 구성 (헤더 + 내용 + 푸터)
+    blocks = [
+        {
+            "type": "header",
+            "text": {
+                "type": "plain_text",
+                "text": "📬 새로운 문의 도착!",
+                "emoji": True
+            }
+        },
+        {
+            "type": "divider"
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"*📝 문의 내용:*\n{content}"
+            }
+        },
+    ]
+
+    payload = {
+        "text": "📬 새로운 문의가 도착했습니다!",
+        "blocks": blocks
+    }
+    
+    _send_to_slack(SLACK_INQUIRY_URL, payload)
