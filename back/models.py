@@ -66,17 +66,19 @@ class BattleMain(Base):
 class BattleDetail(Base):
     __tablename__ = "battle_details"
     
+    # [수정] 둘 다 primary_key=True로 설정 (복합키)
     battle_date = Column(DateTime, ForeignKey("battle_mains.battle_date"), primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)  # <--- 이 줄 추가!
     
-    # [최적화] 자주 통계 내는 데이터 정수형 컬럼 추가
-    total_enemies = Column(Integer, default=0)        # 적 합계
-    death_wave_kills = Column(Integer, default=0)     # 데스웨이브 킬 (표시됨)
-    spotlight_kills = Column(Integer, default=0)      # 스포트라이트 킬
+    # 아래는 기존 그대로
+    total_enemies = Column(Integer, default=0)
+    death_wave_kills = Column(Integer, default=0)
+    spotlight_kills = Column(Integer, default=0)
     
-    # 기존 JSON 데이터
     combat_json = Column(JSONB)
     utility_json = Column(JSONB)
     enemy_json = Column(JSONB)
     bot_json = Column(JSONB)
     
+    # 관계 설정 (main 테이블과 연결)
     main = relationship("BattleMain", back_populates="detail")

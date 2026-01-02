@@ -17,9 +17,13 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
     if notes:
         main_data['notes'] = notes
 
+    # Main은 이미 owner_id를 넣고 계셨네요 (굿)
     battle_main = BattleMain(**main_data, owner_id=user_id)
+    
+    # [수정] Detail에도 owner_id 필수! (DB 구조 바꿨으니까요)
     battle_detail = BattleDetail(
         battle_date=battle_main.battle_date,
+        owner_id=user_id,   # <--- ★★★ 여기 이 줄을 꼭 추가해주세요!
         **detail_data
     )
     
