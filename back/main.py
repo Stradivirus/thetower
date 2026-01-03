@@ -10,9 +10,16 @@ from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-# [New] 우리가 만든 job 함수들 가져오기
 from cron_jobs import report_monthly_stats, report_ghost_users
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["300/minute"]
+)
 Base.metadata.create_all(bind=engine)
 
 # 스케줄러 인스턴스
@@ -53,6 +60,8 @@ async def lifespan(app: FastAPI):
 
 # lifespan 적용
 app = FastAPI(title="The Tower Battle Reports API", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -73,7 +82,6 @@ app.include_router(auth.router)
 app.include_router(reports.router)
 app.include_router(progress.router)
 app.include_router(modules.router)
-# [New] Support 라우터 등록
 app.include_router(support.router)
 
 @app.get("/")
@@ -82,4 +90,4 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, proxy_headers=True, forwarded_allow_ips="*")
