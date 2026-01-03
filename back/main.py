@@ -44,6 +44,7 @@ async def lifespan(app: FastAPI):
         scheduler.add_job(report_ghost_users, trigger_ghost, id="ghost_check")
         
         scheduler.start()
+        
         print("[System] 👑 Main Worker: 스케줄러 가동됨 (매월 1일 09:00/09:05)")
         
     except IOError:
@@ -90,4 +91,4 @@ def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, proxy_headers=True, forwarded_allow_ips="*")
+    uvicorn.run(app, host="0.0.0.0", port=8000)
