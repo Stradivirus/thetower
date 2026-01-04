@@ -4,10 +4,13 @@ SQL 쿼리 모음
 리포트 조회 시 사용되는 복잡한 SQL을 별도 관리
 """
 
-# [최적화 완료] 정수형 컬럼 사용으로 연산 속도 및 CPU 부하 대폭 개선
+# [수정 포인트] 
+# 1. d.id가 없어서 에러가 났으므로 -> d.total_enemies (적 처치 수) 기준으로 변경
+# 2. 중복이 있다면 적 처치 수가 높은(데이터가 알찬) 녀석을 선택하게 됨
+
 QUERY_REPORTS_WITH_RATIOS = """
     WITH parsed_damages AS (
-        SELECT 
+        SELECT DISTINCT ON (m.battle_date)
             m.battle_date,
             m.tier,
             m.wave,
@@ -24,14 +27,14 @@ QUERY_REPORTS_WITH_RATIOS = """
             m.created_at,
             d.combat_json,
             
-            -- [최적화] 데스웨이브 비율 (JSON 파싱 제거 -> 컬럼 직접 사용)
+            -- 데스웨이브 비율
             CASE 
                 WHEN d.total_enemies > 0 THEN
                     ROUND((d.death_wave_kills::numeric / d.total_enemies::numeric * 100), 1)
                 ELSE 0
             END as death_wave_ratio,
             
-            -- [최적화] 스포트라이트 비율 (JSON 파싱 제거 -> 컬럼 직접 사용)
+            -- 스포트라이트 비율
             CASE 
                 WHEN d.total_enemies > 0 THEN
                     ROUND((d.spotlight_kills::numeric / d.total_enemies::numeric * 100), 1)
@@ -42,7 +45,8 @@ QUERY_REPORTS_WITH_RATIOS = """
         LEFT JOIN battle_details d ON m.battle_date = d.battle_date
         WHERE m.owner_id = :user_id
           {date_filter}
-        ORDER BY m.battle_date DESC
+        -- [여기 수정함] d.id -> d.total_enemies
+        ORDER BY m.battle_date DESC, d.total_enemies DESC
         {limit_offset}
     )
     SELECT * FROM parsed_damages
