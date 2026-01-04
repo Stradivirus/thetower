@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
+import { useGameData } from '../../contexts/GameDataContext'; // [추가] Context Hook 임포트
 
 export default function SupportButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success'>('idle');
+  
+  // [수정] Context에서 로그인 상태 가져오기 (실시간 반응)
+  const { isLoggedIn } = useGameData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,7 +18,6 @@ export default function SupportButton() {
       const res = await fetch('/api/support', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // [수정] contact 없이 content만 보냄
         body: JSON.stringify({ content }),
       });
 
@@ -36,12 +39,16 @@ export default function SupportButton() {
     }
   };
 
+  // [수정] 로그인하지 않은 경우 렌더링 안 함
+  if (!isLoggedIn) {
+    return null;
+  }
+
   return (
     <>
-      {/* 1. 둥둥 떠다니는 버튼 (FAB) */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-transform hover:scale-110 hover:bg-blue-700 active:scale-95"
+        className="fixed bottom-6 right-6 z-50 hidden md:flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-transform hover:scale-110 hover:bg-blue-700 active:scale-95"
         title="문의하기"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-7 w-7">
@@ -49,11 +56,9 @@ export default function SupportButton() {
         </svg>
       </button>
 
-      {/* 2. 모달 창 */}
       {isOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm transition-opacity">
           <div className="w-full max-w-sm rounded-xl bg-gray-800 p-6 shadow-2xl ring-1 ring-white/10">
-            
             {status === 'success' ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <div className="mb-4 rounded-full bg-green-500/20 p-3 text-green-400">
@@ -77,7 +82,6 @@ export default function SupportButton() {
                     onChange={(e) => setContent(e.target.value)}
                     className="w-full resize-none rounded-lg bg-gray-700 p-3 text-white placeholder-gray-400 ring-1 ring-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     rows={5}
-                    // [수정] 안내 문구 추가
                     placeholder="내용을 입력해주세요.&#13;&#10;(답변이 필요하시면 이메일이나 연락처를 함께 적어주세요)"
                     required
                   />
@@ -95,17 +99,7 @@ export default function SupportButton() {
                       disabled={status === 'sending'}
                       className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-bold text-white hover:bg-blue-500 disabled:opacity-50"
                     >
-                      {status === 'sending' ? (
-                        <>
-                          <svg className="h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          전송 중...
-                        </>
-                      ) : (
-                        '보내기'
-                      )}
+                      {status === 'sending' ? '전송 중...' : '보내기'}
                     </button>
                   </div>
                 </form>
