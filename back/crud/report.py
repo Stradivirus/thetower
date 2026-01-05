@@ -9,18 +9,12 @@ from .report_queries import (
     get_reports_by_month_query
 )
 from .report_utils import row_to_report_dict
+from .stats import calculate_and_upsert_daily_stat
 
 def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: str = None):
-    """
-    전투 기록을 생성하거나 업데이트합니다.
-    1. 빈 데이터(웨이브 0, 적 0)는 저장을 거부합니다.
-    2. Main 데이터는 merge를 사용하고, Detail 데이터는 존재 여부 확인 후 Update/Insert를 수행합니다.
-    """
     main_data = parsed_data['main']
     detail_data = parsed_data['detail']
 
-    # [1] 빈 껍데기 데이터 방지 (Validation)
-    # OCR 실패로 인해 웨이브도 0이고, 적 처치 수도 0인 데이터는 저장하지 않고 무시합니다.
     if main_data.get('wave', 0) == 0 and detail_data.get('total_enemies', 0) == 0:
         print(f"⚠️ [User {user_id}] 유효하지 않은 데이터(Empty Data)라 저장을 건너뜁니다.")
         return None 
@@ -28,26 +22,19 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
     if notes:
         main_data['notes'] = notes
 
-    # [2] Main 데이터 처리
-    # (Main은 PK가 battle_date + owner_id로 잡혀 있어 merge가 Update로 동작)
     battle_main = BattleMain(**main_data, owner_id=user_id)
     db.merge(battle_main)
     
-    # [3] Detail 데이터 처리 (중복 방지 핵심 로직)
-    # 무조건 Insert하는 대신, 같은 날짜/유저의 데이터가 있는지 먼저 확인합니다.
     existing_detail = db.query(BattleDetail).filter(
         BattleDetail.battle_date == battle_main.battle_date,
         BattleDetail.owner_id == user_id
     ).first()
 
     if existing_detail:
-        # [CASE A] 이미 존재하면 -> 내용을 업데이트합니다 (Update)
         for key, value in detail_data.items():
-            # detail_data의 모든 키(total_enemies, combat_json 등)를 기존 객체에 덮어씌움
             if hasattr(existing_detail, key):
                 setattr(existing_detail, key, value)
     else:
-        # [CASE B] 없으면 -> 새로 만듭니다 (Insert)
         new_detail = BattleDetail(
             battle_date=battle_main.battle_date,
             owner_id=user_id,
@@ -56,6 +43,12 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
         db.add(new_detail)
     
     db.commit()
+
+    try:
+        calculate_and_upsert_daily_stat(db, user_id, battle_main.battle_date)
+    except Exception as e:
+        print(f"Stats Update Error: {e}")
+
     return battle_main
 
 def count_reports(db: Session) -> int:
@@ -92,10 +85,8 @@ def get_history_view(db: Session, user_id: int):
     now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
     cutoff_date = now_utc - timedelta(days=7)
 
-    # 1. 최근 7일치 상세 데이터
     recent_reports = get_recent_reports(db, user_id)
 
-    # 2. 7일 이전 데이터 월별 요약
     monthly_groups = (
         db.query(
             func.to_char(BattleMain.battle_date, 'YYYY-MM').label('month_key'),
@@ -180,5 +171,11 @@ def delete_battle_record(db: Session, battle_date: datetime, user_id: int) -> bo
     if record:
         db.delete(record)
         db.commit()
+        
+        try:
+            calculate_and_upsert_daily_stat(db, user_id, battle_date)
+        except Exception as e:
+             print(f"Stats Update Error after delete: {e}")
+             
         return True
     return False

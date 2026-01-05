@@ -1,28 +1,29 @@
 # back/crud/__init__.py
 from .user import (
-    get_user_by_username, 
-    create_user, 
-    count_users
+    get_user_by_username,
+    create_user,
+    get_users,
+    get_active_user_count
 )
-
-# [Report 관련] 
+from .game_data import (
+    get_user_progress,
+    update_user_progress,
+    get_user_modules,
+    update_user_modules
+)
 from .report import (
     create_battle_record,
     count_reports,
     get_recent_reports,
     get_history_reports,
+    get_history_view,
+    get_reports_by_month,
     get_full_report,
-    delete_battle_record,
-    get_history_view,       
-    get_reports_by_month    
+    delete_battle_record
 )
-
-# [Stats 관련] - 여기에 get_monthly_trends 추가!
 from .stats import (
     get_weekly_stats,
     get_weekly_trends,
-    get_monthly_trends  # <--- 이 부분이 빠져 있어서 에러가 났습니다.
+    get_monthly_trends,
+    calculate_and_upsert_daily_stat
 )
-
-# [Game Data 관련]
-from .game_data import *
