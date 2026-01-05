@@ -66,9 +66,10 @@ class BattleMain(Base):
 class BattleDetail(Base):
     __tablename__ = "battle_details"
     
-    # [수정] 둘 다 primary_key=True로 설정 (복합키)
-    battle_date = Column(DateTime, ForeignKey("battle_mains.battle_date"), primary_key=True)
-    owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)  # <--- 이 줄 추가!
+    # [수정됨] ondelete="CASCADE" 추가
+    # DB 레벨에서 BattleMain의 battle_date가 삭제되면 이 행도 자동으로 삭제됨
+    battle_date = Column(DateTime, ForeignKey("battle_mains.battle_date", ondelete="CASCADE"), primary_key=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     
     # 아래는 기존 그대로
     total_enemies = Column(Integer, default=0)
