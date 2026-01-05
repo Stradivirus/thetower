@@ -1,3 +1,4 @@
+# back/parser.py
 import re
 from datetime import datetime
 
@@ -105,6 +106,7 @@ def parse_battle_report(text: str) -> dict:
     repo = sections['report']
     comb = sections['combat']
     enemy = sections['enemy']  # [중요] 적 파괴 섹션 참조 변수
+    bot = sections['bot']      # [New] 봇 섹션 참조 변수
     
     date_str = repo.get('전투 날짜', '')
     try:
@@ -136,15 +138,18 @@ def parse_battle_report(text: str) -> dict:
     
     # [수정됨] 통계용 핵심 데이터를 숫자로 변환하여 별도 키로 추출
     total_enemies = parse_number(enemy.get('적 합계', '0'))
-    # 주의: '데스웨이브에 의해 표시됨'은 '전투(combat)' 섹션에 있음
     death_wave_kills = parse_number(comb.get('데스웨이브에 의해 표시됨', '0'))
     spotlight_kills = parse_number(enemy.get('스포트라이트로 파괴함', '0'))
+    
+    # [New] 황금 봇 처치 수 추출
+    golden_bot_kills = parse_number(bot.get('황금 봇에서 파괴됨', '0'))
 
     detail_data = {
         # DB 컬럼과 매칭될 필드들
         'total_enemies': total_enemies,
         'death_wave_kills': death_wave_kills,
         'spotlight_kills': spotlight_kills,
+        'golden_bot_kills': golden_bot_kills, # [New] 추가
         
         # 기존 JSON 데이터
         'combat_json': sections['combat'],

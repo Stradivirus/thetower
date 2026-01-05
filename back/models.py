@@ -84,6 +84,9 @@ class BattleDetail(Base):
     death_wave_kills = Column(Integer, default=0)
     spotlight_kills = Column(Integer, default=0)
     
+    # [New] 황금 봇 처치 수 추가
+    golden_bot_kills = Column(Integer, default=0)
+    
     combat_json = Column(JSONB)
     utility_json = Column(JSONB)
     enemy_json = Column(JSONB)
