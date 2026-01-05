@@ -73,6 +73,7 @@ class BattleMainResponse(BaseModel):
     # [New] 비율 데이터 추가
     death_wave_ratio: Optional[str] = None
     spotlight_ratio: Optional[str] = None
+    golden_bot_ratio: Optional[str] = None  # [추가] 황금 봇 비율
 
     class Config:
         from_attributes = True

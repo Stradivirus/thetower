@@ -58,4 +58,5 @@ def row_to_report_dict(row):
         
         "death_wave_ratio": format_ratio(getattr(row, "death_wave_ratio", None)),
         "spotlight_ratio": format_ratio(getattr(row, "spotlight_ratio", None)),
+        "golden_bot_ratio": format_ratio(getattr(row, "golden_bot_ratio", None)), # [추가]
     }

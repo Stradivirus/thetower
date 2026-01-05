@@ -28,6 +28,7 @@ export interface BattleMain {
   // [New] 비율 데이터 추가
   death_wave_ratio?: string;
   spotlight_ratio?: string;
+  golden_bot_ratio?: string;
 }
 
 export interface BattleDetail {

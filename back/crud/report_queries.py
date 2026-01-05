@@ -7,6 +7,7 @@ SQL 쿼리 모음
 # [수정 포인트] 
 # 1. d.id가 없어서 에러가 났으므로 -> d.total_enemies (적 처치 수) 기준으로 변경
 # 2. 중복이 있다면 적 처치 수가 높은(데이터가 알찬) 녀석을 선택하게 됨
+# 3. [추가] JOIN 조건 강화 및 Golden Bot 비율 추가
 
 QUERY_REPORTS_WITH_RATIOS = """
     WITH parsed_damages AS (
@@ -39,10 +40,18 @@ QUERY_REPORTS_WITH_RATIOS = """
                 WHEN d.total_enemies > 0 THEN
                     ROUND((d.spotlight_kills::numeric / d.total_enemies::numeric * 100), 1)
                 ELSE 0
-            END as spotlight_ratio
+            END as spotlight_ratio,
+
+            -- [New] 황금 봇 비율 (모델에 있으므로 추가)
+            CASE 
+                WHEN d.total_enemies > 0 THEN
+                    ROUND((d.golden_bot_kills::numeric / d.total_enemies::numeric * 100), 1)
+                ELSE 0
+            END as golden_bot_ratio
             
         FROM battle_mains m
-        LEFT JOIN battle_details d ON m.battle_date = d.battle_date
+        -- [수정] 복합 키(owner_id)까지 정확하게 JOIN하여 인덱스 활용 및 데이터 무결성 보장
+        LEFT JOIN battle_details d ON m.battle_date = d.battle_date AND m.owner_id = d.owner_id
         WHERE m.owner_id = :user_id
           {date_filter}
         -- [여기 수정함] d.id -> d.total_enemies

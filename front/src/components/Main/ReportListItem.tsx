@@ -98,6 +98,11 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
                     <span className="text-emerald-400 font-bold mr-1">스포트</span>
                     <span className="text-slate-300">{report.spotlight_ratio || '-'}</span>
                 </div>
+                {/* [추가] 황금 봇 모바일 뷰 */}
+                <div className="text-[11px] leading-tight whitespace-nowrap">
+                    <span className="text-yellow-400 font-bold mr-1">골봇</span>
+                    <span className="text-slate-300">{report.golden_bot_ratio || '-'}</span>
+                </div>
               </div>
 
               {/* 2. 딜량 (가운데) */}
@@ -195,7 +200,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 8. Ratio (죽파/스포트 비율) - 툴팁 적용됨 */}
+      {/* 8. Ratio (죽파/스포트/골봇 비율) - 툴팁 적용됨 */}
       <div className="col-span-1 flex flex-col justify-center items-center gap-0.5 border-l border-slate-800/50 pl-1 h-full">
          <div 
            className="text-xs leading-tight whitespace-nowrap cursor-help" 
@@ -210,6 +215,14 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
          >
             <span className="text-emerald-400 font-bold mr-1">스포트</span>
             <span className="text-slate-300">{report.spotlight_ratio || '-'}</span>
+         </div>
+         {/* [추가] 황금 봇 데스크탑 뷰 */}
+         <div 
+           className="text-xs leading-tight whitespace-nowrap cursor-help" 
+           title="전체 적 중 황금 봇에서 파괴된 적"
+         >
+            <span className="text-yellow-400 font-bold mr-1">골봇</span>
+            <span className="text-slate-300">{report.golden_bot_ratio || '-'}</span>
          </div>
       </div>
 
