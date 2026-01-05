@@ -1,5 +1,5 @@
 # back/models.py
-from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey, Text, Index
+from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey, Text, Index, ForeignKeyConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
@@ -39,10 +39,12 @@ class BattleMain(Base):
         Index('idx_owner_date', 'owner_id', 'battle_date'),
     )
     
+    # [변경] 복합 키 (Composite PK) 설정
+    # 이제 (battle_date + owner_id) 조합이 유일해야 합니다.
     battle_date = Column(DateTime, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="reports")
 
     tier = Column(String)
@@ -66,12 +68,20 @@ class BattleMain(Base):
 class BattleDetail(Base):
     __tablename__ = "battle_details"
     
-    # [수정됨] ondelete="CASCADE" 추가
-    # DB 레벨에서 BattleMain의 battle_date가 삭제되면 이 행도 자동으로 삭제됨
-    battle_date = Column(DateTime, ForeignKey("battle_mains.battle_date", ondelete="CASCADE"), primary_key=True)
-    owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    # [변경] 컬럼 정의 (여기서는 FK를 직접 걸지 않고 아래 __table_args__에서 묶어서 걺)
+    battle_date = Column(DateTime, primary_key=True)
+    owner_id = Column(Integer, primary_key=True)
     
-    # 아래는 기존 그대로
+    # [추가] 복합 외래 키 (Composite Foreign Key) + Cascade 삭제
+    # SQL: FOREIGN KEY (battle_date, owner_id) REFERENCES battle_mains (...) ON DELETE CASCADE
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['battle_date', 'owner_id'],
+            ['battle_mains.battle_date', 'battle_mains.owner_id'],
+            ondelete='CASCADE'
+        ),
+    )
+    
     total_enemies = Column(Integer, default=0)
     death_wave_kills = Column(Integer, default=0)
     spotlight_kills = Column(Integer, default=0)
@@ -81,5 +91,5 @@ class BattleDetail(Base):
     enemy_json = Column(JSONB)
     bot_json = Column(JSONB)
     
-    # 관계 설정 (main 테이블과 연결)
+    # 관계 설정
     main = relationship("BattleMain", back_populates="detail")
