@@ -1,4 +1,3 @@
-# back/crud/stats.py
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from models import BattleMain, DailyStats
@@ -10,6 +9,7 @@ def get_yesterday():
     now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
     return now_utc - timedelta(days=1)
 
+# 1. 일간 통계 집계 (배치 등에서 사용)
 def calculate_and_upsert_daily_stat(db: Session, user_id: int, target_dt: datetime):
     target_date = target_dt.date()
     start_of_day = datetime.combine(target_date, datetime.min.time())
@@ -50,188 +50,246 @@ def calculate_and_upsert_daily_stat(db: Session, user_id: int, target_dt: dateti
     
     db.commit()
 
-# 1. 일간 통계 (8일치 조회 후 7일 표시)
+# 2. 일간 통계 조회 (Window Function 최적화)
 def get_weekly_stats(db: Session, user_id: int):
     yesterday = get_yesterday()
     yesterday_date = yesterday.date()
     
     # 화면 표시: D-6 ~ D-0 (7일)
-    # 데이터 조회: D-7 ~ D-0 (8일) -> 첫 날 성장률 계산용
     display_start_date = yesterday_date - timedelta(days=6)
+    # 데이터 조회: 성장률 계산을 위해 하루 더 전(D-7)부터 조회
     fetch_start_date = yesterday_date - timedelta(days=7) 
+
+    sql = text("""
+        WITH daily_totals AS (
+            SELECT 
+                TO_CHAR(target_date, 'YYYY-MM-DD') as date_str,
+                total_coins,
+                total_cells
+            FROM daily_stats
+            WHERE owner_id = :user_id
+              AND target_date >= :fetch_start_date
+              AND target_date <= :yesterday_date
+        ),
+        with_prev AS (
+            SELECT 
+                date_str,
+                total_coins,
+                total_cells,
+                LAG(total_coins) OVER (ORDER BY date_str) as prev_coins,
+                LAG(total_cells) OVER (ORDER BY date_str) as prev_cells
+            FROM daily_totals
+        )
+        SELECT 
+            date_str,
+            total_coins,
+            total_cells,
+            CASE 
+                WHEN prev_coins > 0 THEN 
+                    ROUND(((total_coins - prev_coins)::numeric / prev_coins * 100)::numeric, 1)
+                ELSE 0 
+            END as coin_growth,
+            CASE 
+                WHEN prev_cells > 0 THEN 
+                    ROUND(((total_cells - prev_cells)::numeric / prev_cells * 100)::numeric, 1)
+                ELSE 0 
+            END as cell_growth
+        FROM with_prev
+        WHERE date_str >= :display_start_date
+        ORDER BY date_str ASC
+    """)
     
-    stats = db.query(DailyStats).filter(
-        DailyStats.owner_id == user_id,
-        DailyStats.target_date >= fetch_start_date,
-        DailyStats.target_date <= yesterday_date
-    ).order_by(DailyStats.target_date.asc()).all()
+    results = db.execute(sql, {
+        "user_id": user_id,
+        "fetch_start_date": fetch_start_date,
+        "yesterday_date": yesterday_date,
+        "display_start_date": display_start_date.strftime("%Y-%m-%d")
+    }).fetchall()
     
-    stats_map = {s.target_date.strftime("%Y-%m-%d"): s for s in stats}
+    # 결과가 없으면 빈 데이터 채움
+    if not results:
+        daily_stats = []
+        for i in range(7):
+            d = display_start_date + timedelta(days=i)
+            daily_stats.append({
+                "date": d.strftime("%Y-%m-%d"),
+                "total_coins": 0,
+                "total_cells": 0,
+                "coin_growth": 0.0,
+                "cell_growth": 0.0
+            })
+        return {"daily_stats": daily_stats}
     
-    daily_stats = []
-    
-    # D-7 (화면에 안 나오는 1일 전 데이터)를 초기 prev 값으로 세팅
-    start_prev_date_str = fetch_start_date.strftime("%Y-%m-%d")
-    start_prev_stat = stats_map.get(start_prev_date_str)
-    
-    prev_coins = start_prev_stat.total_coins if start_prev_stat else 0
-    prev_cells = start_prev_stat.total_cells if start_prev_stat else 0
-    
-    # 루프는 D-6 (화면에 나오는 첫 날) 부터 7일간
-    for i in range(7):
-        current_date = display_start_date + timedelta(days=i)
-        date_str = current_date.strftime("%Y-%m-%d")
-        stat = stats_map.get(date_str)
-        
-        total_coins = stat.total_coins if stat else 0
-        total_cells = stat.total_cells if stat else 0
-        
-        coin_growth = 0.0
-        cell_growth = 0.0
-        
-        if prev_coins > 0:
-            coin_growth = round(((total_coins - prev_coins) / prev_coins * 100), 1)
-        if prev_cells > 0:
-            cell_growth = round(((total_cells - prev_cells) / prev_cells * 100), 1)
-            
-        daily_stats.append({
-            "date": date_str,
-            "total_coins": total_coins,
-            "total_cells": total_cells,
-            "coin_growth": coin_growth,
-            "cell_growth": cell_growth
-        })
-        
-        prev_coins = total_coins
-        prev_cells = total_cells
+    daily_stats = [
+        {
+            "date": row.date_str,
+            "total_coins": row.total_coins or 0,
+            "total_cells": row.total_cells or 0,
+            "coin_growth": float(row.coin_growth or 0),
+            "cell_growth": float(row.cell_growth or 0)
+        }
+        for row in results
+    ]
 
     return {"daily_stats": daily_stats}
 
-# 2. 주간 트렌드 (어제 기준 9주 조회 후 8주 표시)
+# 3. 주간 트렌드 (Window Function + 어제 기준 7일씩 역산)
 def get_weekly_trends(db: Session, user_id: int):
     yesterday = get_yesterday()
     yesterday_date = yesterday.date()
     
-    # 어제로부터 9주 전 (63일 전)
-    start_date = yesterday_date - timedelta(days=63)
+    # 9주치 데이터 조회 (8주 표시 + 1주 전 데이터 for 성장률)
+    # 어제 기준 9주 전 = 63일 전
+    fetch_start_date = yesterday_date - timedelta(days=63)
     
-    # 어제부터 7일씩 역산하여 주차 번호 부여하는 SQL
-    # 수정: ORDER BY를 ASC -> DESC로 변경하여 과거 데이터부터 조회되도록 함
     sql = text("""
+        WITH weekly_grouped AS (
+            SELECT 
+                -- 어제(D-1)를 기준으로 0, 1, 2... 주차 번호를 매김
+                FLOOR((:yesterday_date - target_date) / 7) as week_idx,
+                SUM(total_coins) as total_coins,
+                SUM(total_cells) as total_cells
+            FROM daily_stats
+            WHERE owner_id = :user_id
+              AND target_date >= :fetch_start_date
+              AND target_date <= :yesterday_date
+            GROUP BY FLOOR((:yesterday_date - target_date) / 7)
+        ),
+        with_dates AS (
+            SELECT 
+                week_idx,
+                -- 주차의 시작일 (어제 - (주차번호*7) - 6일) -> 해당 주차의 가장 과거 날짜
+                TO_CHAR(:yesterday_date - (week_idx * 7 * INTERVAL '1 day') - INTERVAL '6 days', 'YYYY-MM-DD') as week_start_date,
+                total_coins,
+                total_cells
+            FROM weekly_grouped
+        ),
+        with_prev AS (
+            SELECT 
+                week_start_date,
+                total_coins,
+                total_cells,
+                -- 날짜 오름차순(과거->최신)으로 정렬하여 바로 전 주 데이터 가져오기
+                LAG(total_coins) OVER (ORDER BY week_start_date ASC) as prev_coins,
+                LAG(total_cells) OVER (ORDER BY week_start_date ASC) as prev_cells
+            FROM with_dates
+        )
         SELECT 
-            TO_CHAR(
-                :yesterday_date - (FLOOR((:yesterday_date - target_date) / 7) * INTERVAL '7 days'),
-                'YYYY-MM-DD'
-            ) as week_start,
-            SUM(total_coins) as coins,
-            SUM(total_cells) as cells
-        FROM daily_stats
-        WHERE owner_id = :user_id
-          AND target_date >= :start_date
-          AND target_date <= :end_date
-        GROUP BY FLOOR((:yesterday_date - target_date) / 7)
-        ORDER BY FLOOR((:yesterday_date - target_date) / 7) DESC
-        LIMIT 9
+            week_start_date,
+            total_coins,
+            total_cells,
+            CASE 
+                WHEN prev_coins > 0 THEN 
+                    ROUND(((total_coins - prev_coins)::numeric / prev_coins * 100)::numeric, 1)
+                ELSE 0 
+            END as coin_growth,
+            CASE 
+                WHEN prev_cells > 0 THEN 
+                    ROUND(((total_cells - prev_cells)::numeric / prev_cells * 100)::numeric, 1)
+                ELSE 0 
+            END as cell_growth
+        FROM with_prev
+        ORDER BY week_start_date ASC
+        LIMIT 8
     """)
     
     results = db.execute(sql, {
         "user_id": user_id,
         "yesterday_date": yesterday_date,
-        "start_date": start_date,
-        "end_date": yesterday_date
+        "fetch_start_date": fetch_start_date
     }).fetchall()
     
-    trend_stats = []
-    prev_coins = 0
-    prev_cells = 0
+    if not results:
+        trend_stats = []
+        for i in range(8):
+            # 어제 기준으로 7일씩 끊어서 시작일 계산
+            end_date = yesterday_date - timedelta(days=i*7)
+            start_date = end_date - timedelta(days=6)
+            trend_stats.append({
+                "week_start_date": start_date.strftime("%Y-%m-%d"),
+                "total_coins": 0,
+                "total_cells": 0,
+                "coin_growth": 0.0,
+                "cell_growth": 0.0
+            })
+        return {"weekly_stats": trend_stats}
     
-    # 결과가 오래된 순(DESC -> 큰 숫자가 과거)으로 정렬됨 (ex: 8주전, 7주전, ... 0주전)
-    for i, row in enumerate(results):
-        curr_coins = row.coins or 0
-        curr_cells = row.cells or 0
-        
-        # 첫 번째 데이터(가장 오래된 1주)는 prev 설정용으로만 쓰고 건너뜀
-        if i == 0:
-            prev_coins = curr_coins
-            prev_cells = curr_cells
-            continue
-        
-        # 두 번째 데이터부터 리스트에 추가 (성장률 계산 가능)
-        c_growth = 0.0
-        if prev_coins > 0:
-            c_growth = round(((curr_coins - prev_coins) / prev_coins * 100), 1)
-        cl_growth = 0.0
-        if prev_cells > 0:
-            cl_growth = round(((curr_cells - prev_cells) / prev_cells * 100), 1)
-            
-        trend_stats.append({
-            "week_start_date": row.week_start,
-            "total_coins": curr_coins,
-            "total_cells": curr_cells,
-            "coin_growth": c_growth,
-            "cell_growth": cl_growth
-        })
-        
-        prev_coins = curr_coins
-        prev_cells = curr_cells
-        
+    trend_stats = [
+        {
+            "week_start_date": row.week_start_date,
+            "total_coins": row.total_coins or 0,
+            "total_cells": row.total_cells or 0,
+            "coin_growth": float(row.coin_growth or 0),
+            "cell_growth": float(row.cell_growth or 0)
+        }
+        for row in results
+    ]
+    
     return {"weekly_stats": trend_stats}
 
-# 3. 월간 트렌드 (7개월 조회 후 6개월 표시)
+# 4. 월간 트렌드 (Window Function 최적화)
 def get_monthly_trends(db: Session, user_id: int):
     now_utc = datetime.now(timezone.utc)
     this_month_str = now_utc.strftime("%Y-%m")
-    # 6개월치를 보여주려면 +1개월 더 가져와야 함 (약 240일 전)
+    
     start_date = (now_utc.replace(day=1) - timedelta(days=240)).date()
     
     sql = text("""
+        WITH monthly_totals AS (
+            SELECT 
+                TO_CHAR(target_date, 'YYYY-MM') as month_str,
+                SUM(total_coins) as total_coins,
+                SUM(total_cells) as total_cells
+            FROM daily_stats
+            WHERE owner_id = :user_id
+              AND target_date >= :start_date
+            GROUP BY TO_CHAR(target_date, 'YYYY-MM')
+        ),
+        with_prev AS (
+            SELECT 
+                month_str,
+                total_coins,
+                total_cells,
+                LAG(total_coins) OVER (ORDER BY month_str) as prev_coins,
+                LAG(total_cells) OVER (ORDER BY month_str) as prev_cells
+            FROM monthly_totals
+        )
         SELECT 
-            TO_CHAR(target_date, 'YYYY-MM') as month_str,
-            SUM(total_coins) as coins,
-            SUM(total_cells) as cells
-        FROM daily_stats
-        WHERE owner_id = :user_id
-          AND target_date >= :start_date
-        GROUP BY TO_CHAR(target_date, 'YYYY-MM')
+            month_str as month,
+            total_coins,
+            total_cells,
+            CASE 
+                WHEN prev_coins > 0 THEN 
+                    ROUND(((total_coins - prev_coins)::numeric / prev_coins * 100)::numeric, 1)
+                ELSE 0 
+            END as coin_growth,
+            CASE 
+                WHEN prev_cells > 0 THEN 
+                    ROUND(((total_cells - prev_cells)::numeric / prev_cells * 100)::numeric, 1)
+                ELSE 0 
+            END as cell_growth,
+            CASE WHEN month_str = :this_month THEN true ELSE false END as is_current
+        FROM with_prev
         ORDER BY month_str ASC
-        LIMIT 7
+        LIMIT 6
     """)
     
     results = db.execute(sql, {
         "user_id": user_id,
-        "start_date": start_date
+        "start_date": start_date,
+        "this_month": this_month_str
     }).fetchall()
     
-    trend_stats = []
-    prev_coins = 0
-    prev_cells = 0
+    trend_stats = [
+        {
+            "month": row.month,
+            "total_coins": row.total_coins or 0,
+            "total_cells": row.total_cells or 0,
+            "coin_growth": float(row.coin_growth or 0),
+            "cell_growth": float(row.cell_growth or 0),
+            "is_current": row.is_current
+        }
+        for row in results
+    ]
     
-    for i, row in enumerate(results):
-        curr_coins = row.coins or 0
-        curr_cells = row.cells or 0
-        
-        # 첫 번째 데이터는 prev 설정용으로만 사용
-        if i == 0:
-            prev_coins = curr_coins
-            prev_cells = curr_cells
-            continue
-            
-        c_growth = 0.0
-        if prev_coins > 0:
-            c_growth = round(((curr_coins - prev_coins) / prev_coins * 100), 1)
-        cl_growth = 0.0
-        if prev_cells > 0:
-            cl_growth = round(((curr_cells - prev_cells) / prev_cells * 100), 1)
-            
-        trend_stats.append({
-            "month": row.month_str,
-            "total_coins": curr_coins,
-            "total_cells": curr_cells,
-            "coin_growth": c_growth,
-            "cell_growth": cl_growth,
-            "is_current": (row.month_str == this_month_str)
-        })
-        prev_coins = curr_coins
-        prev_cells = curr_cells
-        
     return {"monthly_stats": trend_stats}
