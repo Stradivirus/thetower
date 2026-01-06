@@ -15,7 +15,6 @@ def calculate_and_upsert_daily_stat(db: Session, user_id: int, target_dt: dateti
     start_of_day = datetime.combine(target_date, datetime.min.time())
     end_of_day = start_of_day + timedelta(days=1)
 
-    # [수정] max_wave, avg_wave 집계 제거 (모델과 일치)
     agg = db.query(
         func.sum(BattleMain.coin_earned).label("total_coins"),
         func.sum(BattleMain.cells_earned).label("total_cells"),
@@ -108,30 +107,36 @@ def get_weekly_stats(db: Session, user_id: int):
 
     return {"daily_stats": daily_stats}
 
-# 2. 주간 트렌드 (9주 조회 후 8주 표시)
+# 2. 주간 트렌드 (어제 기준 9주 조회 후 8주 표시)
 def get_weekly_trends(db: Session, user_id: int):
     yesterday = get_yesterday()
     yesterday_date = yesterday.date()
-    # 8주치를 보여주려면 +1주 더 가져와야 함 (총 9주)
-    start_date = yesterday_date - timedelta(weeks=9)
     
+    # 어제로부터 9주 전 (63일 전)
+    start_date = yesterday_date - timedelta(days=63)
+    
+    # 어제부터 7일씩 역산하여 주차 번호 부여하는 SQL
     sql = text("""
         SELECT 
-            TO_CHAR(DATE_TRUNC('week', target_date), 'YYYY-MM-DD') as week_start,
+            TO_CHAR(
+                :yesterday_date - (FLOOR((:yesterday_date - target_date) / 7) * INTERVAL '7 days'),
+                'YYYY-MM-DD'
+            ) as week_start,
             SUM(total_coins) as coins,
             SUM(total_cells) as cells
         FROM daily_stats
         WHERE owner_id = :user_id
           AND target_date >= :start_date
           AND target_date <= :end_date
-        GROUP BY DATE_TRUNC('week', target_date)
-        ORDER BY week_start ASC
+        GROUP BY FLOOR((:yesterday_date - target_date) / 7)
+        ORDER BY FLOOR((:yesterday_date - target_date) / 7) DESC
         LIMIT 9
     """)
     
     results = db.execute(sql, {
-        "user_id": user_id, 
-        "start_date": start_date, 
+        "user_id": user_id,
+        "yesterday_date": yesterday_date,
+        "start_date": start_date,
         "end_date": yesterday_date
     }).fetchall()
     
@@ -139,12 +144,14 @@ def get_weekly_trends(db: Session, user_id: int):
     prev_coins = 0
     prev_cells = 0
     
-    # 결과가 시간순(ASC) 정렬되어 있음
-    for i, row in enumerate(results):
+    # 결과가 최신순(DESC)으로 정렬되어 있으므로 역순으로 처리
+    results_asc = list(reversed(results))
+    
+    for i, row in enumerate(results_asc):
         curr_coins = row.coins or 0
         curr_cells = row.cells or 0
         
-        # [핵심] 첫 번째 데이터(가장 오래된 1주)는 prev 설정용으로만 쓰고 건너뜀
+        # 첫 번째 데이터(가장 오래된 1주)는 prev 설정용으로만 쓰고 건너뜀
         if i == 0:
             prev_coins = curr_coins
             prev_cells = curr_cells
@@ -204,7 +211,7 @@ def get_monthly_trends(db: Session, user_id: int):
         curr_coins = row.coins or 0
         curr_cells = row.cells or 0
         
-        # [핵심] 첫 번째 데이터는 prev 설정용으로만 사용
+        # 첫 번째 데이터는 prev 설정용으로만 사용
         if i == 0:
             prev_coins = curr_coins
             prev_cells = curr_cells
