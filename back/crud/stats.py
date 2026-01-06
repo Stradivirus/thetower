@@ -129,7 +129,7 @@ def get_weekly_trends(db: Session, user_id: int):
           AND target_date >= :start_date
           AND target_date <= :end_date
         GROUP BY FLOOR((:yesterday_date - target_date) / 7)
-        ORDER BY FLOOR((:yesterday_date - target_date) / 7) DESC
+        ORDER BY FLOOR((:yesterday_date - target_date) / 7) ASC
         LIMIT 9
     """)
     
@@ -144,10 +144,8 @@ def get_weekly_trends(db: Session, user_id: int):
     prev_coins = 0
     prev_cells = 0
     
-    # 결과가 최신순(DESC)으로 정렬되어 있으므로 역순으로 처리
-    results_asc = list(reversed(results))
-    
-    for i, row in enumerate(results_asc):
+    # 결과가 오래된 순(ASC)으로 정렬되어 있음
+    for i, row in enumerate(results):
         curr_coins = row.coins or 0
         curr_cells = row.cells or 0
         
