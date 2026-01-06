@@ -11,6 +11,7 @@ from .report_queries import (
 from .report_utils import row_to_report_dict
 from .stats import calculate_and_upsert_daily_stat
 
+# [수정됨] 트랜잭션 적용: 저장과 통계 갱신을 하나로 묶음
 def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: str = None):
     main_data = parsed_data['main']
     detail_data = parsed_data['detail']
@@ -22,34 +23,41 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
     if notes:
         main_data['notes'] = notes
 
-    battle_main = BattleMain(**main_data, owner_id=user_id)
-    db.merge(battle_main)
-    
-    existing_detail = db.query(BattleDetail).filter(
-        BattleDetail.battle_date == battle_main.battle_date,
-        BattleDetail.owner_id == user_id
-    ).first()
-
-    if existing_detail:
-        for key, value in detail_data.items():
-            if hasattr(existing_detail, key):
-                setattr(existing_detail, key, value)
-    else:
-        new_detail = BattleDetail(
-            battle_date=battle_main.battle_date,
-            owner_id=user_id,
-            **detail_data
-        )
-        db.add(new_detail)
-    
-    db.commit()
-
     try:
-        calculate_and_upsert_daily_stat(db, user_id, battle_main.battle_date)
-    except Exception as e:
-        print(f"Stats Update Error: {e}")
+        # 1. Main 데이터 준비 (Flush 상태)
+        battle_main = BattleMain(**main_data, owner_id=user_id)
+        db.merge(battle_main)
+        
+        # 2. Detail 데이터 준비 (Flush 상태)
+        existing_detail = db.query(BattleDetail).filter(
+            BattleDetail.battle_date == battle_main.battle_date,
+            BattleDetail.owner_id == user_id
+        ).first()
 
-    return battle_main
+        if existing_detail:
+            for key, value in detail_data.items():
+                if hasattr(existing_detail, key):
+                    setattr(existing_detail, key, value)
+        else:
+            new_detail = BattleDetail(
+                battle_date=battle_main.battle_date,
+                owner_id=user_id,
+                **detail_data
+            )
+            db.add(new_detail)
+        
+        # 3. 통계 재계산 (Flush 상태 - 메모리 상에서만 계산 및 반영 준비)
+        calculate_and_upsert_daily_stat(db, user_id, battle_main.battle_date)
+
+        # 4. [최종 확정] 모든 과정이 에러 없이 끝나면 여기서 한 번에 저장
+        db.commit()
+        return battle_main
+
+    except Exception as e:
+        # 5. 에러 발생 시 롤백 (전투 기록 저장도 취소됨)
+        db.rollback()
+        print(f"❌ [Save Error] 트랜잭션 롤백됨: {e}")
+        return None
 
 def count_reports(db: Session) -> int:
     return db.query(BattleMain).count()
@@ -158,24 +166,32 @@ def get_full_report(db: Session, battle_date: datetime, user_id: int):
         "detail": main.detail
     }
 
+# [수정됨] 트랜잭션 적용: 삭제와 통계 갱신을 하나로 묶음
 def delete_battle_record(db: Session, battle_date: datetime, user_id: int) -> bool:
-    record = (
-        db.query(BattleMain)
-        .filter(
-            BattleMain.battle_date == battle_date,
-            BattleMain.owner_id == user_id
+    try:
+        record = (
+            db.query(BattleMain)
+            .filter(
+                BattleMain.battle_date == battle_date,
+                BattleMain.owner_id == user_id
+            )
+            .first()
         )
-        .first()
-    )
 
-    if record:
-        db.delete(record)
-        db.commit()
-        
-        try:
+        if record:
+            # 1. 기록 삭제 (Flush 상태)
+            db.delete(record)
+            
+            # 2. 통계 재계산 (Flush 상태)
             calculate_and_upsert_daily_stat(db, user_id, battle_date)
-        except Exception as e:
-             print(f"Stats Update Error after delete: {e}")
-             
-        return True
-    return False
+            
+            # 3. [최종 확정] 모든 과정이 에러 없이 끝나면 여기서 커밋
+            db.commit()
+            return True
+        return False
+
+    except Exception as e:
+        # 4. 에러 발생 시 롤백 (삭제 취소)
+        db.rollback()
+        print(f"❌ [Delete Error] 삭제 트랜잭션 롤백됨: {e}")
+        return False

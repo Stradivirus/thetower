@@ -1,3 +1,4 @@
+# back/crud/stats.py
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from models import BattleMain, DailyStats
@@ -9,7 +10,7 @@ def get_yesterday():
     now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
     return now_utc - timedelta(days=1)
 
-# 1. 일간 통계 집계 (배치 등에서 사용)
+# [수정됨] 내부 db.commit() 모두 제거
 def calculate_and_upsert_daily_stat(db: Session, user_id: int, target_dt: datetime):
     target_date = target_dt.date()
     start_of_day = datetime.combine(target_date, datetime.min.time())
@@ -26,12 +27,12 @@ def calculate_and_upsert_daily_stat(db: Session, user_id: int, target_dt: dateti
         BattleMain.battle_date < end_of_day
     ).first()
 
+    # 데이터가 없으면 통계 삭제 (Flush 상태 유지, 커밋 X)
     if not agg or agg.game_count == 0:
         db.query(DailyStats).filter(
             DailyStats.owner_id == user_id,
             DailyStats.target_date == target_date
         ).delete()
-        db.commit()
         return
 
     stat_record = db.query(DailyStats).filter(
@@ -48,16 +49,14 @@ def calculate_and_upsert_daily_stat(db: Session, user_id: int, target_dt: dateti
     stat_record.total_shards = agg.total_shards or 0
     stat_record.game_count = agg.game_count or 0
     
-    db.commit()
+    # 여기서 db.commit() 하지 않음!
 
 # 2. 일간 통계 조회 (Window Function 최적화)
 def get_weekly_stats(db: Session, user_id: int):
     yesterday = get_yesterday()
     yesterday_date = yesterday.date()
     
-    # 화면 표시: D-6 ~ D-0 (7일)
     display_start_date = yesterday_date - timedelta(days=6)
-    # 데이터 조회: 성장률 계산을 위해 하루 더 전(D-7)부터 조회
     fetch_start_date = yesterday_date - timedelta(days=7) 
 
     sql = text("""
@@ -106,7 +105,6 @@ def get_weekly_stats(db: Session, user_id: int):
         "display_start_date": display_start_date.strftime("%Y-%m-%d")
     }).fetchall()
     
-    # 결과가 없으면 빈 데이터 채움
     if not results:
         daily_stats = []
         for i in range(7):
@@ -138,14 +136,11 @@ def get_weekly_trends(db: Session, user_id: int):
     yesterday = get_yesterday()
     yesterday_date = yesterday.date()
     
-    # 9주치 데이터 조회 (8주 표시 + 1주 전 데이터 for 성장률)
-    # 어제 기준 9주 전 = 63일 전
     fetch_start_date = yesterday_date - timedelta(days=63)
     
     sql = text("""
         WITH weekly_grouped AS (
             SELECT 
-                -- 어제(D-1)를 기준으로 0, 1, 2... 주차 번호를 매김
                 FLOOR((:yesterday_date - target_date) / 7) as week_idx,
                 SUM(total_coins) as total_coins,
                 SUM(total_cells) as total_cells
@@ -158,7 +153,6 @@ def get_weekly_trends(db: Session, user_id: int):
         with_dates AS (
             SELECT 
                 week_idx,
-                -- 주차의 시작일 (어제 - (주차번호*7) - 6일) -> 해당 주차의 가장 과거 날짜
                 TO_CHAR(:yesterday_date - (week_idx * 7 * INTERVAL '1 day') - INTERVAL '6 days', 'YYYY-MM-DD') as week_start_date,
                 total_coins,
                 total_cells
@@ -169,7 +163,6 @@ def get_weekly_trends(db: Session, user_id: int):
                 week_start_date,
                 total_coins,
                 total_cells,
-                -- 날짜 오름차순(과거->최신)으로 정렬하여 바로 전 주 데이터 가져오기
                 LAG(total_coins) OVER (ORDER BY week_start_date ASC) as prev_coins,
                 LAG(total_cells) OVER (ORDER BY week_start_date ASC) as prev_cells
             FROM with_dates
@@ -202,7 +195,6 @@ def get_weekly_trends(db: Session, user_id: int):
     if not results:
         trend_stats = []
         for i in range(8):
-            # 어제 기준으로 7일씩 끊어서 시작일 계산
             end_date = yesterday_date - timedelta(days=i*7)
             start_date = end_date - timedelta(days=6)
             trend_stats.append({
