@@ -116,6 +116,7 @@ def get_weekly_trends(db: Session, user_id: int):
     start_date = yesterday_date - timedelta(days=63)
     
     # 어제부터 7일씩 역산하여 주차 번호 부여하는 SQL
+    # 수정: ORDER BY를 ASC -> DESC로 변경하여 과거 데이터부터 조회되도록 함
     sql = text("""
         SELECT 
             TO_CHAR(
@@ -129,7 +130,7 @@ def get_weekly_trends(db: Session, user_id: int):
           AND target_date >= :start_date
           AND target_date <= :end_date
         GROUP BY FLOOR((:yesterday_date - target_date) / 7)
-        ORDER BY FLOOR((:yesterday_date - target_date) / 7) ASC
+        ORDER BY FLOOR((:yesterday_date - target_date) / 7) DESC
         LIMIT 9
     """)
     
@@ -144,7 +145,7 @@ def get_weekly_trends(db: Session, user_id: int):
     prev_coins = 0
     prev_cells = 0
     
-    # 결과가 오래된 순(ASC)으로 정렬되어 있음
+    # 결과가 오래된 순(DESC -> 큰 숫자가 과거)으로 정렬됨 (ex: 8주전, 7주전, ... 0주전)
     for i, row in enumerate(results):
         curr_coins = row.coins or 0
         curr_cells = row.cells or 0
