@@ -21,9 +21,9 @@ from .report import (
     get_full_report,
     delete_battle_record
 )
+# [수정] 삭제된 함수 제거
 from .stats import (
     get_weekly_stats,
     get_weekly_trends,
-    get_monthly_trends,
-    calculate_and_upsert_daily_stat
+    get_monthly_trends
 )

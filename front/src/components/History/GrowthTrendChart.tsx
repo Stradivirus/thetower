@@ -49,7 +49,8 @@ export default function GrowthTrendChart({ data, summary, viewMode, resourceType
   const renderCustomLegend = () => {
     const isPositive = summary.avgGrowth >= 0;
     const TrendIcon = isPositive ? TrendingUp : TrendingDown;
-    const trendColor = isPositive ? 'text-green-400' : 'text-blue-400';
+    // [수정] 아이콘 색상은 트렌드에 따라 결정
+    const trendIconColor = isPositive ? 'text-green-400' : 'text-blue-400';
 
     return (
       <div className="flex items-center justify-between px-2 mt-4 border-t border-slate-800/50 pt-3 text-xs">
@@ -81,8 +82,9 @@ export default function GrowthTrendChart({ data, summary, viewMode, resourceType
           <div className="w-px h-3 bg-slate-700"></div>
           <div className="flex items-center gap-1.5">
             <span className="text-slate-500">Avg Growth:</span>
-            <span className={`font-mono font-bold text-sm flex items-center gap-0.5 ${trendColor}`}>
-              <TrendIcon size={12} />
+            {/* [수정] 텍스트 색상을 자원 타입(노랑/하늘)으로 고정하고, 아이콘만 트렌드 색상 사용 */}
+            <span className={`font-mono font-bold text-sm flex items-center gap-0.5 ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
+              <TrendIcon size={12} className={trendIconColor} />
               {Math.abs(summary.avgGrowth).toFixed(1)}%
             </span>
           </div>

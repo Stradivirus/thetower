@@ -94,20 +94,3 @@ class BattleDetail(Base):
     
     # 관계 설정
     main = relationship("BattleMain", back_populates="detail")
-
-class DailyStats(Base):
-    """
-    [New] 일별 통계 요약 테이블
-    """
-    __tablename__ = "daily_stats"
-    
-    owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    target_date = Column(Date, primary_key=True)
-    
-    total_coins = Column(BigInteger, default=0)
-    total_cells = Column(Integer, default=0)
-    total_shards = Column(Integer, default=0)
-    
-    game_count = Column(Integer, default=0)
-    
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

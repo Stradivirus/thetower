@@ -1,74 +1,34 @@
 # back/crud/stats.py
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
-from models import BattleMain, DailyStats
+from models import BattleMain
 from datetime import datetime, timedelta, timezone
 
-# 헬퍼 함수
-def get_yesterday():
-    """UTC 기준 어제 자정 (naive datetime)"""
-    now_utc = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
-    return now_utc - timedelta(days=1)
+# 헬퍼 함수: UTC 기준 오늘 자정
+def get_today_utc():
+    return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
 
-# [수정됨] 내부 db.commit() 모두 제거
-def calculate_and_upsert_daily_stat(db: Session, user_id: int, target_dt: datetime):
-    target_date = target_dt.date()
-    start_of_day = datetime.combine(target_date, datetime.min.time())
-    end_of_day = start_of_day + timedelta(days=1)
-
-    agg = db.query(
-        func.sum(BattleMain.coin_earned).label("total_coins"),
-        func.sum(BattleMain.cells_earned).label("total_cells"),
-        func.sum(BattleMain.reroll_shards_earned).label("total_shards"),
-        func.count(BattleMain.battle_date).label("game_count")
-    ).filter(
-        BattleMain.owner_id == user_id,
-        BattleMain.battle_date >= start_of_day,
-        BattleMain.battle_date < end_of_day
-    ).first()
-
-    # 데이터가 없으면 통계 삭제 (Flush 상태 유지, 커밋 X)
-    if not agg or agg.game_count == 0:
-        db.query(DailyStats).filter(
-            DailyStats.owner_id == user_id,
-            DailyStats.target_date == target_date
-        ).delete()
-        return
-
-    stat_record = db.query(DailyStats).filter(
-        DailyStats.owner_id == user_id,
-        DailyStats.target_date == target_date
-    ).first()
-
-    if not stat_record:
-        stat_record = DailyStats(owner_id=user_id, target_date=target_date)
-        db.add(stat_record)
-    
-    stat_record.total_coins = agg.total_coins or 0
-    stat_record.total_cells = agg.total_cells or 0
-    stat_record.total_shards = agg.total_shards or 0
-    stat_record.game_count = agg.game_count or 0
-    
-    # 여기서 db.commit() 하지 않음!
-
-# 2. 일간 통계 조회 (Window Function 최적화)
+# 1. 일간 통계 조회 (Daily Graph)
+# -> 목적: 실시간 확인용이므로 '오늘(Today)'을 포함합니다.
 def get_weekly_stats(db: Session, user_id: int):
-    yesterday = get_yesterday()
-    yesterday_date = yesterday.date()
+    today_utc = get_today_utc()
+    target_date = today_utc.date()  # 기준: 오늘
     
-    display_start_date = yesterday_date - timedelta(days=6)
-    fetch_start_date = yesterday_date - timedelta(days=7) 
+    display_start_date = target_date - timedelta(days=6)
+    
+    # 넉넉하게 과거 데이터 조회
+    utc_start_limit = datetime.now(timezone.utc) - timedelta(days=14)
 
     sql = text("""
-        WITH daily_totals AS (
+        WITH raw_daily AS (
             SELECT 
-                TO_CHAR(target_date, 'YYYY-MM-DD') as date_str,
-                total_coins,
-                total_cells
-            FROM daily_stats
+                TO_CHAR(battle_date, 'YYYY-MM-DD') as date_str,
+                SUM(coin_earned) as total_coins,
+                SUM(cells_earned) as total_cells
+            FROM battle_mains
             WHERE owner_id = :user_id
-              AND target_date >= :fetch_start_date
-              AND target_date <= :yesterday_date
+              AND battle_date >= :utc_start_limit 
+            GROUP BY 1
         ),
         with_prev AS (
             SELECT 
@@ -77,7 +37,7 @@ def get_weekly_stats(db: Session, user_id: int):
                 total_cells,
                 LAG(total_coins) OVER (ORDER BY date_str) as prev_coins,
                 LAG(total_cells) OVER (ORDER BY date_str) as prev_cells
-            FROM daily_totals
+            FROM raw_daily
         )
         SELECT 
             date_str,
@@ -100,63 +60,66 @@ def get_weekly_stats(db: Session, user_id: int):
     
     results = db.execute(sql, {
         "user_id": user_id,
-        "fetch_start_date": fetch_start_date,
-        "yesterday_date": yesterday_date,
+        "utc_start_limit": utc_start_limit,
         "display_start_date": display_start_date.strftime("%Y-%m-%d")
     }).fetchall()
     
-    if not results:
-        daily_stats = []
-        for i in range(7):
-            d = display_start_date + timedelta(days=i)
+    result_map = {row.date_str: row for row in results}
+    
+    daily_stats = []
+    for i in range(7):
+        d_str = (display_start_date + timedelta(days=i)).strftime("%Y-%m-%d")
+        if d_str in result_map:
+            row = result_map[d_str]
             daily_stats.append({
-                "date": d.strftime("%Y-%m-%d"),
+                "date": row.date_str,
+                "total_coins": row.total_coins or 0,
+                "total_cells": row.total_cells or 0,
+                "coin_growth": float(row.coin_growth or 0),
+                "cell_growth": float(row.cell_growth or 0)
+            })
+        else:
+            daily_stats.append({
+                "date": d_str,
                 "total_coins": 0,
                 "total_cells": 0,
                 "coin_growth": 0.0,
                 "cell_growth": 0.0
             })
-        return {"daily_stats": daily_stats}
-    
-    daily_stats = [
-        {
-            "date": row.date_str,
-            "total_coins": row.total_coins or 0,
-            "total_cells": row.total_cells or 0,
-            "coin_growth": float(row.coin_growth or 0),
-            "cell_growth": float(row.cell_growth or 0)
-        }
-        for row in results
-    ]
 
     return {"daily_stats": daily_stats}
 
-# 3. 주간 트렌드 (Window Function + 어제 기준 7일씩 역산)
+# 2. 주간 트렌드 (Weekly Trend)
+# -> 목적: 안정적인 추세 분석이므로 '오늘'을 제외하고 '어제(Yesterday)'를 기준으로 잡습니다.
+# -> 방식: 월요일 기준이 아니라, 어제부터 7일씩 묶습니다 (롤링 윈도우)
 def get_weekly_trends(db: Session, user_id: int):
-    yesterday = get_yesterday()
-    yesterday_date = yesterday.date()
-    
-    fetch_start_date = yesterday_date - timedelta(days=63)
+    today_utc = get_today_utc()
+    target_date = today_utc.date() - timedelta(days=1)  # [핵심 변경] 기준: 어제 (확정된 데이터)
+
+    # 넉넉하게 70일 전 데이터부터 조회
+    utc_start_limit = datetime.now(timezone.utc) - timedelta(days=70)
     
     sql = text("""
-        WITH weekly_grouped AS (
+        WITH weekly_raw AS (
             SELECT 
-                FLOOR((:yesterday_date - target_date) / 7) as week_idx,
-                SUM(total_coins) as total_coins,
-                SUM(total_cells) as total_cells
-            FROM daily_stats
+                -- 어제(target_date)를 기준으로 7일씩 그룹핑 (0: 최근 7일, 1: 그 전 7일...)
+                FLOOR((:target_date - battle_date::date) / 7) as week_idx,
+                SUM(coin_earned) as total_coins,
+                SUM(cells_earned) as total_cells
+            FROM battle_mains
             WHERE owner_id = :user_id
-              AND target_date >= :fetch_start_date
-              AND target_date <= :yesterday_date
-            GROUP BY FLOOR((:yesterday_date - target_date) / 7)
+              AND battle_date >= :utc_start_limit
+              AND battle_date::date <= :target_date
+            GROUP BY 1
         ),
         with_dates AS (
             SELECT 
                 week_idx,
-                TO_CHAR(:yesterday_date - (week_idx * 7 * INTERVAL '1 day') - INTERVAL '6 days', 'YYYY-MM-DD') as week_start_date,
+                -- 그룹 시작일 계산 (역산)
+                TO_CHAR(:target_date - (week_idx * 7 + 6) * INTERVAL '1 day', 'YYYY-MM-DD') as week_start_date,
                 total_coins,
                 total_cells
-            FROM weekly_grouped
+            FROM weekly_raw
         ),
         with_prev AS (
             SELECT 
@@ -182,30 +145,17 @@ def get_weekly_trends(db: Session, user_id: int):
                 ELSE 0 
             END as cell_growth
         FROM with_prev
-        ORDER BY week_start_date ASC
+        ORDER BY week_start_date DESC
         LIMIT 8
     """)
     
     results = db.execute(sql, {
         "user_id": user_id,
-        "yesterday_date": yesterday_date,
-        "fetch_start_date": fetch_start_date
+        "utc_start_limit": utc_start_limit,
+        "target_date": target_date
     }).fetchall()
     
-    if not results:
-        trend_stats = []
-        for i in range(8):
-            end_date = yesterday_date - timedelta(days=i*7)
-            start_date = end_date - timedelta(days=6)
-            trend_stats.append({
-                "week_start_date": start_date.strftime("%Y-%m-%d"),
-                "total_coins": 0,
-                "total_cells": 0,
-                "coin_growth": 0.0,
-                "cell_growth": 0.0
-            })
-        return {"weekly_stats": trend_stats}
-    
+    # 그래프 표시를 위해 과거 -> 최신 순으로 정렬
     trend_stats = [
         {
             "week_start_date": row.week_start_date,
@@ -215,27 +165,28 @@ def get_weekly_trends(db: Session, user_id: int):
             "cell_growth": float(row.cell_growth or 0)
         }
         for row in results
-    ]
+    ][::-1] 
     
     return {"weekly_stats": trend_stats}
 
-# 4. 월간 트렌드 (Window Function 최적화)
+# 3. 월간 트렌드 (유지)
 def get_monthly_trends(db: Session, user_id: int):
-    now_utc = datetime.now(timezone.utc)
-    this_month_str = now_utc.strftime("%Y-%m")
+    today_utc = get_today_utc()
+    this_month_str = today_utc.strftime("%Y-%m")
     
-    start_date = (now_utc.replace(day=1) - timedelta(days=240)).date()
+    # 넉넉하게 8개월 전부터 조회
+    utc_start_limit = datetime.now(timezone.utc) - timedelta(days=240)
     
     sql = text("""
-        WITH monthly_totals AS (
+        WITH monthly_raw AS (
             SELECT 
-                TO_CHAR(target_date, 'YYYY-MM') as month_str,
-                SUM(total_coins) as total_coins,
-                SUM(total_cells) as total_cells
-            FROM daily_stats
+                TO_CHAR(battle_date, 'YYYY-MM') as month_str,
+                SUM(coin_earned) as total_coins,
+                SUM(cells_earned) as total_cells
+            FROM battle_mains
             WHERE owner_id = :user_id
-              AND target_date >= :start_date
-            GROUP BY TO_CHAR(target_date, 'YYYY-MM')
+              AND battle_date >= :utc_start_limit
+            GROUP BY 1
         ),
         with_prev AS (
             SELECT 
@@ -244,7 +195,7 @@ def get_monthly_trends(db: Session, user_id: int):
                 total_cells,
                 LAG(total_coins) OVER (ORDER BY month_str) as prev_coins,
                 LAG(total_cells) OVER (ORDER BY month_str) as prev_cells
-            FROM monthly_totals
+            FROM monthly_raw
         )
         SELECT 
             month_str as month,
@@ -262,13 +213,13 @@ def get_monthly_trends(db: Session, user_id: int):
             END as cell_growth,
             CASE WHEN month_str = :this_month THEN true ELSE false END as is_current
         FROM with_prev
-        ORDER BY month_str ASC
+        ORDER BY month_str DESC
         LIMIT 6
     """)
     
     results = db.execute(sql, {
         "user_id": user_id,
-        "start_date": start_date,
+        "utc_start_limit": utc_start_limit,
         "this_month": this_month_str
     }).fetchall()
     
@@ -282,6 +233,6 @@ def get_monthly_trends(db: Session, user_id: int):
             "is_current": row.is_current
         }
         for row in results
-    ]
+    ][::-1]
     
     return {"monthly_stats": trend_stats}
