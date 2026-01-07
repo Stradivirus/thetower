@@ -34,7 +34,7 @@ def create_report(
         if background_tasks:
             try:
                 total_count = crud.count_reports(db)
-                if total_count % 10 == 0:
+                if total_count % 50 == 0:
                     msg = f"⚔️ [New Record] {total_count}번째 전투 기록이 등록되었습니다!"
                     background_tasks.add_task(slack.send_slack_notification, msg)
             except Exception as e:
