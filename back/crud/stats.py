@@ -9,10 +9,10 @@ def get_today_utc():
     return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
 
 # 1. 일간 통계 조회 (Daily Graph)
-# -> 목적: 실시간 확인용이므로 '오늘(Today)'을 포함합니다.
+# [수정] 기준일을 오늘(Today) -> 어제(Yesterday)로 변경하여 오늘 진행 중인 데이터 제외
 def get_weekly_stats(db: Session, user_id: int):
     today_utc = get_today_utc()
-    target_date = today_utc.date()  # 기준: 오늘
+    target_date = today_utc.date() - timedelta(days=1)  # [변경됨] 어제까지의 데이터만 조회
     
     display_start_date = target_date - timedelta(days=6)
     
@@ -28,6 +28,7 @@ def get_weekly_stats(db: Session, user_id: int):
             FROM battle_mains
             WHERE owner_id = :user_id
               AND battle_date >= :utc_start_limit 
+              AND battle_date::date <= :target_date  -- [추가] 미래/오늘 데이터 확실히 제외
             GROUP BY 1
         ),
         with_prev AS (
@@ -61,6 +62,7 @@ def get_weekly_stats(db: Session, user_id: int):
     results = db.execute(sql, {
         "user_id": user_id,
         "utc_start_limit": utc_start_limit,
+        "target_date": target_date,
         "display_start_date": display_start_date.strftime("%Y-%m-%d")
     }).fetchall()
     
@@ -90,11 +92,10 @@ def get_weekly_stats(db: Session, user_id: int):
     return {"daily_stats": daily_stats}
 
 # 2. 주간 트렌드 (Weekly Trend)
-# -> 목적: 안정적인 추세 분석이므로 '오늘'을 제외하고 '어제(Yesterday)'를 기준으로 잡습니다.
-# -> 방식: 월요일 기준이 아니라, 어제부터 7일씩 묶습니다 (롤링 윈도우)
+# -> 목적: 안정적인 추세 분석 (어제 기준 역산 7일 롤링)
 def get_weekly_trends(db: Session, user_id: int):
     today_utc = get_today_utc()
-    target_date = today_utc.date() - timedelta(days=1)  # [핵심 변경] 기준: 어제 (확정된 데이터)
+    target_date = today_utc.date() - timedelta(days=1)  # 기준: 어제
 
     # 넉넉하게 70일 전 데이터부터 조회
     utc_start_limit = datetime.now(timezone.utc) - timedelta(days=70)
@@ -102,7 +103,6 @@ def get_weekly_trends(db: Session, user_id: int):
     sql = text("""
         WITH weekly_raw AS (
             SELECT 
-                -- 어제(target_date)를 기준으로 7일씩 그룹핑 (0: 최근 7일, 1: 그 전 7일...)
                 FLOOR((:target_date - battle_date::date) / 7) as week_idx,
                 SUM(coin_earned) as total_coins,
                 SUM(cells_earned) as total_cells
@@ -115,7 +115,6 @@ def get_weekly_trends(db: Session, user_id: int):
         with_dates AS (
             SELECT 
                 week_idx,
-                -- 그룹 시작일 계산 (역산)
                 TO_CHAR(:target_date - (week_idx * 7 + 6) * INTERVAL '1 day', 'YYYY-MM-DD') as week_start_date,
                 total_coins,
                 total_cells
@@ -155,7 +154,6 @@ def get_weekly_trends(db: Session, user_id: int):
         "target_date": target_date
     }).fetchall()
     
-    # 그래프 표시를 위해 과거 -> 최신 순으로 정렬
     trend_stats = [
         {
             "week_start_date": row.week_start_date,
