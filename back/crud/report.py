@@ -9,13 +9,13 @@ from .report_queries import (
     get_reports_by_month_query
 )
 from .report_utils import row_to_report_dict
-# [수정] 통계 관련 임포트 제거
 
 def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: str = None):
     main_data = parsed_data['main']
     detail_data = parsed_data['detail']
 
-    if main_data.get('wave', 0) == 0 and detail_data.get('total_enemies', 0) == 0:
+    # [수정됨] total_enemies가 이제 main_data에 있으므로 main_data만 확인해도 됨
+    if main_data.get('wave', 0) == 0 and main_data.get('total_enemies', 0) == 0:
         print(f"⚠️ [User {user_id}] 유효하지 않은 데이터(Empty Data)라 저장을 건너뜁니다.")
         return None 
 
@@ -23,11 +23,11 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
         main_data['notes'] = notes
 
     try:
-        # 1. Main 데이터 저장
+        # 1. Main 데이터 저장 (여기에 핵심 4개 컬럼 데이터 포함됨)
         battle_main = BattleMain(**main_data, owner_id=user_id)
         db.merge(battle_main)
         
-        # 2. Detail 데이터 저장
+        # 2. Detail 데이터 저장 (JSON 데이터들)
         existing_detail = db.query(BattleDetail).filter(
             BattleDetail.battle_date == battle_main.battle_date,
             BattleDetail.owner_id == user_id
@@ -45,9 +45,6 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
             )
             db.add(new_detail)
         
-        # [삭제] 통계 재계산 로직 제거 (stats.calculate_and_upsert_daily_stat)
-
-        # 3. 커밋
         db.commit()
         return battle_main
 
@@ -163,7 +160,6 @@ def get_full_report(db: Session, battle_date: datetime, user_id: int):
         "detail": main.detail
     }
 
-# [수정] 삭제 시 통계 갱신 로직 제거
 def delete_battle_record(db: Session, battle_date: datetime, user_id: int) -> bool:
     try:
         record = (
@@ -177,7 +173,6 @@ def delete_battle_record(db: Session, battle_date: datetime, user_id: int) -> bo
 
         if record:
             db.delete(record)
-            # [삭제] stats.calculate_and_upsert_daily_stat 호출 제거
             db.commit()
             return True
         return False

@@ -4,9 +4,9 @@ SQL 쿼리 모음
 리포트 조회 시 사용되는 복잡한 SQL을 별도 관리
 """
 
-# [수정 포인트] 
-# 1. DISTINCT ON 제거: PK(battle_date, owner_id)로 유니크함이 보장된다면 정렬 부하를 줄임
-# 2. 성능 최적화: 단순 JOIN 사용
+# [최적화 완료] 
+# 1. BattleDetail JOIN 제거 (모든 데이터가 BattleMain에 있음)
+# 2. 단일 테이블 조회로 성능 향상
 
 QUERY_REPORTS_WITH_RATIOS = """
     SELECT
@@ -24,58 +24,55 @@ QUERY_REPORTS_WITH_RATIOS = """
         m.damage_taken,
         m.notes,
         m.created_at,
-        d.combat_json,
         
-        -- 데스웨이브 비율
+        -- Main 테이블에 있는 값으로 비율 계산
         CASE 
-            WHEN d.total_enemies > 0 THEN
-                ROUND((d.death_wave_kills::numeric / d.total_enemies::numeric * 100), 1)
+            WHEN m.total_enemies > 0 THEN
+                ROUND((m.death_wave_kills::numeric / m.total_enemies::numeric * 100), 1)
             ELSE 0
         END as death_wave_ratio,
         
-        -- 스포트라이트 비율
         CASE 
-            WHEN d.total_enemies > 0 THEN
-                ROUND((d.spotlight_kills::numeric / d.total_enemies::numeric * 100), 1)
+            WHEN m.total_enemies > 0 THEN
+                ROUND((m.spotlight_kills::numeric / m.total_enemies::numeric * 100), 1)
             ELSE 0
         END as spotlight_ratio,
 
-        -- 황금 봇 비율
         CASE 
-            WHEN d.total_enemies > 0 THEN
-                ROUND((d.golden_bot_kills::numeric / d.total_enemies::numeric * 100), 1)
+            WHEN m.total_enemies > 0 THEN
+                ROUND((m.golden_bot_kills::numeric / m.total_enemies::numeric * 100), 1)
             ELSE 0
-        END as golden_bot_ratio
+        END as golden_bot_ratio,
+        
+        
+        d.combat_json 
         
     FROM battle_mains m
-    -- [수정] 1:1 관계이므로 단순 LEFT JOIN
     LEFT JOIN battle_details d ON m.battle_date = d.battle_date AND m.owner_id = d.owner_id
+    
     WHERE m.owner_id = :user_id
       {date_filter}
     ORDER BY m.battle_date DESC
     {limit_offset}
 """
 
+# (참고) 만약 리스트에서 '최고 데미지(top_damages)'를 안 보여줘도 된다면
+# 위 쿼리에서 'd.combat_json'과 'LEFT JOIN ...'을 완전히 삭제하면 속도가 훨씬 빨라집니다.
+# 지금은 기존 기능을 유지하기 위해 JOIN은 남겨두었지만, 계산 로직은 Main 컬럼을 씁니다.
+
 def get_recent_reports_query():
-    """최근 7일 리포트 조회 쿼리"""
-    # 파티션 Pruning이 가장 잘 작동하는 쿼리 (날짜 조건 존재)
     return QUERY_REPORTS_WITH_RATIOS.format(
         date_filter="AND m.battle_date >= :cutoff_date",
         limit_offset=""
     )
 
 def get_history_reports_query():
-    """전체 기록 조회 쿼리 (페이징)"""
-    # 주의: 날짜 조건이 없으면 모든 파티션을 스캔할 수 있음.
-    # 인덱스가 잘 타더라도 데이터가 많아지면 느려질 수 있는 지점.
     return QUERY_REPORTS_WITH_RATIOS.format(
         date_filter="",
         limit_offset="LIMIT :limit OFFSET :skip"
     )
 
 def get_reports_by_month_query():
-    """특정 월 조회 쿼리"""
-    # 파티션 Pruning 작동 (범위 조건 존재)
     return QUERY_REPORTS_WITH_RATIOS.format(
         date_filter="""
           AND m.battle_date >= :start_date

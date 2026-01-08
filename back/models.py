@@ -34,12 +34,10 @@ class UserModules(Base):
 class BattleMain(Base):
     __tablename__ = "battle_mains"
     
-    # [Optimized] 복합 인덱스
     __table_args__ = (
         Index('idx_owner_date', 'owner_id', 'battle_date'),
     )
     
-    # [변경] 복합 키 (Composite PK) 설정
     battle_date = Column(DateTime, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -60,6 +58,12 @@ class BattleMain(Base):
     damage_dealt = Column(String)
     damage_taken = Column(String)
 
+    # [이동됨] Detail에서 자주 쓰는 핵심 통계 4개를 Main으로 이동
+    total_enemies = Column(Integer, default=0)
+    death_wave_kills = Column(Integer, default=0)
+    spotlight_kills = Column(Integer, default=0)
+    golden_bot_kills = Column(Integer, default=0)
+
     notes = Column(Text, nullable=True)
 
     detail = relationship("BattleDetail", back_populates="main", uselist=False, cascade="all, delete-orphan")
@@ -67,11 +71,9 @@ class BattleMain(Base):
 class BattleDetail(Base):
     __tablename__ = "battle_details"
     
-    # [변경] 컬럼 정의
     battle_date = Column(DateTime, primary_key=True)
     owner_id = Column(Integer, primary_key=True)
     
-    # [추가] 복합 외래 키 + Cascade
     __table_args__ = (
         ForeignKeyConstraint(
             ['battle_date', 'owner_id'],
@@ -80,17 +82,12 @@ class BattleDetail(Base):
         ),
     )
     
-    total_enemies = Column(Integer, default=0)
-    death_wave_kills = Column(Integer, default=0)
-    spotlight_kills = Column(Integer, default=0)
+    # [제거됨] 4개 컬럼이 Main으로 이동했으므로 여기서는 제거
     
-    # [New] 황금 봇 처치 수 추가
-    golden_bot_kills = Column(Integer, default=0)
-    
+    # 무거운 JSON 데이터만 남김
     combat_json = Column(JSONB)
     utility_json = Column(JSONB)
     enemy_json = Column(JSONB)
     bot_json = Column(JSONB)
     
-    # 관계 설정
     main = relationship("BattleMain", back_populates="detail")
