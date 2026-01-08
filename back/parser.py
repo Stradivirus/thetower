@@ -119,6 +119,13 @@ def parse_battle_report(text: str) -> dict:
     except:
         battle_date = datetime.now()
 
+    # [수정 포인트]
+    # 아래 4개 변수를 계산한 뒤, detail_data가 아닌 main_data에 넣어야 합니다.
+    total_enemies = parse_number(enemy.get('적 합계', '0'))
+    death_wave_kills = parse_number(comb.get('데스웨이브에 의해 표시됨', '0'))
+    spotlight_kills = parse_number(enemy.get('스포트라이트로 파괴함', '0'))
+    golden_bot_kills = parse_number(bot.get('황금 봇에서 파괴됨', '0'))
+
     main_data = {
         'battle_date': battle_date,
         'tier': repo.get('티어', 'T1'),
@@ -134,24 +141,18 @@ def parse_battle_report(text: str) -> dict:
         'killer': repo.get('처치자', ''),
         'damage_dealt': comb.get('입힌 대미지', '0'),
         'damage_taken': comb.get('받은 대미지', '0'),
-    }
-    
-    # [수정됨] 통계용 핵심 데이터를 숫자로 변환하여 별도 키로 추출
-    total_enemies = parse_number(enemy.get('적 합계', '0'))
-    death_wave_kills = parse_number(comb.get('데스웨이브에 의해 표시됨', '0'))
-    spotlight_kills = parse_number(enemy.get('스포트라이트로 파괴함', '0'))
-    
-    # [New] 황금 봇 처치 수 추출
-    golden_bot_kills = parse_number(bot.get('황금 봇에서 파괴됨', '0'))
 
-    detail_data = {
-        # DB 컬럼과 매칭될 필드들
+        # [이동 완료] Detail에서 Main으로 이사 온 친구들
         'total_enemies': total_enemies,
         'death_wave_kills': death_wave_kills,
         'spotlight_kills': spotlight_kills,
-        'golden_bot_kills': golden_bot_kills, # [New] 추가
+        'golden_bot_kills': golden_bot_kills,
+    }
+    
+    detail_data = {
+        # [삭제됨] 여기 있던 total_enemies 등은 위로 올라갔으니 제거합니다.
+        # 이제 Detail에는 무거운 JSON 덩어리들만 남습니다.
         
-        # 기존 JSON 데이터
         'combat_json': sections['combat'],
         'utility_json': sections['utility'],
         'enemy_json': sections['enemy'],
