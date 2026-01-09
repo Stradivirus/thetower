@@ -43,11 +43,6 @@ class UserModulesResponse(UserModulesBase):
 
 # 3. 전투 기록 (Report)
 
-class DamageItem(BaseModel):
-    name: str
-    value: str
-    raw: float = 0.0
-
 class BattleMainResponse(BaseModel):
     battle_date: datetime
     created_at: Optional[datetime] = None
@@ -68,12 +63,13 @@ class BattleMainResponse(BaseModel):
     
     notes: Optional[str] = None
     
-    top_damages: List[DamageItem] = []
+    # [변경] 순위 이름만 리스트로 전달 (예: ["가시", "투사체", "지뢰"])
+    top_damages: List[str] = [] 
     
-    # [New] 비율 데이터 추가
+    # 비율 데이터
     death_wave_ratio: Optional[str] = None
     spotlight_ratio: Optional[str] = None
-    golden_bot_ratio: Optional[str] = None  # [추가] 황금 봇 비율
+    golden_bot_ratio: Optional[str] = None
 
     class Config:
         from_attributes = True

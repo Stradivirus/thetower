@@ -1,9 +1,4 @@
 // front/src/types/report.ts
-export interface DamageItem {
-  name: string;
-  value: string;
-  raw: number;
-}
 
 export interface BattleMain {
   battle_date: string;
@@ -23,9 +18,10 @@ export interface BattleMain {
   damage_taken: string;
   notes?: string;
   
-  top_damages: DamageItem[];
+  // [변경] 객체 배열 대신 단순 문자열 배열 사용
+  top_damages: string[];
   
-  // [New] 비율 데이터 추가
+  // 비율 데이터
   death_wave_ratio?: string;
   spotlight_ratio?: string;
   golden_bot_ratio?: string;
@@ -44,7 +40,6 @@ export interface FullReport {
   detail: BattleDetail;
 }
 
-// [New] 월별 요약 정보 (백엔드 Group By 결과)
 export interface MonthlySummary {
   month_key: string;    // "2023-12"
   count: number;
@@ -53,7 +48,6 @@ export interface MonthlySummary {
   total_shards: number;
 }
 
-// [New] 기록실 초기 렌더링용 데이터
 export interface HistoryViewResponse {
   recent_reports: BattleMain[];          // 최근 7일치 상세
   monthly_summaries: MonthlySummary[];   // 그 이전 월별 요약

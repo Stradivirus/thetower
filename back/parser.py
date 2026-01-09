@@ -3,111 +3,92 @@ import re
 from datetime import datetime
 
 def parse_number(value_str: str):
-    """
-    '5.42B', '1.2T', '500' 등을 실제 숫자(int)로 변환
-    (딕셔너리 매핑 방식 적용)
-    """
-    if not value_str:
-        return 0
-    
-    # 안전장치: 이미 숫자로 들어온 경우 바로 반환
-    if isinstance(value_str, (int, float)):
-         return int(value_str)
-
-    # 공백, $, x 등 불필요한 문자 제거 (문자열 변환 후 처리)
+    if not value_str: return 0
+    if isinstance(value_str, (int, float)): return int(value_str)
     clean_str = str(value_str).strip().replace('$', '').replace('X', '').replace('x', '')
-    
-    # 단위 매핑 (대소문자 구분 - 게임 특화 단위)
     multipliers = {
+        'ac': 10**42, 'ab': 10**39, 'aa': 10**36,
+        'D': 10**33, 'd': 10**33, 'N': 10**30, 'n': 10**30, 'O': 10**27, 'o': 10**27,
         'S': 10**24, 's': 10**21, 'Q': 10**18, 'q': 10**15,
-        'T': 10**12, 't': 10**12, 'B': 10**9, 'b': 10**9, 
-        'M': 10**6, 'm': 10**6, 'K': 10**3, 'k': 10**3
+        'T': 10**12, 't': 10**12, 'B': 10**9, 'b': 10**9, 'M': 10**6, 'm': 10**6, 'K': 10**3, 'k': 10**3
     }
-
     multiplier = 1
-    
-    # 딕셔너리를 순회하며 접미사 체크
     for suffix, mult in multipliers.items():
         if clean_str.endswith(suffix):
             multiplier = mult
-            clean_str = clean_str[:-len(suffix)] # 접미사 제거
+            clean_str = clean_str[:-len(suffix)]
             break
-
     try:
-        # 쉼표 제거 후 변환
         return int(float(clean_str.replace(',', '')) * multiplier)
     except ValueError:
         return 0
 
+# [수정] 제외 목록에서 "죽음의 광선" 제거
+def calculate_top_damages(combat_json: dict):
+    if not combat_json: return []
+    
+    exclude_names = [
+        "입힌", "받은", "장벽이 받은", "회복 패키지", "생명력 흡수", "죽음 저항",
+        "오브", "블랙홀"  # [확인] 죽음의 광선은 뺐습니다
+    ]
+    
+    top_damages = []
+    
+    for key, val in combat_json.items():
+        if not key.endswith(" 대미지") and key != "전자 손상": 
+            continue
+
+        clean_name = key.replace(" 대미지", "")
+        
+        if clean_name in exclude_names:
+            continue
+        
+        raw_val = parse_number(str(val))
+        
+        top_damages.append({
+            "name": clean_name,
+            "raw": raw_val
+        })
+    
+    top_damages.sort(key=lambda x: x['raw'], reverse=True)
+    
+    # 이름만 리스트로 반환
+    return [item['name'] for item in top_damages[:3]]
+
 def parse_battle_report(text: str) -> dict:
-    # 1. 텍스트 전처리
     clean_text = text.replace('\r\n', '\n').replace('\r', '\n')
     lines = clean_text.split('\n')
     
-    # 2. 데이터를 담을 임시 저장소
-    sections = {
-        'report': {},   # 전투 보고
-        'combat': {},   # 전투
-        'utility': {},  # 유틸리티
-        'enemy': {},    # 적 파괴
-        'bot': {},      # 봇 + 가디언
-    }
-    
-    current_section = 'report' 
-    
-    section_map = {
-        '전투 보고': 'report',
-        '전투': 'combat',
-        '유틸리티': 'utility',
-        '적 파괴': 'enemy',
-        '봇': 'bot',
-        '가디언': 'bot'
-    }
-
-    # print("--- [Section Parser] 시작 ---")
+    sections = {'report': {}, 'combat': {}, 'utility': {}, 'enemy': {}, 'bot': {}}
+    current_section = 'report'
+    section_map = {'전투 보고': 'report', '전투': 'combat', '유틸리티': 'utility', '적 파괴': 'enemy', '봇': 'bot', '가디언': 'bot'}
 
     for line in lines:
         line = line.strip()
         if not line: continue
-        
-        # 1) 섹션 헤더 확인
         if line in section_map:
             current_section = section_map[line]
             continue
-            
-        # 2) 데이터 파싱 (Key-Value 분리)
-        key = None
-        val = None
-        
+        key, val = None, None
         if '\t' in line:
             parts = line.split('\t')
-            key = parts[0].strip()
-            val = parts[-1].strip()
+            key, val = parts[0].strip(), parts[-1].strip()
         else:
-            # 예외 처리: 공백이 포함된 키값들
             if current_section == 'report':
-                for special_key in ["전투 날짜", "게임 시간", "실시간", "시간당 코인"]:
-                    if line.startswith(special_key):
-                        key = special_key
-                        val = line.replace(special_key, "", 1).strip()
+                for sk in ["전투 날짜", "게임 시간", "실시간", "시간당 코인"]:
+                    if line.startswith(sk):
+                        key, val = sk, line.replace(sk, "", 1).strip()
                         break
-            
-            # 위 예외에 안 걸리면 일반 처리
             if not key:
                 parts = line.rsplit(' ', 1)
-                if len(parts) == 2:
-                    key = parts[0].strip()
-                    val = parts[1].strip()
-        
-        if key and val:
-            sections[current_section][key] = val
+                if len(parts) == 2: key, val = parts[0].strip(), parts[1].strip()
+        if key and val: sections[current_section][key] = val
 
-    # 3. 최종 데이터 조립
     repo = sections['report']
     comb = sections['combat']
-    enemy = sections['enemy']  # [중요] 적 파괴 섹션 참조 변수
-    bot = sections['bot']      # [New] 봇 섹션 참조 변수
-    
+    enemy = sections['enemy']
+    bot = sections['bot']
+
     date_str = repo.get('전투 날짜', '')
     try:
         match = re.match(r'(\d+)월\s+(\d+),\s+(\d+)\s+(\d+):(\d+)', date_str)
@@ -119,40 +100,29 @@ def parse_battle_report(text: str) -> dict:
     except:
         battle_date = datetime.now()
 
-    # [수정 포인트]
-    # 아래 4개 변수를 계산한 뒤, detail_data가 아닌 main_data에 넣어야 합니다.
-    total_enemies = parse_number(enemy.get('적 합계', '0'))
-    death_wave_kills = parse_number(comb.get('데스웨이브에 의해 표시됨', '0'))
-    spotlight_kills = parse_number(enemy.get('스포트라이트로 파괴함', '0'))
-    golden_bot_kills = parse_number(bot.get('황금 봇에서 파괴됨', '0'))
-
     main_data = {
         'battle_date': battle_date,
         'tier': repo.get('티어', 'T1'),
         'wave': int(repo.get('웨이브', '0').replace(',', '')),
         'game_time': repo.get('게임 시간', ''),
         'real_time': repo.get('실시간', ''),
-        
         'coin_earned': parse_number(repo.get('코인 획득', '0')),
         'coins_per_hour': parse_number(repo.get('시간당 코인', '0')),
         'cells_earned': parse_number(repo.get('획득한 셀', '0')),
         'reroll_shards_earned': parse_number(repo.get('다시 뽑기 파편 획득함', '0')),
-        
         'killer': repo.get('처치자', ''),
         'damage_dealt': comb.get('입힌 대미지', '0'),
         'damage_taken': comb.get('받은 대미지', '0'),
-
-        # [이동 완료] Detail에서 Main으로 이사 온 친구들
-        'total_enemies': total_enemies,
-        'death_wave_kills': death_wave_kills,
-        'spotlight_kills': spotlight_kills,
-        'golden_bot_kills': golden_bot_kills,
+        'total_enemies': parse_number(enemy.get('적 합계', '0')),
+        'death_wave_kills': parse_number(comb.get('데스웨이브에 의해 표시됨', '0')),
+        'spotlight_kills': parse_number(enemy.get('스포트라이트로 파괴함', '0')),
+        'golden_bot_kills': parse_number(bot.get('황금 봇에서 파괴됨', '0')),
+        
+        # 순위 저장 (이름 리스트만)
+        'top_damages': calculate_top_damages(comb) 
     }
     
     detail_data = {
-        # [삭제됨] 여기 있던 total_enemies 등은 위로 올라갔으니 제거합니다.
-        # 이제 Detail에는 무거운 JSON 덩어리들만 남습니다.
-        
         'combat_json': sections['combat'],
         'utility_json': sections['utility'],
         'enemy_json': sections['enemy'],

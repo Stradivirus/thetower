@@ -1,6 +1,7 @@
+// front/src/components/Main/ReportListItem.tsx
 import React from 'react';
 import { Zap, RefreshCw, Skull, Layers, Coins } from 'lucide-react';
-import type { BattleMain, DamageItem } from '../../types/report'; 
+import type { BattleMain } from '../../types/report'; 
 import { formatNumber, formatTimeOnly, parseDurationToHours } from '../../utils/format';
 
 interface Props {
@@ -14,9 +15,12 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
   const durationHours = parseDurationToHours(report.real_time);
   const cellsPerHour = durationHours > 0 ? report.cells_earned / durationHours : 0;
 
+  // 백엔드에서 이미 필터링되지만, 프론트에서도 안전장치로 유지 (필요 없으면 제거 가능)
   const utilityKeywords = ['오브', '블랙홀', '데스 페널티', '안티 큐브'];
+  
+  // [수정] top_damages는 이제 string[] 입니다.
   const mainDamages = (report.top_damages || [])
-    .filter((d: DamageItem) => !utilityKeywords.includes(d.name)) 
+    .filter((name: string) => !utilityKeywords.includes(name)) 
     .slice(0, 3);
 
   // --------------------------------------------------------------------------
@@ -98,7 +102,6 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
                     <span className="text-emerald-400 font-bold mr-1">스포트</span>
                     <span className="text-slate-300">{report.spotlight_ratio || '-'}</span>
                 </div>
-                {/* [추가] 황금 봇 모바일 뷰 */}
                 <div className="text-[11px] leading-tight whitespace-nowrap">
                     <span className="text-yellow-400 font-bold mr-1">골봇</span>
                     <span className="text-slate-300">{report.golden_bot_ratio || '-'}</span>
@@ -108,13 +111,14 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
               {/* 2. 딜량 (가운데) */}
               <div className="flex flex-col justify-center min-w-0 border-l border-slate-800/50 pl-2">
                 {mainDamages.length > 0 ? (
-                    mainDamages.map((dmg: DamageItem, idx: number) => (
+                    /* [수정] dmg는 이제 string 타입입니다. */
+                    mainDamages.map((name: string, idx: number) => (
                         <div key={idx} className="flex items-center min-w-0">
                             <span className={`text-[10px] font-bold mr-1 ${idx === 0 ? 'text-rose-400' : 'text-slate-500'}`}>
                                 {idx + 1}.
                             </span>
                             <span className={`${idx === 0 ? 'text-rose-400' : 'text-slate-500'} text-[10px] truncate`}>
-                                {dmg.name}
+                                {name}
                             </span>
                         </div>
                     ))
@@ -200,7 +204,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 8. Ratio (죽파/스포트/골봇 비율) - 툴팁 적용됨 */}
+      {/* 8. Ratio (죽파/스포트/골봇 비율) */}
       <div className="col-span-1 flex flex-col justify-center items-center gap-0.5 border-l border-slate-800/50 pl-1 h-full">
          <div 
            className="text-xs leading-tight whitespace-nowrap cursor-help" 
@@ -216,7 +220,6 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
             <span className="text-emerald-400 font-bold mr-1">스포트</span>
             <span className="text-slate-300">{report.spotlight_ratio || '-'}</span>
          </div>
-         {/* [추가] 황금 봇 데스크탑 뷰 */}
          <div 
            className="text-xs leading-tight whitespace-nowrap cursor-help" 
            title="전체 적 중 황금 봇에서 파괴된 적"
@@ -231,13 +234,14 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         {/* Left: Damage List */}
         <div className="flex flex-col gap-0.5 min-w-0 flex-1">
           {mainDamages.length > 0 ? (
-            mainDamages.map((dmg: DamageItem, idx: number) => (
+            /* [수정] string 타입 처리 */
+            mainDamages.map((name: string, idx: number) => (
               <div key={idx} className="flex items-center min-w-0">
                 <span className={`text-[10px] font-bold mr-1 ${idx === 0 ? 'text-rose-400' : 'text-slate-500'}`}>
                   {idx + 1}.
                 </span>
                 <span className={`text-[10px] truncate ${idx === 0 ? 'text-rose-400' : 'text-slate-400'}`}>
-                  {dmg.name}
+                  {name}
                 </span>
               </div>
             ))
@@ -246,7 +250,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
           )}
         </div>
 
-        {/* Right: Killer (글씨 크기: text-xs, 아이콘: 13) */}
+        {/* Right: Killer */}
         <div className="flex items-center justify-end min-w-0 pl-1 border-l border-slate-800/30">
             {report.killer ? (
                  <div className="flex flex-col items-center justify-center gap-0.5" title="Killed by">

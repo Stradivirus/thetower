@@ -1,5 +1,5 @@
 # back/models.py
-from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey, Text, Index, ForeignKeyConstraint, Date, Float
+from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey, Text, Index, ForeignKeyConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
@@ -58,11 +58,14 @@ class BattleMain(Base):
     damage_dealt = Column(String)
     damage_taken = Column(String)
 
-    # [이동됨] Detail에서 자주 쓰는 핵심 통계 4개를 Main으로 이동
+    # [최적화] 자주 쓰는 핵심 데이터 Main으로 이동
     total_enemies = Column(Integer, default=0)
     death_wave_kills = Column(Integer, default=0)
     spotlight_kills = Column(Integer, default=0)
     golden_bot_kills = Column(Integer, default=0)
+    
+    # [최적화] 리스트용 순위 데이터 (JSONB)
+    top_damages = Column(JSONB, default=[])
 
     notes = Column(Text, nullable=True)
 
@@ -82,9 +85,7 @@ class BattleDetail(Base):
         ),
     )
     
-    # [제거됨] 4개 컬럼이 Main으로 이동했으므로 여기서는 제거
-    
-    # 무거운 JSON 데이터만 남김
+    # 무거운 원본 JSON 데이터만 유지
     combat_json = Column(JSONB)
     utility_json = Column(JSONB)
     enemy_json = Column(JSONB)
