@@ -1,9 +1,6 @@
 # back/crud/report_utils.py
 from .utils import parse_game_number_safe 
 
-# parse_top_damages 함수는 이제 리스트 조회에서는 안 쓰지만, 
-# 혹시 다른 곳(상세 조회 등)에서 쓸 수도 있으니 그대로 둬도 상관없습니다.
-
 def row_to_report_dict(row):
     """DB row를 BattleMainResponse 호환 딕셔너리로 변환"""
     
@@ -26,8 +23,6 @@ def row_to_report_dict(row):
         "damage_taken": row.damage_taken,
         "notes": row.notes,
         
-        # [수정] 옛날 로직(json 파싱) 삭제 -> DB 컬럼 직접 연결
-        # 기존: "top_damages": parse_top_damages(row.combat_json) ... (X)
         "top_damages": getattr(row, "top_damages", []), 
         
         "death_wave_ratio": format_ratio(getattr(row, "death_wave_ratio", None)),
