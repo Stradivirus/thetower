@@ -3,7 +3,8 @@ import fcntl
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
+# [수정] 리플리카 엔진(engine_read) 추가 임포트 (종료 시 리소스 정리용)
+from database import engine, engine_read, Base
 # [Modified] support 라우터 추가
 from routers import reports, auth, progress, modules, support
 from contextlib import asynccontextmanager
@@ -20,6 +21,8 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["300/minute"]
 )
+
+# 테이블 생성은 Main DB(engine)에서만 수행 (Replica는 자동 동기화됨)
 Base.metadata.create_all(bind=engine)
 
 # 스케줄러 인스턴스
@@ -58,6 +61,12 @@ async def lifespan(app: FastAPI):
     if scheduler.running:
         scheduler.shutdown()
     lock_file.close()
+
+    # [추가] DB 커넥션 풀 정리 (Main & Replica)
+    # 서버 종료 시 열려있는 DB 연결을 안전하게 닫습니다.
+    engine.dispose()
+    engine_read.dispose()
+    print("[System] DB Connection Pools Disposed")
 
 # lifespan 적용
 app = FastAPI(title="The Tower Battle Reports API", lifespan=lifespan)

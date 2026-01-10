@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Form, BackgroundTasks
 from sqlalchemy.orm import Session
-from database import get_db, get_db_read
+# [수정] get_db_read 삭제, get_db_replica 사용
+from database import get_db, get_db_replica
 from schemas import (
     BattleMainResponse, 
     FullReportResponse, 
@@ -18,7 +19,7 @@ import slack
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
-# 1. 생성 (POST)
+# 1. 생성 (POST) - Main DB
 @router.post("/", response_model=BattleMainResponse)
 def create_report(
     report_text: str = Form(...), 
@@ -44,12 +45,13 @@ def create_report(
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# 2. 통계 및 목록 조회
+# 2. 통계 및 목록 조회 
+# [변경] 리스트/통계는 성능이 좋은 Main DB(get_db)를 사용합니다.
 
 # 기록실 메인 뷰 (최근 7일 상세 + 월별 요약)
 @router.get("/view", response_model=HistoryViewResponse)
 def get_history_view_api(
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db), # get_db_read -> get_db 변경
     current_user: User = Depends(get_current_user)
 ):
     return crud.get_history_view(db, current_user.id)
@@ -58,7 +60,7 @@ def get_history_view_api(
 @router.get("/month/{month_key}", response_model=List[BattleMainResponse])
 def get_reports_by_month_api(
     month_key: str,
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db), # get_db_read -> get_db 변경
     current_user: User = Depends(get_current_user)
 ):
     # month_key validation (YYYY-MM)
@@ -71,7 +73,7 @@ def get_reports_by_month_api(
 
 @router.get("/recent", response_model=List[BattleMainResponse])
 def get_recent_reports(
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db), # get_db_read -> get_db 변경
     current_user: User = Depends(get_current_user)
 ):
     return crud.get_recent_reports(db, current_user.id)
@@ -87,32 +89,33 @@ def get_history_reports(
 
 @router.get("/weekly-stats", response_model=WeeklyStatsResponse)
 def get_weekly_stats_api(
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db), # get_db_read -> get_db 변경
     current_user: User = Depends(get_current_user)
 ):
     return crud.get_weekly_stats(db, current_user.id)
 
 @router.get("/weekly-trends", response_model=WeeklyTrendResponse)
 def get_weekly_trends_api(
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db), # get_db_read -> get_db 변경
     current_user: User = Depends(get_current_user)
 ):
     return crud.get_weekly_trends(db, current_user.id)
 
-# [New] 월간 트렌드 API
+# 월간 트렌드 API
 @router.get("/monthly-trends")
 def get_monthly_trends_api(
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db), # get_db_read -> get_db 변경
     current_user: User = Depends(get_current_user)
 ):
     return crud.get_monthly_trends(db, current_user.id)
 
 # 3. 상세 조회 및 삭제
 
+# [유지] 무거운 JSON 데이터를 가져오는 상세 조회는 Standby DB(get_db_replica) 사용
 @router.get("/{battle_date}", response_model=FullReportResponse)
 def get_report_detail(
     battle_date: str, 
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db_replica),  # Replica DB 사용
     current_user: User = Depends(get_current_user)
 ):
     try:
@@ -127,7 +130,7 @@ def get_report_detail(
 @router.delete("/{battle_date}")
 def delete_report(
     battle_date: str,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db), # 삭제는 Main DB
     current_user: User = Depends(get_current_user)
 ):
     try:

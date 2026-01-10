@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from database import get_db, get_db_read
+# [수정] get_db_read 삭제 -> get_db만 사용
+from database import get_db
 import schemas, crud
 from models import User
 from auth import get_current_user
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/api/progress", tags=["progress"])
 
 @router.get("/", response_model=schemas.ProgressResponse)
 def get_progress(
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_db), # [수정] Main DB 사용
     current_user: User = Depends(get_current_user)
 ):
     progress = crud.get_user_progress(db, current_user.id)
