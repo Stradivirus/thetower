@@ -1,5 +1,4 @@
 services:
-  # --- 1. Backend Service (FastAPI) ---
   backend:
     build:
       context: ../
@@ -19,7 +18,6 @@ services:
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
       SLACK_INQUIRY_URL: ${SLACK_INQUIRY_URL}
 
-  # --- 2. Frontend Service (React Build + Caddy Server) ---
   frontend:
     build:
       context: ../

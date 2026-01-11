@@ -43,10 +43,9 @@ class UserModulesResponse(UserModulesBase):
 
 # 3. 전투 기록 (Report)
 
-class BattleMainResponse(BaseModel):
-    battle_date: datetime
-    created_at: Optional[datetime] = None
-    
+# [필수 추가] 이게 없으면 422 에러가 납니다!
+class BattleCreate(BaseModel):
+    battle_date: str
     tier: str
     wave: int
     game_time: str
@@ -61,16 +60,38 @@ class BattleMainResponse(BaseModel):
     damage_dealt: str
     damage_taken: str
     
-    notes: Optional[str] = None
-    
-    # [변경] 순위 이름만 리스트로 전달 (예: ["가시", "투사체", "지뢰"])
     top_damages: List[str] = [] 
     
-    # 비율 데이터
     death_wave_ratio: Optional[str] = None
     spotlight_ratio: Optional[str] = None
     golden_bot_ratio: Optional[str] = None
 
+    combat_json: Dict[str, Any] = {}
+    utility_json: Dict[str, Any] = {}
+    enemy_json: Dict[str, Any] = {}
+    bot_json: Dict[str, Any] = {}
+
+    notes: Optional[str] = None
+
+class BattleMainResponse(BaseModel):
+    battle_date: datetime
+    created_at: Optional[datetime] = None
+    tier: str
+    wave: int
+    game_time: str
+    real_time: str
+    coin_earned: int
+    coins_per_hour: int
+    cells_earned: int
+    reroll_shards_earned: int
+    killer: str
+    damage_dealt: str
+    damage_taken: str
+    notes: Optional[str] = None
+    top_damages: List[str] = [] 
+    death_wave_ratio: Optional[str] = None
+    spotlight_ratio: Optional[str] = None
+    golden_bot_ratio: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -123,7 +144,7 @@ class HistoryViewResponse(BaseModel):
 class TierRecordSchema(BaseModel):
     tier: int
     max_wave: int
-    my_wave: int = 0
+    my_wave: int = 0  # [추가] 내 최고 기록
 
     class Config:
         from_attributes = True
