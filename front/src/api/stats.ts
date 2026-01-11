@@ -4,6 +4,7 @@ import { API_BASE_URL, fetchWithAuth } from '../utils/apiConfig';
 export interface TierRecord {
   tier: number;
   max_wave: number;
+  my_wave: number; // [추가] 내 최고 기록
 }
 
 export const getGlobalMaxWaves = async (): Promise<TierRecord[]> => {
@@ -13,7 +14,6 @@ export const getGlobalMaxWaves = async (): Promise<TierRecord[]> => {
     return await response.json();
   }
   
-  // 에러 발생 시 빈 배열 반환 혹은 에러 던지기
   console.error("Failed to fetch max waves status:", response.status);
   return [];
 };

@@ -1,3 +1,5 @@
+// front/src/components/Main/TierRecordWidget.tsx
+
 import React, { useEffect, useState } from 'react';
 import { getGlobalMaxWaves, type TierRecord } from '../../api/stats';
 import { ChevronDown, ChevronUp, Settings, X, Trophy } from 'lucide-react';
@@ -12,7 +14,6 @@ const TierRecordWidget: React.FC = () => {
   const [minTier, setMinTier] = useState(1);
   const [showSettings, setShowSettings] = useState(false);
   
-  // 로그인 상태 확인
   const token = localStorage.getItem('access_token');
 
   useEffect(() => {
@@ -74,7 +75,7 @@ const TierRecordWidget: React.FC = () => {
       <div className="flex items-center justify-between p-3 border-b border-gray-700">
         <div className="flex items-center gap-2">
           <Trophy size={18} className="text-yellow-400" />
-          <span className="text-yellow-400 font-bold">서버 최고 기록</span>
+          <span className="text-yellow-400 font-bold">최고 기록</span>
         </div>
         <div className="flex items-center gap-1">
           <button 
@@ -107,7 +108,6 @@ const TierRecordWidget: React.FC = () => {
             <input 
               type="number" 
               min="1" 
-              // [수정] 20 -> 30으로 확장 (고티어 대비)
               max="30" 
               value={minTier} 
               onChange={handleMinTierChange}
@@ -117,24 +117,32 @@ const TierRecordWidget: React.FC = () => {
         </div>
       )}
 
-      {/* 기록 리스트 */}
+      {/* 기록 리스트 (3단 컬럼) */}
       {isExpanded && (
-        // [수정] max-h, overflow, scrollbar 관련 클래스 모두 제거 -> 내용만큼 쭉 늘어남
         <div className="p-2">
           {filteredRecords.length === 0 ? (
             <div className="text-center text-gray-500 py-4 text-sm">기록 없음</div>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-400 border-b border-gray-700">
-                  <th className="pb-2 text-left pl-2">티어</th>
-                  <th className="pb-2 text-right pr-2">Max Wave</th>
+                  <th className="pb-2 text-left pl-2 w-1/4">티어</th>
+                  <th className="pb-2 text-right w-1/3">내 기록</th>
+                  <th className="pb-2 text-right pr-2 w-1/3">최고 기록</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRecords.map((record) => (
                   <tr key={record.tier} className="hover:bg-gray-800/50 transition-colors">
-                    <td className="py-2 pl-2 text-gray-300">Tier {record.tier}</td>
+                    {/* 티어 */}
+                    <td className="py-2 pl-2 text-gray-300">T{record.tier}</td>
+                    
+                    {/* 내 기록 (초록색) */}
+                    <td className="py-2 text-right font-mono font-bold text-green-400">
+                      {record.my_wave > 0 ? record.my_wave.toLocaleString() : '-'}
+                    </td>
+
+                    {/* 서버 기록 (파란색) */}
                     <td className="py-2 pr-2 text-right font-mono font-bold text-blue-400">
                       {record.max_wave.toLocaleString()}
                     </td>

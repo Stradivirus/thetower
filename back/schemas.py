@@ -123,6 +123,7 @@ class HistoryViewResponse(BaseModel):
 class TierRecordSchema(BaseModel):
     tier: int
     max_wave: int
+    my_wave: int = 0
 
     class Config:
         from_attributes = True
