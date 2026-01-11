@@ -58,13 +58,11 @@ class BattleMain(Base):
     damage_dealt = Column(String)
     damage_taken = Column(String)
 
-    # [최적화] 자주 쓰는 핵심 데이터 Main으로 이동
     total_enemies = Column(Integer, default=0)
     death_wave_kills = Column(Integer, default=0)
     spotlight_kills = Column(Integer, default=0)
     golden_bot_kills = Column(Integer, default=0)
     
-    # [최적화] 리스트용 순위 데이터 (JSONB)
     top_damages = Column(JSONB, default=[])
 
     notes = Column(Text, nullable=True)
@@ -92,3 +90,9 @@ class BattleDetail(Base):
     bot_json = Column(JSONB)
     
     main = relationship("BattleMain", back_populates="detail")
+
+class TierRecord(Base):
+    __tablename__ = "tier_records"
+
+    tier = Column(Integer, primary_key=True, index=True) # 티어가 고유 ID 역할
+    max_wave = Column(Integer, nullable=False)

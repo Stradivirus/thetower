@@ -3,10 +3,9 @@ import fcntl
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-# [수정] 리플리카 엔진(engine_read) 추가 임포트 (종료 시 리소스 정리용)
 from database import engine, engine_read, Base
-# [Modified] support 라우터 추가
 from routers import reports, auth, progress, modules, support
+from routers import max_wave as max_wave_router
 from contextlib import asynccontextmanager
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -62,8 +61,6 @@ async def lifespan(app: FastAPI):
         scheduler.shutdown()
     lock_file.close()
 
-    # [추가] DB 커넥션 풀 정리 (Main & Replica)
-    # 서버 종료 시 열려있는 DB 연결을 안전하게 닫습니다.
     engine.dispose()
     engine_read.dispose()
     print("[System] DB Connection Pools Disposed")
@@ -93,6 +90,7 @@ app.include_router(reports.router)
 app.include_router(progress.router)
 app.include_router(modules.router)
 app.include_router(support.router)
+app.include_router(max_wave_router.router)
 
 @app.get("/")
 def root():

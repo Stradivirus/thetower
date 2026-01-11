@@ -21,9 +21,12 @@ from .report import (
     get_full_report,
     delete_battle_record
 )
-# [수정] 삭제된 함수 제거
 from .stats import (
     get_weekly_stats,
     get_weekly_trends,
     get_monthly_trends
+)
+from .max_wave import (
+    get_all_tier_records,
+    update_tier_record
 )

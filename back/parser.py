@@ -1,6 +1,8 @@
 # back/parser.py
 import re
 from datetime import datetime
+from sqlalchemy.orm import Session
+from crud import max_wave as max_wave_crud
 
 def parse_number(value_str: str):
     if not value_str: return 0
@@ -23,13 +25,12 @@ def parse_number(value_str: str):
     except ValueError:
         return 0
 
-# [수정] 제외 목록에서 "죽음의 광선" 제거
 def calculate_top_damages(combat_json: dict):
     if not combat_json: return []
     
     exclude_names = [
         "입힌", "받은", "장벽이 받은", "회복 패키지", "생명력 흡수", "죽음 저항",
-        "오브", "블랙홀"  # [확인] 죽음의 광선은 뺐습니다
+        "오브", "블랙홀"
     ]
     
     top_damages = []
@@ -52,7 +53,6 @@ def calculate_top_damages(combat_json: dict):
     
     top_damages.sort(key=lambda x: x['raw'], reverse=True)
     
-    # 이름만 리스트로 반환
     return [item['name'] for item in top_damages[:3]]
 
 def parse_battle_report(text: str) -> dict:
@@ -117,8 +117,6 @@ def parse_battle_report(text: str) -> dict:
         'death_wave_kills': parse_number(comb.get('데스웨이브에 의해 표시됨', '0')),
         'spotlight_kills': parse_number(enemy.get('스포트라이트로 파괴함', '0')),
         'golden_bot_kills': parse_number(bot.get('황금 봇에서 파괴됨', '0')),
-        
-        # 순위 저장 (이름 리스트만)
         'top_damages': calculate_top_damages(comb) 
     }
     
@@ -130,3 +128,16 @@ def parse_battle_report(text: str) -> dict:
     }
 
     return {'main': main_data, 'detail': detail_data}
+
+# [추가] 파싱된 데이터를 기반으로 최고 기록을 갱신하는 헬퍼 함수
+def update_server_max_wave(db: Session, main_data: dict):
+    try:
+        tier_str = str(main_data.get('tier', '1'))
+        # "T1", "티어 1" 등에서 숫자만 추출
+        tier_val = int(re.search(r'\d+', tier_str).group())
+        wave_val = int(main_data.get('wave', 0))
+
+        if tier_val > 0 and wave_val > 0:
+            max_wave_crud.update_tier_record(db, tier=tier_val, wave=wave_val)
+    except Exception as e:
+        print(f"Global Max Wave Update Failed: {e}")

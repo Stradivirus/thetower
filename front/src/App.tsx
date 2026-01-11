@@ -1,13 +1,17 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { User } from 'lucide-react';
-import { getRecentReports } from './api/reports'; // [Modified] getRecentReports만 사용
+import { getRecentReports } from './api/reports';
 import type { BattleMain } from './types/report';
 import ReportInputModal from './components/Detail/ReportInputModal';
 import AuthModal from './components/Auth/AuthModal';
 import NavBar from './components/Layout/NavBar';
 import { GameDataProvider } from './contexts/GameDataContext';
 import SupportButton from './components/Layout/SupportButton';
+
+// [추가] 위젯 임포트
+import TierRecordWidget from './components/Main/TierRecordWidget'; 
+
 // 페이지 Lazy Loading
 const MainPage = lazy(() => import('./pages/MainPage'));
 const HistoryPage = lazy(() => import('./pages/HistoryPage'));
@@ -39,13 +43,12 @@ const ReportDetailWrapper = () => {
 };
 
 export default function App() {
-  // [Modified] 전체 reports 대신 최근 리포트(recentReports)만 상태 관리
   const [recentReports, setRecentReports] = useState<BattleMain[]>([]);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  
   const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
 
-  // [Modified] 최근 데이터만 로드하도록 변경
   const loadRecentData = async () => {
     try {
       const data = await getRecentReports(); 
@@ -60,12 +63,9 @@ export default function App() {
     else setRecentReports([]);
   }, [token]);
 
-  // [Removed] useMemo로 recent/past 나누던 로직 제거 (백엔드가 이미 분리함)
-
   useEffect(() => {
     const handleAuthExpired = () => {
       handleLogout();
-      // [Modified] alert 제거하고 바로 로그인 모달 열기
       setIsAuthModalOpen(true);
     };
     window.addEventListener('auth:expired', handleAuthExpired);
@@ -96,6 +96,9 @@ export default function App() {
             onOpenReport={() => setIsReportModalOpen(true)}
           />
 
+          {/* [추가] 위젯 배치 (로그인 토큰이 있을 때만 렌더링되게 하려면 조건부 렌더링도 가능하지만, 위젯 내부에서 처리함) */}
+          <TierRecordWidget />
+
           <main className="max-w-6xl mx-auto px-4 md:px-6 py-8">
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
@@ -105,7 +108,6 @@ export default function App() {
                   ) : <LoginRequired onOpenAuth={() => setIsAuthModalOpen(true)} />
                 } />
 
-                {/* [Modified] HistoryPage에 props 전달 제거 (자체 로딩) */}
                 <Route path="/history" element={
                   token ? (
                     <HistoryPage /> 

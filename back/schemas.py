@@ -119,3 +119,10 @@ class MonthlySummary(BaseModel):
 class HistoryViewResponse(BaseModel):
     recent_reports: List[BattleMainResponse]  # 최근 7일치 상세
     monthly_summaries: List[MonthlySummary]   # 그 이전 월별 요약
+
+class TierRecordSchema(BaseModel):
+    tier: int
+    max_wave: int
+
+    class Config:
+        from_attributes = True
