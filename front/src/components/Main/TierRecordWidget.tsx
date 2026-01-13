@@ -6,12 +6,14 @@ import { ChevronDown, ChevronUp, Settings, X, Trophy } from 'lucide-react';
 
 const STORAGE_KEY_VISIBLE = 'tier_widget_visible';
 const STORAGE_KEY_MIN_TIER = 'tier_widget_min_tier';
+const STORAGE_KEY_MAX_TIER = 'tier_widget_max_tier'; // 추가됨
 
 const TierRecordWidget: React.FC = () => {
   const [records, setRecords] = useState<TierRecord[]>([]);
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
   const [minTier, setMinTier] = useState(1);
+  const [maxTier, setMaxTier] = useState(20); // 기본 최대 티어 설정 (예: 20)
   const [showSettings, setShowSettings] = useState(false);
   
   const token = localStorage.getItem('access_token');
@@ -36,9 +38,11 @@ const TierRecordWidget: React.FC = () => {
 
     const savedVisible = localStorage.getItem(STORAGE_KEY_VISIBLE);
     const savedMinTier = localStorage.getItem(STORAGE_KEY_MIN_TIER);
+    const savedMaxTier = localStorage.getItem(STORAGE_KEY_MAX_TIER);
     
     if (savedVisible !== null) setIsVisible(savedVisible === 'true');
     if (savedMinTier !== null) setMinTier(parseInt(savedMinTier, 10));
+    if (savedMaxTier !== null) setMaxTier(parseInt(savedMaxTier, 10));
   }, [token]);
 
   const toggleVisibility = () => {
@@ -51,6 +55,12 @@ const TierRecordWidget: React.FC = () => {
     const val = parseInt(e.target.value, 10) || 1;
     setMinTier(val);
     localStorage.setItem(STORAGE_KEY_MIN_TIER, String(val));
+  };
+
+  const handleMaxTierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value, 10) || 20;
+    setMaxTier(val);
+    localStorage.setItem(STORAGE_KEY_MAX_TIER, String(val));
   };
 
   if (!token) return null;
@@ -68,7 +78,8 @@ const TierRecordWidget: React.FC = () => {
   }
 
   const safeRecords = Array.isArray(records) ? records : [];
-  const filteredRecords = safeRecords.filter(r => r.tier >= minTier);
+  // 최소 티어와 최대 티어 사이의 기록만 필터링
+  const filteredRecords = safeRecords.filter(r => r.tier >= minTier && r.tier <= maxTier);
 
   return (
     <div className="fixed right-6 top-24 w-64 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-2xl z-40 transition-all">
@@ -102,15 +113,26 @@ const TierRecordWidget: React.FC = () => {
       </div>
 
       {showSettings && isExpanded && (
-        <div className="p-3 bg-gray-800 border-b border-gray-700 text-sm">
+        <div className="p-3 bg-gray-800 border-b border-gray-700 text-sm space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-gray-300">최소 티어 보기:</label>
+            <label className="text-gray-300">최소 티어:</label>
             <input 
               type="number" 
               min="1" 
               max="30" 
               value={minTier} 
               onChange={handleMinTierChange}
+              className="w-16 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-center text-white focus:outline-none focus:border-blue-500"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <label className="text-gray-300">최대 티어:</label>
+            <input 
+              type="number" 
+              min="1" 
+              max="30" 
+              value={maxTier} 
+              onChange={handleMaxTierChange}
               className="w-16 bg-gray-700 border border-gray-600 rounded px-2 py-1 text-center text-white focus:outline-none focus:border-blue-500"
             />
           </div>
