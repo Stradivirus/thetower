@@ -15,7 +15,3 @@ def create_user(db: Session, user: schemas.UserCreate, hashed_password: str):
 
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(User).offset(skip).limit(limit).all()
-
-def get_active_user_count(db: Session) -> int:
-    # is_active가 1인 유저만 카운트
-    return db.query(User).filter(User.is_active == 1).count()
