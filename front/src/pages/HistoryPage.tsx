@@ -90,7 +90,7 @@ export default function HistoryPage() {
       const lower = searchTerm.toLowerCase();
       result = result.filter(r => 
         r.notes?.toLowerCase().includes(lower) || 
-        r.killer?.toLowerCase().includes(lower) ||
+        r.killer?.toLowerCase().includes(lower) || 
         r.tier?.toLowerCase().includes(lower) ||
         r.battle_date.includes(searchTerm)
       );
@@ -150,7 +150,7 @@ export default function HistoryPage() {
 
   const totalCount = filteredReports.length;
   
-  // [수정됨] searchTerm 앞에 !!를 붙여서 boolean 타입으로 강제 변환
+  // [수정 1] !!searchTerm을 사용하여 boolean 타입으로 강제 변환 (타입 에러 해결)
   const isFilterActive = !!searchTerm || tournamentFilter !== 'all' || onlyMemo;
 
   return (
@@ -221,9 +221,16 @@ export default function HistoryPage() {
                 </span>
             </button>
 
-            {/* 메모만 보기 버튼 */}
+            {/* [수정 2] 메모만 보기 버튼 클릭 시 -> 리스트 뷰로 자동 전환 */}
             <button
-                onClick={() => setOnlyMemo(!onlyMemo)}
+                onClick={() => {
+                   const nextOnlyMemo = !onlyMemo;
+                   setOnlyMemo(nextOnlyMemo);
+                   // 메모 필터를 켜는 순간, 사용자가 편하게 볼 수 있도록 리스트 뷰로 전환
+                   if (nextOnlyMemo) {
+                     setViewMode('list');
+                   }
+                }}
                 className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs transition-all whitespace-nowrap shadow-sm ${
                 onlyMemo
                 ? 'bg-blue-500/10 border-blue-500/50 text-blue-400' 
