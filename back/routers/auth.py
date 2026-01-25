@@ -26,14 +26,6 @@ def register(
     hashed_pw = auth.get_password_hash(user.password)
     new_user = crud.create_user(db=db, user=user, hashed_password=hashed_pw)
 
-    try:
-        total_count = crud.count_users(db)
-        if total_count % 10 == 0:
-            msg = f"🚀 [축] {total_count}번째 사용자가 가입했습니다!"
-            background_tasks.add_task(slack.send_slack_notification, msg)
-    except Exception as e:
-        print(f"Notification Check Error: {e}")
-
     return new_user
 
 @router.post("/login", response_model=schemas.Token)
