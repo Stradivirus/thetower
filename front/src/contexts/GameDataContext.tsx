@@ -11,7 +11,7 @@ interface GameDataContextType {
   refreshData: () => Promise<void>;
   setProgress: (newProgress: UserProgress) => void;
   setModules: (newModules: UserModules) => void;
-  isLoggedIn: boolean; // [추가] 로그인 상태 노출
+  isLoggedIn: boolean;
 }
 
 const GameDataContext = createContext<GameDataContextType | null>(null);
@@ -27,7 +27,6 @@ export function GameDataProvider({ children, token }: ProviderProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // [추가] 토큰 존재 여부로 로그인 상태 판단
   const isLoggedIn = !!token;
 
   const loadData = useCallback(async () => {
@@ -55,11 +54,14 @@ export function GameDataProvider({ children, token }: ProviderProps) {
       }
 
       if (modulesData) {
+        // 1. 장착된 모듈 데이터 복사
         const mergedModules: any = { ...(modulesData.equipped_json || {}) };
         
+        // 2. 인벤토리 데이터 병합
         const inventory = modulesData.inventory_json || {};
         Object.entries(inventory).forEach(([name, data]: [string, any]) => {
-            mergedModules[`owned_${name}`] = data.rarity; 
+            // [Fix] data.rarity만 뽑지 않고, 객체 전체(effects 포함)를 저장
+            mergedModules[`owned_${name}`] = data; 
         });
 
         setModules(mergedModules);
@@ -96,7 +98,7 @@ export function GameDataProvider({ children, token }: ProviderProps) {
         refreshData,
         setProgress,
         setModules,
-        isLoggedIn // [추가] Provider에 값 전달
+        isLoggedIn 
       }}
     >
       {children}

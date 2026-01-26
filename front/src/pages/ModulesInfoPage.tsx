@@ -8,13 +8,35 @@ import ModuleHeader from '../components/Modules/ModuleHeader';
 import ModuleRerollView from '../components/Modules/RerollPanel';
 import ModuleDetailModal from '../components/Modules/ModuleDetailModal';
 
+// [Helper] 모듈 상태를 서버 전송용 JSON 포맷으로 변환하는 함수
+const generateSavePayload = (modulesData: any) => {
+  const inventory_json: Record<string, any> = {};
+  const equipped_json: Record<string, any> = {};
+
+  Object.entries(modulesData).forEach(([key, value]: [string, any]) => {
+      if (key.startsWith('equipped_')) {
+          equipped_json[key] = value;
+      } else if (key.startsWith('owned_')) {
+          const realName = key.replace('owned_', '');
+          if (typeof value === 'number') {
+            inventory_json[realName] = { rarity: value, effects: [] };
+          } else {
+            inventory_json[realName] = value;
+          }
+      }
+  });
+  return { inventory_json, equipped_json };
+};
+
 export default function ModulesInfoPage() {
   const [isChanged, setIsChanged] = useState(false);
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   
+  // [New] 저장 중 로딩 상태
+  const [isSaving, setIsSaving] = useState(false);
+  
   const [viewMode, setViewMode] = useState<'equipped' | 'inventory' | 'reroll'>('equipped');
 
-  // 모달 상태 관리
   const [detailModal, setDetailModal] = useState<{
     isOpen: boolean;
     type: string;
@@ -36,58 +58,49 @@ export default function ModulesInfoPage() {
 
   // --- Data Logic ---
 
+  // 전체 저장 (상단 헤더 버튼용)
   const handleSaveProgress = async () => {
     if (!token) { alert("로그인이 필요합니다."); return; }
     
     if (isChanged) {
       try {
-          const inventory_json: Record<string, any> = {};
-          const equipped_json: Record<string, any> = {};
-
-          Object.entries(modules).forEach(([key, value]) => {
-              if (key.startsWith('equipped_')) {
-                  equipped_json[key] = value;
-              } else if (key.startsWith('owned_')) {
-                  const realName = key.replace('owned_', '');
-                  // 데이터 구조가 숫자면 객체로 변환하여 저장 (호환성)
-                  if (typeof value === 'number') {
-                    inventory_json[realName] = { rarity: value, effects: [] };
-                  } else {
-                    inventory_json[realName] = value;
-                  }
-              }
-          });
-
-          await saveModules({ inventory_json, equipped_json });
+          setIsSaving(true);
+          const payload = generateSavePayload(modules);
+          await saveModules(payload);
           
           localStorage.setItem('thetower_modules', JSON.stringify(modules));
           setIsChanged(false);
           console.log("Modules saved successfully");
+          setIsSummaryOpen(true); // 저장 성공 시 요약 모달 오픈
       } catch (e) { 
           console.error("Save failed", e); 
           alert("저장에 실패했습니다."); 
-          return; 
+      } finally {
+          setIsSaving(false);
       }
+    } else {
+       setIsSummaryOpen(true);
     }
-    
-    setIsSummaryOpen(true);
   };
 
   // --- Interaction Handlers ---
 
-  // 1. 모듈 클릭 시 모달 열기
   const handleModuleClick = (type: string, name: string, data: any) => {
     setDetailModal({
       isOpen: true,
       type,
       name,
-      data: data // data가 undefined면 모달 내부에서 초기값(Ancestral) 처리
+      data: data 
     });
   };
 
-  // 2. 모달: 저장
-  const handleModalSave = (newData: { rarity: number; effects: string[] }) => {
+  // [Fix] 2. 모달: 즉시 저장 (DB 반영)
+  const handleModalSave = async (newData: { rarity: number; effects: string[] }) => {
+    if (!token) { alert("로그인이 필요합니다."); return; }
+
     const { name, type } = detailModal;
+    
+    // 1. 새로운 로컬 상태 미리 계산 (낙관적 업데이트 준비)
     const newState = { ...modules };
 
     // 보유 목록 업데이트
@@ -104,21 +117,38 @@ export default function ModulesInfoPage() {
       newState[subKey] = { name, ...newData };
     }
 
-    setModules(newState);
-    setIsChanged(true);
-    
-    setDetailModal(prev => ({ ...prev, data: newData }));
+    // 2. DB 저장 시도
+    try {
+      setIsSaving(true);
+      
+      // 계산된 newState를 기준으로 페이로드 생성
+      const payload = generateSavePayload(newState);
+      await saveModules(payload);
+
+      // 3. 성공 시: 로컬 상태 업데이트 및 로컬 스토리지 동기화
+      setModules(newState);
+      localStorage.setItem('thetower_modules', JSON.stringify(newState));
+      
+      // 모달 데이터 업데이트 (UI 반영)
+      setDetailModal(prev => ({ ...prev, data: newData }));
+      
+      console.log("Module updated and saved to DB");
+      setDetailModal(prev => ({ ...prev, isOpen: false })); // 저장 후 닫기
+      
+    } catch (e) {
+      console.error("Modal Instant Save Failed", e);
+      alert("오류가 발생하여 저장하지 못했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  // 3. 모달: 삭제
   const handleModalDelete = () => {
     const { name, type } = detailModal;
     const newState = { ...modules };
 
-    // 보유 목록 삭제
     delete newState[`owned_${name}`];
 
-    // 장착 해제
     const mainKey = `equipped_${type}_main`;
     const subKey = `equipped_${type}_sub`;
 
@@ -130,11 +160,9 @@ export default function ModulesInfoPage() {
     setDetailModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // 4. 모달: 장착
   const handleModalEquip = (slot: 'main' | 'sub') => {
     const { name, type, data } = detailModal;
     
-    // 서브 슬롯 잠금 확인
     if (slot === 'sub') {
        const unlockKey = `module_unlock_${slotIdMap[type]}`;
        const unlockLevel = progress[unlockKey] || 0;
@@ -145,23 +173,17 @@ export default function ModulesInfoPage() {
     }
 
     const newState = { ...modules };
-    
-    const targetKey = `equipped_${type}_${slot}`;     // 장착 목표 슬롯
+    const targetKey = `equipped_${type}_${slot}`;
     const otherSlot = slot === 'main' ? 'sub' : 'main';
-    const otherKey = `equipped_${type}_${otherSlot}`; // 반대편 슬롯
+    const otherKey = `equipped_${type}_${otherSlot}`;
 
-    // 반대편 슬롯에 '나' 자신이 있다면 제거 (이동 처리)
     if (newState[otherKey]?.name === name) {
       delete newState[otherKey];
     }
 
-    // 장착 데이터 준비
     const moduleDataToEquip = { name, ...(data || { rarity: 5, effects: [] }) };
-
-    // 목표 슬롯에 장착
     newState[targetKey] = moduleDataToEquip;
     
-    // 보유 리스트(owned) 안전장치
     if (!newState[`owned_${name}`]) {
        newState[`owned_${name}`] = { 
          rarity: moduleDataToEquip.rarity, 
@@ -173,7 +195,6 @@ export default function ModulesInfoPage() {
     setIsChanged(true);
   };
 
-  // 5. 모달: 장착 해제
   const handleModalUnequip = () => {
     const { name, type } = detailModal;
     const newState = { ...modules };
@@ -188,7 +209,6 @@ export default function ModulesInfoPage() {
     setIsChanged(true);
   };
 
-  // 현재 모달에 띄운 모듈의 장착 상태 확인 Helper
   const getEquipStatus = () => {
     if (!detailModal.isOpen) return null;
     const { name, type } = detailModal;
@@ -229,7 +249,6 @@ export default function ModulesInfoPage() {
         </div>
       )}
 
-      {/* [Fix] modulesState prop 제거 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
@@ -247,6 +266,7 @@ export default function ModulesInfoPage() {
         onEquip={handleModalEquip}
         onUnequip={handleModalUnequip}
         equipStatus={getEquipStatus()}
+        isSaving={isSaving} 
       />
     </div>
   );

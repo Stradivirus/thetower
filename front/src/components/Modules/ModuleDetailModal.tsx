@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Save, Trash2, Shield, Zap, Target, Cpu } from 'lucide-react';
+import { X, Save, Trash2, Shield, Zap, Target, Cpu, Loader2 } from 'lucide-react'; // [New] Loader2 아이콘 추가
 import { RARITIES, RARITY } from './ModuleConstants';
 import { MODULE_TYPES } from '../../data/module_reroll_data'; 
 import SlotViewer, { type SimulationSlot } from './Reroll/SlotViewer';
@@ -17,6 +17,7 @@ interface Props {
   onEquip: (slot: 'main' | 'sub') => void;
   onUnequip: () => void;
   equipStatus: 'main' | 'sub' | null;
+  isSaving: boolean; // [New] 저장 중 상태 Prop
 }
 
 export default function ModuleDetailModal({
@@ -29,20 +30,16 @@ export default function ModuleDetailModal({
   onDelete,
   onEquip,
   onUnequip,
-  equipStatus
+  equipStatus,
+  isSaving // [New]
 }: Props) {
-  // [Fix] currentData가 null이 아니고 객체인지 확인 (null check 필수)
+  
   const isDataObject = currentData && typeof currentData === 'object';
 
-  // [Fix] 초기값 설정 로직 개선
-  // 1. 객체 데이터가 유효하면 rarity 속성 사용
-  // 2. 숫자 데이터(레거시)면 그대로 사용
-  // 3. null/undefined면 기본값(ANCESTRAL) 사용
   const initialRarity = isDataObject 
     ? currentData.rarity 
     : (typeof currentData === 'number' ? currentData : RARITY.ANCESTRAL);
 
-  // [Fix] 객체일 때만 effects 접근, 아니면 빈 배열
   const initialEffects = isDataObject ? (currentData.effects || []) : [];
 
   const [rarity, setRarity] = useState<number>(initialRarity);
@@ -58,10 +55,10 @@ export default function ModuleDetailModal({
     });
     setEffects(filled);
     setRarity(initialRarity);
-  }, [currentData, isOpen]); // 의존성 배열에 계산된 값 대신 원본 사용, 내부에서 재계산됨
+  }, [currentData, isOpen]);
 
-  // ESC 키 처리
-  useEscKey(onClose, isOpen && !isSelectorOpen);
+  // ESC 키 처리 (저장 중이 아닐 때만 닫기 허용)
+  useEscKey(onClose, isOpen && !isSelectorOpen && !isSaving);
 
   const availableEffects = useMemo(() => {
     return MODULE_TYPES[moduleType] || [];
@@ -91,6 +88,7 @@ export default function ModuleDetailModal({
   }, [effects, availableEffects, rarity]);
 
   const handleSlotClick = (idx: number) => {
+    if (isSaving) return; // 저장 중 클릭 방지
     setSelectedSlotIdx(idx);
     setSelectorOpen(true);
   };
@@ -104,9 +102,10 @@ export default function ModuleDetailModal({
   };
 
   const handleSave = () => {
+    if (isSaving) return; // 중복 클릭 방지
     const cleanEffects = effects.filter(e => e !== null) as string[];
     onSave({ rarity, effects: cleanEffects });
-    onClose();
+    // [Fix] onClose는 이제 부모가 저장 성공 후 호출하거나, 사용자가 닫을 때만 호출
   };
 
   const Icon = moduleType === 'cannon' ? Target : 
@@ -119,7 +118,10 @@ export default function ModuleDetailModal({
 
   return (
     <div 
-      onClick={(e) => e.target === e.currentTarget && onClose()}
+      // 저장 중일 때는 배경 클릭 닫기 방지
+      onClick={(e) => { 
+        if (!isSaving && e.target === e.currentTarget) onClose(); 
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4 cursor-pointer"
     >
       <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] cursor-default">
@@ -135,13 +137,17 @@ export default function ModuleDetailModal({
               <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">{moduleType} Module</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full transition-colors">
+          <button 
+            onClick={onClose} 
+            disabled={isSaving}
+            className="text-slate-400 hover:text-white bg-slate-800 p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+        <div className={`flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
           
           {/* 1. Rarity Selector */}
           <div className="space-y-2">
@@ -154,6 +160,7 @@ export default function ModuleDetailModal({
                     <button
                       key={r}
                       onClick={() => setRarity(r)}
+                      disabled={isSaving}
                       className={`
                         py-2 px-1 rounded-lg border text-xs font-bold transition-all
                         ${isSelected 
@@ -193,12 +200,13 @@ export default function ModuleDetailModal({
           
           <button 
              onClick={() => { if(confirm('Delete this module?')) onDelete(); }}
-             className="flex items-center gap-2 px-4 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg text-sm font-bold transition-colors"
+             disabled={isSaving}
+             className="flex items-center gap-2 px-4 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
           >
             <Trash2 size={16} /> Delete
           </button>
 
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-3 ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
             {equipStatus === 'main' ? (
                <button onClick={onUnequip} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-700">
                  Unequip Main
@@ -223,9 +231,21 @@ export default function ModuleDetailModal({
 
             <button 
               onClick={handleSave}
-              className="flex items-center gap-2 px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-bold shadow-lg transition-all"
+              disabled={isSaving}
+              className={`
+                flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold shadow-lg transition-all
+                ${isSaving ? 'bg-green-800 text-green-200 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 text-white'}
+              `}
             >
-              <Save size={16} /> Save
+              {isSaving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <Save size={16} /> Save
+                </>
+              )}
             </button>
           </div>
         </div>
