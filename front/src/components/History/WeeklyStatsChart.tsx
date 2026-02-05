@@ -174,7 +174,18 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
             <XAxis dataKey="displayDate" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
-            <YAxis yAxisId="left" tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }} tickFormatter={(val) => formatNumber(val)} axisLine={false} tickLine={false} width={50} />
+            
+            {/* [Fix] 왼쪽 Y축(획득량) domain을 [0, 'auto']로 고정 */}
+            <YAxis 
+                yAxisId="left" 
+                tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }} 
+                tickFormatter={(val) => formatNumber(val)} 
+                axisLine={false} 
+                tickLine={false} 
+                width={50}
+                domain={[0, 'auto']} 
+            />
+            
             <YAxis yAxisId="right" orientation="right" tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 'bold' }} tickFormatter={(val) => `${val}%`} axisLine={false} tickLine={false} width={40} domain={['auto', 'auto']} />
             
             <Tooltip 
