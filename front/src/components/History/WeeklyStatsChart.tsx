@@ -175,11 +175,11 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
             <XAxis dataKey="displayDate" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} dy={10} />
             
-            {/* [Fix] 왼쪽 Y축(획득량) domain을 [0, 'auto']로 고정 */}
+            {/* [Fix] 왼쪽 Y축: 0일 경우 formatNumber를 거치지 않고 '0' 문자열 출력 */}
             <YAxis 
                 yAxisId="left" 
                 tick={{ fill: '#94a3b8', fontSize: 11, fontFamily: 'monospace' }} 
-                tickFormatter={(val) => formatNumber(val)} 
+                tickFormatter={(val) => val === 0 ? '0' : formatNumber(val)} 
                 axisLine={false} 
                 tickLine={false} 
                 width={50}
