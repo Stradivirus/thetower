@@ -139,7 +139,9 @@ export function useGrowthStats(dailyData: WeeklyStatsResponse | null, dailyLoadi
       const amount = resourceType === 'coin' ? d.total_coins : d.total_cells;
       const currentGrowth = resourceType === 'coin' ? d.coin_growth : d.cell_growth;
       
-      let trendValue: number | null = trendInfo.slope * i + trendInfo.intercept;
+      // [수정] 추세선 값이 음수가 나오지 않도록 Math.max(0, ...) 처리
+      let calculatedTrend = trendInfo.slope * i + trendInfo.intercept;
+      let trendValue: number | null = Math.max(0, calculatedTrend);
       
       // 월간 뷰의 마지막 달(진행 중)은 추세선 표시 안 함
       const isLastMonthly = (viewMode === 'monthly' && i === rawData.length - 1);
