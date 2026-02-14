@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import baseStats from '../../data/uw_base_stats.json';
 import plusStats from '../../data/uw_plus_stats.json';
 import labConfig from '../../data/uw_lab_config.json'; 
 import { stoneStyles as styles, formatNum, ResetButton } from './StoneShared';
 import { ToggleLeft, ToggleRight, FlaskConical } from 'lucide-react'; 
-import { T } from '../../locales'; // [추가] 언어팩 임포트
+import { T } from '../../locales';
 
 interface Props {
   category: 'base' | 'plus';
@@ -61,7 +61,6 @@ const LabCard = ({ labKey, labInfo, progress, updateProgress }: {
   );
 };
 
-
 export default function UwStatsTab({ category, progress, updateProgress, selectedUw, onSelectUw }: Props) {
   const statsData = category === 'base' ? baseStats : plusStats;
 
@@ -70,6 +69,13 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
     : (progress['unlocked_plus_weapons'] || []);
 
   const availableUwKeys = Object.keys(statsData).filter(key => unlockedList.includes(key));
+
+  // [수정] 선택된 무기를 배열의 맨 앞으로 이동시키는 로직
+  const sortedUwKeys = useMemo(() => {
+    if (!selectedUw) return availableUwKeys;
+    const filtered = availableUwKeys.filter(key => key !== selectedUw);
+    return [selectedUw, ...filtered];
+  }, [availableUwKeys, selectedUw]);
   
   const labStats = (labConfig as any)[selectedUw]; 
 
@@ -79,7 +85,6 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
     }
   }, [availableUwKeys, selectedUw, onSelectUw]);
 
-  // [수정] 무기 이름도 언어팩(UW_NAMES)이 있으면 사용, 없으면 ID 포맷팅
   const getUwDisplayName = (uwKey: string) => {
     const localizedName = (T.data as any)?.UW_NAMES?.[uwKey];
     if (localizedName) return localizedName;
@@ -99,6 +104,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
 
   return (
     <div className="animate-fade-in">
+      {/* 상단 탭 버튼 영역 */}
       <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide sticky top-16 bg-slate-950/95 z-10 pt-2">
         <div className="flex gap-2">
           {availableUwKeys.map((uwKey) => (
@@ -117,6 +123,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
         </div>
       </div>
 
+      {/* Lab 옵션 영역 (Base Stats일 때만 표시) */}
       {category === 'base' && labStats && (
           <div className={`mb-8 animate-fade-in ${
               selectedUw === 'golden_tower' 
@@ -141,22 +148,21 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
           </div>
       )}
 
+      {/* 스탯 카드 리스트 영역 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {(() => {
-           if (!availableUwKeys.includes(selectedUw)) return null;
-           
-           const uwDetail = (statsData as any)[selectedUw];
+        {sortedUwKeys.map((uwKey) => {
+           const uwDetail = (statsData as any)[uwKey];
+           const isSelected = uwKey === selectedUw;
            
            return Object.entries(uwDetail).map(([statName, detail]: [string, any]) => {
-            const key = `${category}_${selectedUw}_${statName}`;
+            const key = `${category}_${uwKey}_${statName}`;
             const currentLevel = progress[key] || 0;
 
-            // [추가] 언어팩에서 번역된 이름과 설명 가져오기 (category가 plus일 때만)
             let displayName = detail.name || statName;
             let displayDesc = detail.desc;
 
             if (category === 'plus') {
-              const localizedPlus = (T.data as any)?.UW_PLUS?.[selectedUw]?.[statName];
+              const localizedPlus = (T.data as any)?.UW_PLUS?.[uwKey]?.[statName];
               if (localizedPlus) {
                 displayName = localizedPlus.name;
                 displayDesc = localizedPlus.desc;
@@ -175,11 +181,24 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
             const maxTotalCost = remainingCosts.reduce((a: number, b: any) => a + b.cost, 0);
 
             return (
-              <div key={statName} className={`${styles.card} border-green-500 shadow-[0_0_15px_rgba(34,197,94,0.1)]`}>
-                <div className={`${styles.uwHeader} bg-slate-800`}>
+              <div 
+                key={`${uwKey}-${statName}`} 
+                className={`
+                  ${styles.card} transition-all duration-500
+                  ${isSelected 
+                    ? 'border-green-400 shadow-[0_0_20px_rgba(74,222,128,0.2)] scale-[1.02] z-10' 
+                    : 'border-slate-800 opacity-80'
+                  }
+                `}
+              >
+                <div className={`${styles.uwHeader} ${isSelected ? 'bg-slate-700' : 'bg-slate-800'}`}>
                   <div className="flex flex-col">
-                     <span className="text-[10px] text-slate-400 font-normal mb-0.5">{getUwDisplayName(selectedUw)}</span>
-                     <span>{displayName} <span className="text-slate-500 normal-case font-normal">({detail.unit || 'Level'})</span></span>
+                     <span className={`text-[10px] font-normal mb-0.5 ${isSelected ? 'text-green-400' : 'text-slate-400'}`}>
+                        {getUwDisplayName(uwKey)}
+                     </span>
+                     <span className={isSelected ? 'text-white' : ''}>
+                        {displayName} <span className="text-slate-500 normal-case font-normal">({detail.unit || 'Level'})</span>
+                     </span>
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -243,7 +262,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
               </div>
             );
           });
-        })()}
+        })}
       </div>
     </div>
   );
