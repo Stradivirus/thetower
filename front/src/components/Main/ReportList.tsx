@@ -1,9 +1,9 @@
-// front/src/components/Main/ReportList.tsx
 import { useMemo, useState } from 'react';
 import { Zap, Layers, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber, formatDateHeader, parseDurationToHours } from '../../utils/format'; 
 import ReportListItem from './ReportListItem'; 
+import { T } from '../../locales'; // 언어팩
 
 interface Props {
   reports: BattleMain[];
@@ -14,6 +14,7 @@ interface Props {
 
 export default function ReportList({ reports, onSelectReport, hideHeader = false, collapseThresholdDays = 3 }: Props) {
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+  const Text = T.main.LIST; // 언어팩 연결
 
   const toggleDate = (dateKey: string) => {
     setExpandedDates(prev => ({ ...prev, [dateKey]: !prev[dateKey] }));
@@ -36,34 +37,23 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
   return (
     <>
-      {/* [Header Grid 수정] 
-        기존: Time(2) Coins(2) C/h(1) Cl/h(1) Res(1) Ratio(1) Dmg(2) Killer(1) Memo(1)
-        변경: Time(2) Coins(2) C/h(1) Cl/h(1) Res(1) Ratio(1) Dmg&Killer(2) Memo(2)
-      */}
       {!hideHeader && (
         <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 text-center select-none items-end pb-2">
-          <div className="col-span-2 text-xs font-bold text-slate-300">Time / Wave</div>
-          <div className="col-span-2 text-xs font-bold text-slate-300">Coins</div>
-          <div className="col-span-1 text-xs font-bold text-slate-400">Coin/h</div>
-          <div className="col-span-1 text-xs font-bold text-cyan-400">Cell/h</div>
-          <div className="col-span-1 text-xs font-bold text-slate-400">Res.</div>
-          
-          {/* Ratio Header */}
-          <div className="col-span-1 text-xs font-bold text-slate-400">Ratio</div>
-          
-          {/* [Merged] Damage & Killer Header (2칸) */}
+          <div className="col-span-2 text-xs font-bold text-slate-300">{Text.COL_TIME}</div>
+          <div className="col-span-2 text-xs font-bold text-slate-300">{Text.COL_COINS}</div>
+          <div className="col-span-1 text-xs font-bold text-slate-400">{Text.COL_COIN_H}</div>
+          <div className="col-span-1 text-xs font-bold text-cyan-400">{Text.COL_CELL_H}</div>
+          <div className="col-span-1 text-xs font-bold text-slate-400">{Text.COL_RES}</div>
+          <div className="col-span-1 text-xs font-bold text-slate-400">{Text.COL_RATIO}</div>
           <div className="col-span-2 text-left pl-4">
-            <span className="text-xs font-bold text-rose-400">Damage & Killer</span>
+            <span className="text-xs font-bold text-rose-400">{Text.COL_DMG}</span>
           </div>
-
-          {/* [Expanded] Memo Header (2칸) */}
-          <div className="col-span-2 text-xs font-bold text-slate-400">Memo</div>
+          <div className="col-span-2 text-xs font-bold text-slate-400">{Text.COL_MEMO}</div>
         </div>
       )}
 
       <div className="space-y-6 mt-4">
         {groupedReports.map(([dateHeader, groupItems]) => {
-          // ... (이하 로직은 기존과 동일) ...
           const reportDate = new Date(groupItems[0].battle_date);
           reportDate.setHours(0, 0, 0, 0);
           const diffTime = today.getTime() - reportDate.getTime();
@@ -96,9 +86,8 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                   onClick={() => toggleDate(dateHeader)}
                   className="flex items-center justify-between py-4 px-4 hover:bg-slate-900/50 cursor-pointer transition-colors group select-none"
                 >
-                  {/* Mobile Header (생략) */}
+                  {/* Mobile Header */}
                   <div className="md:hidden flex flex-col gap-3 flex-1 mr-4">
-                      {/* ... 기존 모바일 헤더 ... */}
                        <div className="flex items-start justify-between">
                           <div className="flex flex-col gap-1">
                               <h3 className="text-slate-200 font-bold text-sm">
@@ -108,7 +97,6 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                                  {timeDisplay}
                               </span>
                           </div>
-                          
                           <div className="flex items-center">
                              <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-slate-700 font-medium text-xs whitespace-nowrap">
                                 {groupItems.length} Games

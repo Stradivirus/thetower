@@ -6,7 +6,6 @@
     { "rarity": "Ancestral", "cost": 1400 }
   ],
   "common_efficiency": {
-    "desc": "메인 스탯과 서브 스탯 공통이므로 8배가 더 필요합니다",
     "unit": "%",
     "levels": [
       { "level": 1, "value": 1, "cost": 0 },

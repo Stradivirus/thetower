@@ -26,7 +26,7 @@ export default function ModuleHeader({
               : 'text-slate-500 hover:text-slate-300'
           }`}
         >
-          <Layers size={16} /> 장착 관리
+          <Layers size={16} /> Equipped
         </button>
         <button
           onClick={() => setViewMode('inventory')}
@@ -36,7 +36,7 @@ export default function ModuleHeader({
               : 'text-slate-500 hover:text-slate-300'
           }`}
         >
-          <Box size={16} /> 보유 현황
+          <Box size={16} /> Inventory
         </button>
         <button
           onClick={() => setViewMode('reroll')}
@@ -46,7 +46,7 @@ export default function ModuleHeader({
               : 'text-slate-500 hover:text-slate-300'
           }`}
         >
-          <Dices size={16} /> 부옵션 리롤
+          <Dices size={16} /> Reroll Sim
         </button>
       </div>
 
@@ -62,7 +62,7 @@ export default function ModuleHeader({
               : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
           `}
         >
-          <List size={16} /> {isChanged ? '저장 및 요약*' : '저장 및 요약'}
+          <List size={16} /> {isChanged ? 'Save & Summary*' : 'Save & Summary'}
         </button>
       )}
     </div>

@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, Box } from 'lucide-react';
+import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, Box, Languages } from 'lucide-react';
+import { T, CURRENT_LANG, toggleLanguage } from '../../locales'; // [New] 언어 관리 모듈 추가
 
 interface NavBarProps {
   token: string | null;
@@ -12,6 +13,7 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+  const Text = T.layout.NAV;
 
   const navBtnClass = (path: string, colorClass: string) => 
     `flex items-center gap-2 px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all border ${
@@ -21,9 +23,10 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
     }`;
 
   return (
-    <nav className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm sticky top-0 z-20">
+    <nav className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-20">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         
+        {/* Logo */}
         <div 
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate('/')}
@@ -32,21 +35,22 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
           <span className="font-bold text-xl tracking-tight text-white hidden sm:block">The Tower <span className="text-slate-500 text-base font-normal">Analytics</span></span>
         </div>
 
+        {/* Navigation Items */}
         <div className="flex items-center gap-2 md:gap-3">
           <button onClick={() => navigate('/')} className={navBtnClass('/', 'bg-blue-500/10 text-blue-400 border-blue-500/50')}>
-            <LayoutGrid size={16} /> <span className="hidden md:inline">Main</span>
+            <LayoutGrid size={16} /> <span className="hidden md:inline">{Text.MAIN}</span>
           </button>
 
           <button onClick={() => navigate('/history')} className={navBtnClass('/history', 'bg-purple-500/10 text-purple-400 border-purple-500/50')}>
-            <Archive size={16} /> <span className="hidden md:inline">기록</span>
+            <Archive size={16} /> <span className="hidden md:inline">{Text.HISTORY}</span>
           </button>
 
           <button onClick={() => navigate('/modules')} className={navBtnClass('/modules', 'bg-yellow-500/10 text-yellow-400 border-yellow-500/50')}>
-            <Box size={16} /> <span className="hidden md:inline">Modules</span>
+            <Box size={16} /> <span className="hidden md:inline">{Text.MODULE}</span>
           </button>
 
           <button onClick={() => navigate('/stones')} className={navBtnClass('/stones', 'bg-green-500/10 text-green-400 border-green-500/50')}>
-            <Triangle size={16} /> <span className="hidden md:inline">Stones</span>
+            <Triangle size={16} /> <span className="hidden md:inline">{Text.STONE}</span>
           </button>
 
           <button 
@@ -56,20 +60,34 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
             }}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all shadow-lg shadow-blue-600/20 ml-2"
           >
-            <Plus size={16} /> <span className="hidden md:inline">추가</span>
+            <Plus size={16} /> <span className="hidden md:inline">{Text.ADD}</span>
           </button>
 
+          {/* Divider */}
           <div className="h-6 w-px bg-slate-800 mx-1"></div>
           
-          {token ? (
-              <button onClick={onLogout} className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title="Logout">
-                  <LogOut size={18} />
-              </button>
-          ) : (
-              <button onClick={onOpenAuth} className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold transition-all border bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white">
-                  <LogIn size={16} /> <span className="hidden md:inline">Login</span>
-              </button>
-          )}
+          <div className="flex items-center gap-2">
+            {/* [New] 언어 변환 버튼 */}
+            <button 
+              onClick={toggleLanguage}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white"
+              title={CURRENT_LANG === 'KR' ? 'Switch to English' : '한국어로 변경'}
+            >
+              <Languages size={14} />
+              {CURRENT_LANG === 'KR' ? 'EN' : 'KR'}
+            </button>
+
+            {/* Auth Buttons */}
+            {token ? (
+                <button onClick={onLogout} className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors" title={Text.LOGOUT}>
+                    <LogOut size={18} />
+                </button>
+            ) : (
+                <button onClick={onOpenAuth} className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold transition-all border bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white">
+                    <LogIn size={16} /> <span className="hidden md:inline">{Text.LOGIN}</span>
+                </button>
+            )}
+          </div>
         </div>
       </div>
     </nav>

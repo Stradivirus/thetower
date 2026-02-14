@@ -7,6 +7,7 @@ import {
 } from '../Modules/ModuleConstants';
 import { MODULE_TYPES as REROLL_DATA } from '../../data/module_reroll_data';
 import moduleCosts from '../../data/module_costs.json';
+import { T } from '../../locales'; // 언어팩 추가
 
 export default function SummaryModules() {
   const { modules, progress } = useGameData();
@@ -87,11 +88,11 @@ export default function SummaryModules() {
           <div className="flex items-center gap-2 mb-2 text-[10px] text-slate-500">
              {moduleData.rarity > visualRarity && (
                <span className="whitespace-nowrap">
-                 (Real: {RARITIES[moduleData.rarity].short})
+                 ({T.summary.MODULES.REAL_RARITY}: {RARITIES[moduleData.rarity].short})
                </span>
              )}
              <span className="whitespace-nowrap">
-               Eff: {efficiency}%
+               {T.summary.MODULES.EFFICIENCY}: {efficiency}%
              </span>
           </div>
         )}
@@ -123,15 +124,13 @@ export default function SummaryModules() {
             })}
           </div>
         ) : (
-          <div className="text-[10px] text-slate-600 italic px-1">No sub-effects</div>
+          <div className="text-[10px] text-slate-600 italic px-1">{T.summary.MODULES.NO_SUB}</div>
         )}
       </div>
     );
   };
 
   return (
-    // [Modified] 자체 스크롤 제거 (overflow-y-auto 제거, max-h-full 제거)
-    // grid layout만 남겨둠
     <div className="grid grid-cols-2 gap-4 content-start">
       {DISPLAY_ORDER.map((typeId) => {
         const typeConfig = MODULE_TYPES.find(t => t.id === typeId);
@@ -171,7 +170,7 @@ export default function SummaryModules() {
                 renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100)
               ) : (
                 <div className="text-center py-4 text-xs text-slate-600 italic border-b-2 border-slate-700/50">
-                  No Main Module
+                  {T.summary.MODULES.NO_MAIN}
                 </div>
               )}
 
@@ -179,7 +178,7 @@ export default function SummaryModules() {
                 renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, subEfficiency)
               ) : (
                 <div className="text-center py-4 text-xs text-slate-600 italic mt-2">
-                  No Assist Module
+                  {T.summary.MODULES.NO_ASSIST}
                 </div>
               )}
             </div>

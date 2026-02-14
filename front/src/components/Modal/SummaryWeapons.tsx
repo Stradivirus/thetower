@@ -2,6 +2,7 @@ import { Trophy } from 'lucide-react';
 import baseStats from '../../data/uw_base_stats.json';
 import plusStats from '../../data/uw_plus_stats.json';
 import labConfig from '../../data/uw_lab_config.json';
+import { T } from '../../locales'; // 언어팩 추가
 
 interface Props {
   progress: Record<string, any>;
@@ -89,7 +90,7 @@ export function SummaryWeapons({ progress }: Props) {
     <div className="w-full">
       <div className="flex items-center gap-2 mb-3">
         <Trophy size={18} className="text-yellow-400" />
-        <h3 className="text-base font-bold text-white">Ultimate Weapons</h3>
+        <h3 className="text-base font-bold text-white">{T.summary.WEAPONS.TITLE}</h3>
       </div>
       
       <div className="space-y-6">
@@ -107,7 +108,6 @@ export function SummaryWeapons({ progress }: Props) {
                   const isMaxed = displayLevel >= displayMax;
 
                   return (
-                    // [Modified] 너비 변경: w-[240px] -> w-[190px]
                     <div key={statName} className="w-[200px] bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-slate-600 transition-colors shadow-sm min-h-[64px]">
                       <div className="flex items-center justify-between z-10">
                         <div className="flex items-center gap-1.5 overflow-hidden">
@@ -120,7 +120,7 @@ export function SummaryWeapons({ progress }: Props) {
                       </div>
                       
                       <div className="flex items-end justify-between z-10 w-full">
-                        <span className="text-xs text-slate-500 font-bold leading-none">Lv</span>
+                        <span className="text-xs text-slate-500 font-bold leading-none">{T.summary.WEAPONS.LEVEL}</span>
                         <div className="flex items-baseline gap-0.5 font-mono leading-none">
                           <span className={`text-base font-bold ${isMaxed ? 'text-yellow-400' : 'text-blue-400'}`}>{displayLevel}</span>
                           <span className="text-xs text-slate-600">/</span>
@@ -137,7 +137,6 @@ export function SummaryWeapons({ progress }: Props) {
                   const isMaxed = displayLevel >= displayMax;
 
                   return (
-                    // [Modified] 너비 변경: w-[240px] -> w-[190px]
                     <div key={statName} className="w-[190px] bg-slate-900 border-2 border-pink-500/30 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-pink-400 transition-all shadow-[0_0_10px_rgba(236,72,153,0.1)] hover:shadow-[0_0_15px_rgba(236,72,153,0.2)] min-h-[64px]">
                       <div className="flex items-center justify-between z-10">
                         <div className="flex items-center gap-1.5 overflow-hidden">
@@ -150,7 +149,7 @@ export function SummaryWeapons({ progress }: Props) {
                       </div>
                       
                       <div className="flex items-end justify-between z-10 w-full">
-                        <span className="text-xs text-slate-500 font-bold leading-none">Lv</span>
+                        <span className="text-xs text-slate-500 font-bold leading-none">{T.summary.WEAPONS.LEVEL}</span>
                         <div className="flex items-baseline gap-0.5 font-mono leading-none">
                           <span className={`text-base font-bold ${isMaxed ? 'text-yellow-400' : 'text-pink-400'}`}>{displayLevel}</span>
                           <span className="text-xs text-slate-600">/</span>
@@ -166,7 +165,7 @@ export function SummaryWeapons({ progress }: Props) {
         ) : (
           <div className="text-center py-20 text-slate-500">
             <Trophy size={48} className="mx-auto mb-4 opacity-20" />
-            <p className="text-base">궁극 무기 데이터가 없습니다</p>
+            <p className="text-base">{T.summary.WEAPONS.NO_DATA}</p>
           </div>
         )}
       </div>

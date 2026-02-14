@@ -1,5 +1,6 @@
-import { RectangleVertical } from 'lucide-react'; // [Modified] 아이콘 변경 (Layers -> RectangleVertical)
+import { RectangleVertical } from 'lucide-react'; 
 import cardCosts from '../../data/card_mastery_costs.json';
+import { T } from '../../locales'; // 언어팩 추가
 
 interface Props {
   progress: Record<string, any>;
@@ -13,11 +14,10 @@ export function SummaryCards({ progress }: Props) {
   return (
     <div className="flex-shrink-0">
       <div className="flex items-center gap-2 mb-3">
-        {/* [Modified] 아이콘 변경 */}
         <RectangleVertical size={18} className="text-purple-400" />
-        {/* [Modified] 제목 변경: Mastered Cards -> Card Mastery */}
+        {/* Card Mastery 명칭 유지 */}
         <h3 className="text-base font-bold text-white">
-          Card Mastery <span className="text-sm text-slate-500">({completedCards.length})</span>
+          {T.summary.CARDS.TITLE} <span className="text-sm text-slate-500">({completedCards.length})</span>
         </h3>
       </div>
       <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50 flex flex-wrap gap-2">

@@ -4,31 +4,31 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { formatNumber } from '../../utils/format';
+import { T } from '../../locales'; // 언어팩
 
 interface Props {
-  data: any[]; // 차트용 데이터
-  summary: { total: number; avgGrowth: number; dailyAvg: number }; // 요약 통계
+  data: any[]; 
+  summary: { total: number; avgGrowth: number; dailyAvg: number }; 
   viewMode: 'daily' | 'weekly';
   resourceType: 'coin' | 'cell';
 }
 
 export default function GrowthTrendChart({ data, summary, viewMode, resourceType }: Props) {
   const isCoin = resourceType === 'coin';
+  const Text = T.history.CHART; // 언어팩
 
-  // 색상 팔레트 정의
   const COLORS = {
     coinBar: '#fbbf24',
     cellBar: '#22d3ee',
     increase: '#ef4444',
     decrease: '#3b82f6',
-    trendUp: '#4ade80',   // Green
-    trendDown: '#3b82f6', // Blue
-    trendFlat: '#94a3b8'  // Gray
+    trendUp: '#4ade80',   
+    trendDown: '#3b82f6', 
+    trendFlat: '#94a3b8' 
   };
 
   const currentBarColor = isCoin ? COLORS.coinBar : COLORS.cellBar;
 
-  // 추세선 색상 결정 로직 (1% 기준)
   const currentTrendColor = useMemo(() => {
     if (summary.avgGrowth >= 1.0) return COLORS.trendUp;
     if (summary.avgGrowth <= -1.0) return COLORS.trendDown;
@@ -49,40 +49,36 @@ export default function GrowthTrendChart({ data, summary, viewMode, resourceType
   const renderCustomLegend = () => {
     const isPositive = summary.avgGrowth >= 0;
     const TrendIcon = isPositive ? TrendingUp : TrendingDown;
-    // [수정] 아이콘 색상은 트렌드에 따라 결정
     const trendIconColor = isPositive ? 'text-green-400' : 'text-blue-400';
 
     return (
       <div className="flex items-center justify-between px-2 mt-4 border-t border-slate-800/50 pt-3 text-xs">
-        {/* Left */}
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: currentBarColor }}></div>
           <span className="text-slate-300 font-bold">
-            {isCoin ? "Coins Earned" : "Cells Earned"}
+            {isCoin ? Text.LEGEND_COIN : Text.LEGEND_CELL}
           </span>
           <div className="w-4 h-0.5 border-t-2 border-dashed ml-2" style={{ borderColor: currentTrendColor }}></div>
-          <span style={{ color: currentTrendColor }} className="font-medium">Trend</span>
+          <span style={{ color: currentTrendColor }} className="font-medium">{Text.LEGEND_TREND}</span>
         </div>
 
-        {/* Center */}
         <div className="flex items-center gap-4 bg-slate-950/50 px-3 py-1.5 rounded-full border border-slate-800">
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">Total:</span>
+            <span className="text-slate-500">{Text.LABEL_TOTAL}</span>
             <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               {formatNumber(summary.total)}
             </span>
           </div>
           <div className="w-px h-3 bg-slate-700"></div>
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">{viewMode === 'daily' ? 'Daily Avg:' : 'Weekly Avg:'}</span>
+            <span className="text-slate-500">{viewMode === 'daily' ? Text.LABEL_AVG_DAILY : Text.LABEL_AVG_WEEKLY}</span>
             <span className={`font-mono font-bold text-sm ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               {formatNumber(summary.dailyAvg)}
             </span>
           </div>
           <div className="w-px h-3 bg-slate-700"></div>
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">Avg Growth:</span>
-            {/* [수정] 텍스트 색상을 자원 타입(노랑/하늘)으로 고정하고, 아이콘만 트렌드 색상 사용 */}
+            <span className="text-slate-500">{Text.LABEL_AVG_GROWTH}</span>
             <span className={`font-mono font-bold text-sm flex items-center gap-0.5 ${isCoin ? 'text-yellow-500' : 'text-cyan-500'}`}>
               <TrendIcon size={12} className={trendIconColor} />
               {Math.abs(summary.avgGrowth).toFixed(1)}%
@@ -90,9 +86,8 @@ export default function GrowthTrendChart({ data, summary, viewMode, resourceType
           </div>
         </div>
 
-        {/* Right */}
         <div className="flex items-center gap-2">
-          <span className="text-slate-300 font-bold">Growth %</span>
+          <span className="text-slate-300 font-bold">{Text.LEGEND_GROWTH}</span>
           <div className="w-8 h-0.5 bg-gradient-to-r from-red-500 to-blue-500 relative">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-900 border-2 border-slate-500"></div>
           </div>
@@ -124,10 +119,10 @@ export default function GrowthTrendChart({ data, summary, viewMode, resourceType
               if (name === 'Growth %') {
                 const num = Number(value);
                 const color = num > 0 ? COLORS.increase : (num < 0 ? COLORS.decrease : '#94a3b8');
-                return [<span style={{ color }}>{value}%</span>, 'Growth Rate'];
+                return [<span style={{ color }}>{value}%</span>, Text.LEGEND_GROWTH];
               }
               if (name === 'Trend') {
-                return [<span style={{ color: currentTrendColor }}>{formatNumber(value)}</span>, 'Trend'];
+                return [<span style={{ color: currentTrendColor }}>{formatNumber(value)}</span>, Text.LEGEND_TREND];
               }
               return [formatNumber(value), isCoin ? 'Coins' : 'Cells'];
             }}

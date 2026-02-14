@@ -60,7 +60,7 @@ export default function ModulesInfoPage() {
 
   // 전체 저장 (상단 헤더 버튼용)
   const handleSaveProgress = async () => {
-    if (!token) { alert("로그인이 필요합니다."); return; }
+    if (!token) { alert("Login Required"); return; }
     
     if (isChanged) {
       try {
@@ -74,7 +74,7 @@ export default function ModulesInfoPage() {
           setIsSummaryOpen(true); // 저장 성공 시 요약 모달 오픈
       } catch (e) { 
           console.error("Save failed", e); 
-          alert("저장에 실패했습니다."); 
+          alert("Save Failed"); 
       } finally {
           setIsSaving(false);
       }
@@ -96,7 +96,7 @@ export default function ModulesInfoPage() {
 
   // [Fix] 2. 모달: 즉시 저장 (DB 반영)
   const handleModalSave = async (newData: { rarity: number; effects: string[] }) => {
-    if (!token) { alert("로그인이 필요합니다."); return; }
+    if (!token) { alert("Login Required"); return; }
 
     const { name, type } = detailModal;
     
@@ -137,7 +137,7 @@ export default function ModulesInfoPage() {
       
     } catch (e) {
       console.error("Modal Instant Save Failed", e);
-      alert("오류가 발생하여 저장하지 못했습니다.");
+      alert("Save failed due to an error.");
     } finally {
       setIsSaving(false);
     }

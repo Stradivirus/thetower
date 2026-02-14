@@ -1,4 +1,3 @@
-// front/src/pages/MainPage.tsx
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Search, X, List, Trophy } from 'lucide-react';
@@ -7,6 +6,7 @@ import Dashboard from '../components/Main/Dashboard';
 import ReportList from '../components/Main/ReportList';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
+import { T } from '../locales'; // [New] 언어팩 Import
 
 interface MainPageProps {
   reports: BattleMain[];
@@ -16,6 +16,10 @@ export default function MainPage({ reports }: MainPageProps) {
   const navigate = useNavigate();
   const { progress } = useGameData();
   
+  // 언어팩 연결
+  const Text = T.main.PAGE;
+  const ListText = T.main.LIST;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
@@ -59,7 +63,7 @@ export default function MainPage({ reports }: MainPageProps) {
   const handleOpenSummary = useCallback(() => {
     const token = localStorage.getItem('access_token');
     if (!token) {
-        alert("로그인이 필요합니다.");
+        alert("로그인이 필요합니다."); // 공통 알림 메시지는 추후 common으로 뺄 수 있음
         return;
     }
     setIsSummaryOpen(true);
@@ -71,7 +75,7 @@ export default function MainPage({ reports }: MainPageProps) {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Calendar className="text-slate-500" /> 전투 기록
+          <Calendar className="text-slate-500" /> {ListText.TITLE}
           <span className="text-sm font-normal text-slate-500 ml-2">
             (최근 {filteredReports.length}개)
           </span>
@@ -85,7 +89,7 @@ export default function MainPage({ reports }: MainPageProps) {
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="메모, 티어, 킬러, 날짜..." 
+              placeholder={Text.SEARCH_PLACEHOLDER} 
               className="bg-slate-900 border border-slate-800 rounded-full pl-10 pr-10 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 w-full md:w-72 transition-all" 
             />
             {searchTerm && (
@@ -98,24 +102,24 @@ export default function MainPage({ reports }: MainPageProps) {
             )}
           </div>
 
-          {/* 2. [New] 토너 버튼 (검색창과 모듈 버튼 사이 배치) */}
+          {/* 2. 토너 버튼 */}
           <button 
-            onClick={() => setSearchTerm('토너')}
+            onClick={() => setSearchTerm(Text.BTN_TOURNAMENT)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/20 whitespace-nowrap"
             title="토너먼트 기록만 보기"
           >
             <Trophy size={16} /> 
-            <span className="hidden sm:inline">토너</span>
+            <span className="hidden sm:inline">{Text.BTN_TOURNAMENT}</span>
           </button>
 
           {/* 3. 궁무 및 모듈 버튼 */}
           <button 
             onClick={handleOpenSummary}
             className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20 whitespace-nowrap"
-            title="내 궁극 무기 및 모듈 세팅 보기"
+            title={Text.BTN_SUMMARY_TOOLTIP}
           >
             <List size={16} /> 
-            <span className="hidden sm:inline">궁무 및 모듈</span>
+            <span className="hidden sm:inline">{Text.BTN_SUMMARY}</span>
           </button>
         </div>
       </div>
@@ -124,7 +128,7 @@ export default function MainPage({ reports }: MainPageProps) {
         <ReportList reports={listDisplayReports} onSelectReport={handleSelectReport} />
       ) : (
         <div className="text-center py-20 text-slate-500 bg-slate-900/30 rounded-xl border border-slate-800 border-dashed">
-          <p>검색 결과가 없습니다.</p>
+          <p>{Text.NO_RESULT}</p>
         </div>
       )}
 
@@ -134,7 +138,7 @@ export default function MainPage({ reports }: MainPageProps) {
                 onClick={() => navigate('/history')}
                 className="text-xs text-slate-500 hover:text-blue-400 transition-colors flex items-center justify-center gap-1 mx-auto"
             >
-                이전 기록 더 보기 ({filteredReports.length - listDisplayReports.length}개 숨겨짐)
+                {Text.LOAD_MORE.replace('{n}', String(filteredReports.length - listDisplayReports.length))}
             </button>
         </div>
       )}

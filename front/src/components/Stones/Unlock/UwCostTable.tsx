@@ -10,7 +10,6 @@ interface Props {
 }
 
 export default function UwCostTable({ title, type, costs, unlockedCount, onRowClick, onReset }: Props) {
-  // 남은 해금 단계 계산
   const remainingData = costs
     .map((cost, idx) => ({ cost, level: idx + 1 }))
     .filter(item => item.level > unlockedCount);
@@ -37,7 +36,7 @@ export default function UwCostTable({ title, type, costs, unlockedCount, onRowCl
             const batchItems = remainingData.slice(0, index + 1);
             const batchCost = batchItems.reduce((sum, i) => sum + i.cost, 0);
             const batchCount = batchItems.length;
-            const isNext = index === 0; // 바로 다음 해금 순서인지
+            const isNext = index === 0;
 
             return (
               <tr 
@@ -46,7 +45,7 @@ export default function UwCostTable({ title, type, costs, unlockedCount, onRowCl
                 className="transition-all border-b border-slate-800/50 hover:bg-blue-500/10 cursor-pointer group"
               >
                 <td className={styles.td}>
-                  {item.level}번째
+                  #{item.level}
                   {isNext ? (
                     <span className="ml-2 text-[10px] text-blue-400 font-bold animate-pulse">Next</span>
                   ) : (

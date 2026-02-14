@@ -1,8 +1,8 @@
-// front/src/components/Main/ReportListItem.tsx
 import React from 'react';
 import { Zap, RefreshCw, Skull, Layers, Coins } from 'lucide-react';
 import type { BattleMain } from '../../types/report'; 
 import { formatNumber, formatTimeOnly, parseDurationToHours } from '../../utils/format';
+import { T } from '../../locales'; // 언어팩
 
 interface Props {
   report: BattleMain;
@@ -11,21 +11,19 @@ interface Props {
 }
 
 const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
+  const Text = T.main.ITEM; // 언어팩 연결
+
   // 공통 로직
   const durationHours = parseDurationToHours(report.real_time);
   const cellsPerHour = durationHours > 0 ? report.cells_earned / durationHours : 0;
 
-  // 백엔드에서 이미 필터링되지만, 프론트에서도 안전장치로 유지 (필요 없으면 제거 가능)
   const utilityKeywords = ['오브', '블랙홀', '데스 페널티', '안티 큐브'];
   
-  // [수정] top_damages는 이제 string[] 입니다.
   const mainDamages = (report.top_damages || [])
     .filter((name: string) => !utilityKeywords.includes(name)) 
     .slice(0, 3);
 
-  // --------------------------------------------------------------------------
-  // 1. [Mobile View] 모바일용 카드 디자인
-  // --------------------------------------------------------------------------
+  // 1. [Mobile View]
   const MobileView = () => (
     <div 
       onClick={() => onSelectReport(report.battle_date)}
@@ -84,34 +82,33 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
              <span className="text-green-400 font-bold font-mono text-base">
                  {formatNumber(report.reroll_shards_earned)}
              </span>
-             <span className="text-slate-600 text-xs ml-auto">Shards</span>
+             <span className="text-slate-600 text-xs ml-auto">{Text.SHARDS}</span>
         </div>
       </div>
 
-      {/* 3행: 비율 / 딜량 / 킬러 (3등분) */}
+      {/* 3행: 비율 / 딜량 / 킬러 */}
       <div className="pt-2 border-t border-slate-800/50">
           <div className="grid grid-cols-3 gap-2">
               
-              {/* 1. 비율 (왼쪽) */}
+              {/* 1. 비율 */}
               <div className="flex flex-col justify-center items-center gap-0.5">
                 <div className="text-[11px] leading-tight whitespace-nowrap">
-                    <span className="text-purple-400 font-bold mr-1">죽파</span>
+                    <span className="text-purple-400 font-bold mr-1">{Text.LABEL_DW}</span>
                     <span className="text-slate-300">{report.death_wave_ratio || '-'}</span>
                 </div>
                 <div className="text-[11px] leading-tight whitespace-nowrap">
-                    <span className="text-emerald-400 font-bold mr-1">스포트</span>
+                    <span className="text-emerald-400 font-bold mr-1">{Text.LABEL_SL}</span>
                     <span className="text-slate-300">{report.spotlight_ratio || '-'}</span>
                 </div>
                 <div className="text-[11px] leading-tight whitespace-nowrap">
-                    <span className="text-yellow-400 font-bold mr-1">골봇</span>
+                    <span className="text-yellow-400 font-bold mr-1">{Text.LABEL_GB}</span>
                     <span className="text-slate-300">{report.golden_bot_ratio || '-'}</span>
                 </div>
               </div>
 
-              {/* 2. 딜량 (가운데) */}
+              {/* 2. 딜량 */}
               <div className="flex flex-col justify-center min-w-0 border-l border-slate-800/50 pl-2">
                 {mainDamages.length > 0 ? (
-                    /* [수정] dmg는 이제 string 타입입니다. */
                     mainDamages.map((name: string, idx: number) => (
                         <div key={idx} className="flex items-center min-w-0">
                             <span className={`text-[10px] font-bold mr-1 ${idx === 0 ? 'text-rose-400' : 'text-slate-500'}`}>
@@ -127,7 +124,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
                 )}
               </div>
 
-              {/* 3. 킬러 (오른쪽) */}
+              {/* 3. 킬러 */}
               <div className="flex items-center justify-center pl-2 border-l border-slate-800/50 min-w-0">
                 {report.killer ? (
                     <div className="flex flex-col items-center justify-center gap-0.5">
@@ -154,19 +151,17 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
     </div>
   );
 
-  // --------------------------------------------------------------------------
-  // 2. [Desktop View] PC용 그리드 리스트
-  // --------------------------------------------------------------------------
+  // 2. [Desktop View]
   const DesktopView = () => (
     <div 
       onClick={() => onSelectReport(report.battle_date)}
       className="hidden md:grid group bg-slate-900/40 border border-slate-800/60 hover:border-blue-500/30 hover:bg-slate-800 py-3 px-4 rounded-xl cursor-pointer transition-all grid-cols-12 gap-2 items-center mb-2"
     >
-      {/* 1-2. Time & Wave */}
+      {/* Time & Wave */}
       <div className="col-span-2 flex flex-col items-center justify-center">
         <div className="flex items-center gap-2">
            <span className="text-white font-bold text-sm">{report.real_time}</span>
-           <span className="text-[10px] px-1 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 leading-none">T{report.tier}</span>
+           <span className="text--[10px] px-1 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 leading-none">T{report.tier}</span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
            <span className="text-slate-500 text-xs">{formatTimeOnly(report.battle_date)}</span>
@@ -175,66 +170,55 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 3-4. Coins */}
+      {/* Coins */}
       <div className="col-span-2 text-center">
         <div className="text-yellow-400 font-bold font-mono text-lg truncate">{formatNumber(report.coin_earned)}</div>
       </div>
 
-      {/* 5. Coin/h */}
+      {/* Coin/h */}
       <div className="col-span-1 text-center">
           <div className="text-slate-300 font-mono font-medium text-sm truncate">{formatNumber(report.coins_per_hour)}/h</div>
       </div>
 
-      {/* 6. Cell/h */}
+      {/* Cell/h */}
       <div className="col-span-1 text-center">
           <div className="text-cyan-300 font-mono font-bold text-sm truncate">
             {formatNumber(Math.round(cellsPerHour))}/h
           </div>
       </div>
 
-      {/* 7. Resources */}
+      {/* Resources */}
       <div className="col-span-1 flex flex-col items-center gap-0.5 overflow-hidden">
         <div className="flex items-center gap-1.5" title="Cells">
            <span className="text-cyan-400 font-mono font-medium text-xs truncate">{formatNumber(report.cells_earned)}</span>
            <Zap size={10} className="text-slate-600 flex-shrink-0"/>
         </div>
-        <div className="flex items-center gap-1.5" title="Reroll Shards">
+        <div className="flex items-center gap-1.5" title={Text.SHARDS}>
            <span className="text-green-400 font-mono font-medium text-xs truncate">{formatNumber(report.reroll_shards_earned)}</span>
            <Layers size={10} className="text-slate-600 flex-shrink-0"/>
         </div>
       </div>
 
-      {/* 8. Ratio (죽파/스포트/골봇 비율) */}
+      {/* Ratio */}
       <div className="col-span-1 flex flex-col justify-center items-center gap-0.5 border-l border-slate-800/50 pl-1 h-full">
-         <div 
-           className="text-xs leading-tight whitespace-nowrap cursor-help" 
-           title="전체 적 중 죽음의 파동의 영향을 받은 적"
-         >
-            <span className="text-purple-400 font-bold mr-1">죽파</span>
+         <div className="text-xs leading-tight whitespace-nowrap cursor-help" title={Text.TOOLTIP_DW}>
+            <span className="text-purple-400 font-bold mr-1">{Text.LABEL_DW}</span>
             <span className="text-slate-300">{report.death_wave_ratio || '-'}</span>
          </div>
-         <div 
-           className="text-xs leading-tight whitespace-nowrap cursor-help" 
-           title="전체 적 중 스포트라이트에서 죽은 적"
-         >
-            <span className="text-emerald-400 font-bold mr-1">스포트</span>
+         <div className="text-xs leading-tight whitespace-nowrap cursor-help" title={Text.TOOLTIP_SL}>
+            <span className="text-emerald-400 font-bold mr-1">{Text.LABEL_SL}</span>
             <span className="text-slate-300">{report.spotlight_ratio || '-'}</span>
          </div>
-         <div 
-           className="text-xs leading-tight whitespace-nowrap cursor-help" 
-           title="전체 적 중 황금 봇에서 파괴된 적"
-         >
-            <span className="text-yellow-400 font-bold mr-1">골봇</span>
+         <div className="text-xs leading-tight whitespace-nowrap cursor-help" title={Text.TOOLTIP_GB}>
+            <span className="text-yellow-400 font-bold mr-1">{Text.LABEL_GB}</span>
             <span className="text-slate-300">{report.golden_bot_ratio || '-'}</span>
          </div>
       </div>
 
-      {/* 9-10. [Merged] Damage & Killer (2칸) */}
+      {/* Damage & Killer */}
       <div className="col-span-2 flex items-center justify-between border-l border-slate-800/50 pl-3 h-full py-0.5 gap-2 min-w-0">
-        {/* Left: Damage List */}
         <div className="flex flex-col gap-0.5 min-w-0 flex-1">
           {mainDamages.length > 0 ? (
-            /* [수정] string 타입 처리 */
             mainDamages.map((name: string, idx: number) => (
               <div key={idx} className="flex items-center min-w-0">
                 <span className={`text-[10px] font-bold mr-1 ${idx === 0 ? 'text-rose-400' : 'text-slate-500'}`}>
@@ -246,14 +230,13 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
               </div>
             ))
           ) : (
-            <div className="text-xs text-slate-500">No Data</div>
+            <div className="text-xs text-slate-500">{Text.NO_DATA}</div>
           )}
         </div>
 
-        {/* Right: Killer */}
         <div className="flex items-center justify-end min-w-0 pl-1 border-l border-slate-800/30">
             {report.killer ? (
-                 <div className="flex flex-col items-center justify-center gap-0.5" title="Killed by">
+                 <div className="flex flex-col items-center justify-center gap-0.5" title={Text.TOOLTIP_KILLER}>
                     <Skull size={13} className="text-rose-500/70" />
                     <span className="text-rose-300 font-bold text-xs truncate text-center max-w-[75px] leading-tight">
                         {report.killer}
@@ -265,7 +248,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         </div>
       </div>
 
-      {/* 11-12. [Expanded] Memo (2칸) */}
+      {/* Memo */}
       <div className="col-span-2 flex justify-center items-center px-1 border-l border-slate-800/50 h-full">
           {report.notes ? (
             <div className="bg-blue-500/10 border border-blue-500/30 px-2 py-1 rounded text-[10px] text-blue-300 truncate w-full text-center cursor-help" title={report.notes}>

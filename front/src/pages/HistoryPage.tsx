@@ -7,6 +7,7 @@ import { getWeeklyStats, getAllReports } from '../api/reports';
 import ReportList from '../components/Main/ReportList';
 import WeeklyStatsChart from '../components/History/WeeklyStatsChart';
 import HistoryMonthGroup from '../components/History/HistoryMonthGroup';
+import { T } from '../locales'; // 언어팩
 
 export interface MonthlyGroup {
   monthKey: string;
@@ -19,19 +20,16 @@ export interface MonthlyGroup {
   };
 }
 
-// 3단 필터 타입 정의
 type TournamentFilterMode = 'all' | 'include' | 'exclude';
 
 export default function HistoryPage() {
   const navigate = useNavigate();
+  const Text = T.history; // 언어팩
   
   const [allReports, setAllReports] = useState<BattleMain[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStatsResponse | null>(null);
   
-  // 뷰 모드 및 필터 상태
   const [viewMode, setViewMode] = useState<'group' | 'list'>('group');
-  
-  // 토너먼트 필터 (all -> include -> exclude 순환)
   const [tournamentFilter, setTournamentFilter] = useState<TournamentFilterMode>('all');
   const [onlyMemo, setOnlyMemo] = useState(false);
   
@@ -39,7 +37,6 @@ export default function HistoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 데이터 로드
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -72,7 +69,6 @@ export default function HistoryPage() {
     });
   };
 
-  // 토너먼트 버튼 클릭 핸들러 (순환 로직)
   const cycleTournamentFilter = () => {
     setTournamentFilter(prev => {
       if (prev === 'all') return 'include';
@@ -81,11 +77,9 @@ export default function HistoryPage() {
     });
   };
 
-  // 통합 필터링 로직
   const filteredReports = useMemo(() => {
     let result = allReports;
 
-    // 1. 텍스트 검색
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       result = result.filter(r => 
@@ -96,14 +90,12 @@ export default function HistoryPage() {
       );
     }
 
-    // 2. 토너먼트 필터 (3단)
     if (tournamentFilter === 'include') {
       result = result.filter(r => r.notes?.includes('토너'));
     } else if (tournamentFilter === 'exclude') {
       result = result.filter(r => !r.notes?.includes('토너'));
     }
 
-    // 3. 메모만 보기
     if (onlyMemo) {
       result = result.filter(r => r.notes && r.notes.trim().length > 0);
     }
@@ -111,9 +103,7 @@ export default function HistoryPage() {
     return result;
   }, [allReports, searchTerm, tournamentFilter, onlyMemo]);
 
-  // 최근 7일 데이터 (필터 없을 때만)
   const recentReports = useMemo(() => {
-    // 필터가 하나라도 걸려있으면 최근 기록 섹션 숨김
     if (searchTerm || tournamentFilter !== 'all' || onlyMemo || viewMode === 'list') return [];
     
     const now = new Date();
@@ -123,7 +113,6 @@ export default function HistoryPage() {
     return filteredReports.filter(r => new Date(r.battle_date) >= oneWeekAgo);
   }, [filteredReports, searchTerm, tournamentFilter, onlyMemo, viewMode]);
 
-  // 월별 그룹화 (리스트 모드일 땐 계산 생략)
   const monthlyGroups = useMemo(() => {
     if (viewMode === 'list') return [];
 
@@ -149,29 +138,26 @@ export default function HistoryPage() {
   }, [filteredReports, viewMode]);
 
   const totalCount = filteredReports.length;
-  
-  // [수정 1] !!searchTerm을 사용하여 boolean 타입으로 강제 변환 (타입 에러 해결)
   const isFilterActive = !!searchTerm || tournamentFilter !== 'all' || onlyMemo;
 
   return (
     <>
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 animate-fade-in">
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Archive className="text-slate-500" /> 기록 보관소
+          <Archive className="text-slate-500" /> {Text.PAGE.TITLE}
           <span className="text-sm font-normal text-slate-500 ml-2">
-            (총 {totalCount}개)
+            {Text.PAGE.TOTAL_COUNT.replace('{n}', String(totalCount))}
           </span>
         </h2>
         
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-          {/* 검색창 */}
           <div className="relative group w-full md:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={16} />
             <input 
               type="text" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="기록 검색..." 
+              placeholder={Text.PAGE.SEARCH_PLACEHOLDER} 
               className="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-8 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 w-full transition-all" 
             />
             {searchTerm && (
@@ -180,19 +166,18 @@ export default function HistoryPage() {
           </div>
 
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
-            {/* 뷰 모드 토글 */}
             <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
                 <button
                     onClick={() => setViewMode('group')}
                     className={`p-1.5 rounded-md transition-all ${viewMode === 'group' ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                    title="월별 그룹 보기"
+                    title={Text.PAGE.TOOLTIP_GROUP}
                 >
                     <FolderOpen size={16} />
                 </button>
                 <button
                     onClick={() => setViewMode('list')}
                     className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                    title="전체 리스트 보기"
+                    title={Text.PAGE.TOOLTIP_LIST}
                 >
                     <LayoutList size={16} />
                 </button>
@@ -200,7 +185,6 @@ export default function HistoryPage() {
 
             <div className="w-px h-8 bg-slate-800 mx-1"></div>
 
-            {/* 토너먼트 3단 버튼 */}
             <button
                 onClick={cycleTournamentFilter}
                 className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs transition-all whitespace-nowrap shadow-sm min-w-[90px] justify-center ${
@@ -216,17 +200,15 @@ export default function HistoryPage() {
                   tournamentFilter === 'exclude' ? "text-rose-400" : "text-slate-500"
                 } />
                 <span className="font-medium">
-                  {tournamentFilter === 'include' ? '토너만' : 
-                   tournamentFilter === 'exclude' ? '토너 제외' : '토너 필터'}
+                  {tournamentFilter === 'include' ? Text.FILTER.TOURNAMENT_ONLY : 
+                   tournamentFilter === 'exclude' ? Text.FILTER.TOURNAMENT_EXCLUDE : Text.FILTER.TOURNAMENT_ALL}
                 </span>
             </button>
 
-            {/* [수정 2] 메모만 보기 버튼 클릭 시 -> 리스트 뷰로 자동 전환 */}
             <button
                 onClick={() => {
                    const nextOnlyMemo = !onlyMemo;
                    setOnlyMemo(nextOnlyMemo);
-                   // 메모 필터를 켜는 순간, 사용자가 편하게 볼 수 있도록 리스트 뷰로 전환
                    if (nextOnlyMemo) {
                      setViewMode('list');
                    }
@@ -238,7 +220,7 @@ export default function HistoryPage() {
                 }`}
             >
                 <StickyNote size={14} className={onlyMemo ? "text-blue-400" : "text-slate-500"} />
-                <span>메모만</span>
+                <span>{Text.FILTER.MEMO_ONLY}</span>
             </button>
           </div>
         </div>
@@ -253,19 +235,18 @@ export default function HistoryPage() {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500">
           <Loader2 size={32} className="animate-spin mb-2 text-blue-500" />
-          <p>모든 기록을 불러오는 중입니다...</p>
+          <p>{Text.PAGE.LOADING}</p>
         </div>
       ) : (
         <div className="space-y-4">
           
-          {/* 그룹 뷰 */}
           {viewMode === 'group' && (
               <>
                 {recentReports.length > 0 && !isFilterActive && (
                     <div className="animate-fade-in mb-8">
                     <div className="text-xs font-bold text-slate-500 mb-3 px-1 flex items-center gap-2">
                         <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                        최근 7일 기록
+                        {Text.SECTION.RECENT_7DAYS}
                     </div>
                     <ReportList 
                         reports={recentReports} 
@@ -279,7 +260,7 @@ export default function HistoryPage() {
                 <div>
                     {!isFilterActive && <div className="text-xs font-bold text-slate-500 mb-3 px-1 flex items-center gap-2">
                         <div className="w-1 h-4 bg-slate-600 rounded-full"></div>
-                        월별 기록
+                        {Text.SECTION.MONTHLY}
                     </div>}
                     
                     {monthlyGroups.map((group) => (
@@ -295,12 +276,11 @@ export default function HistoryPage() {
               </>
           )}
 
-          {/* 리스트 뷰 */}
           {viewMode === 'list' && (
               <div className="animate-fade-in">
                   <div className="text-xs font-bold text-slate-500 mb-3 px-1 flex items-center gap-2">
                         <Filter size={12} />
-                        전체 리스트 보기 ({filteredReports.length})
+                        {Text.SECTION.ALL_LIST.replace('{n}', String(filteredReports.length))}
                   </div>
                   <ReportList 
                       reports={filteredReports} 
@@ -313,7 +293,7 @@ export default function HistoryPage() {
 
           {!isLoading && totalCount === 0 && (
             <div className="text-center py-20 text-slate-500 bg-slate-900/30 rounded-xl border border-slate-800 border-dashed animate-fade-in">
-              <p>조건에 맞는 기록이 없습니다.</p>
+              <p>{Text.PAGE.EMPTY_RESULT}</p>
             </div>
           )}
         </div>

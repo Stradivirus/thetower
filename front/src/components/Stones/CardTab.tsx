@@ -1,6 +1,13 @@
 import { Check } from 'lucide-react';
 import cardCosts from '../../data/card_mastery_costs.json';
 import { stoneStyles as styles, formatNum, ResetButton } from './StoneShared';
+import { T } from '../../locales';
+
+// JSON 데이터의 현재 구조 정의 (desc 제거됨)
+interface CardItem {
+  name: string;
+  cost: number;
+}
 
 interface Props {
   progress: Record<string, number>;
@@ -9,9 +16,14 @@ interface Props {
 }
 
 export default function CardTab({ progress, updateProgress, resetCards }: Props) {
-  // 데이터 분리: 완료된 카드 vs 남은 카드
-  const completedCards = cardCosts.filter(c => progress[`card_${c.name}`] === 1);
-  const remainingCards = cardCosts.filter(c => progress[`card_${c.name}`] !== 1);
+  // 타입을 CardItem[]로 지정하여 빌드 에러 해결
+  const cards = cardCosts as CardItem[];
+  
+  // 언어팩 데이터 참조 (안전하게 빈 객체 폴백)
+  const cardTranslations = T.data?.CARDS || {};
+
+  const completedCards = cards.filter(c => progress[`card_${c.name}`] === 1);
+  const remainingCards = cards.filter(c => progress[`card_${c.name}`] !== 1);
 
   return (
     <div className="animate-fade-in">
@@ -23,7 +35,6 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
           )}
         </div>
 
-        {/* [Updated] 마스터한 카드 목록 (아이콘 제거됨) */}
         {completedCards.length > 0 && (
           <div className="px-4 py-4 border-b border-slate-800 bg-slate-950/30">
             <div className="flex items-center gap-2 mb-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -32,22 +43,23 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
             </div>
             
             <div className="flex flex-wrap gap-2">
-              {completedCards.map((card) => (
-                <button
-                  key={card.name}
-                  onClick={() => updateProgress(`card_${card.name}`, 0)}
-                  // [수정] flex, gap 제거하고 텍스트만 표시
-                  className="px-3 py-1.5 bg-green-500/5 border border-green-500/20 text-green-400 rounded-full text-xs font-medium hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all"
-                  title="Click to un-master (Restore to list)"
-                >
-                  {card.name}
-                </button>
-              ))}
+              {completedCards.map((card) => {
+                // 언어팩에서 번역된 이름 가져오기
+                const cardInfo = (cardTranslations as any)[card.name];
+                return (
+                  <button
+                    key={card.name}
+                    onClick={() => updateProgress(`card_${card.name}`, 0)}
+                    className="px-3 py-1.5 bg-green-500/5 border border-green-500/20 text-green-400 rounded-full text-xs font-medium hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all"
+                  >
+                    {cardInfo?.name || card.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* 남은 카드 목록 테이블 */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead>
@@ -59,31 +71,35 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
             </thead>
             <tbody>
               {remainingCards.length > 0 ? (
-                remainingCards.map((card, idx) => (
-                  <tr 
-                    key={idx} 
-                    className={styles.tr}
-                    onClick={() => updateProgress(`card_${card.name}`, 1)}
-                    title="Click to mark as Mastered"
-                  >
-                    <td className={`${styles.td} font-bold text-white`}>{card.name}</td>
-                    <td className={`${styles.td} text-yellow-400`}>{formatNum(card.cost)}</td>
-                    <td className={`${styles.td} text-slate-200 whitespace-normal min-w-[300px] leading-relaxed`}>
-                      {card.desc}
-                    </td>
-                  </tr>
-                ))
+                remainingCards.map((card, idx) => {
+                  // 언어팩에서 번역 데이터 찾기
+                  const cardInfo = (cardTranslations as any)[card.name];
+                  return (
+                    <tr 
+                      key={idx} 
+                      className={styles.tr}
+                      onClick={() => updateProgress(`card_${card.name}`, 1)}
+                    >
+                      <td className={`${styles.td} font-bold text-white`}>
+                        {cardInfo?.name || card.name}
+                      </td>
+                      <td className={`${styles.td} text-yellow-400`}>{formatNum(card.cost)}</td>
+                      <td className={`${styles.td} text-slate-200 whitespace-normal min-w-[300px] leading-relaxed`}>
+                        {/* [Fix] JSON에 없는 card.desc 참조를 제거하고 언어팩 데이터만 사용 */}
+                        {cardInfo?.desc || "No Description available"}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-500">
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-2xl">🎉</span>
                     <span className="font-bold text-slate-300">All Cards Mastered!</span>
-                    <span className="text-xs">모든 카드를 마스터했습니다.</span>
                   </div>
                 </td></tr>
               )}
             </tbody>
-            {/* 남은 비용 합계 */}
             {remainingCards.length > 0 && (
               <tfoot>
                 <tr>

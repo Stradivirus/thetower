@@ -1,0 +1,21 @@
+// src/locales/kr/auth.ts
+export const AUTH = {
+  LOGIN_TITLE: "로그인",
+  REGISTER_TITLE: "회원가입",
+  ID_LABEL: "아이디 (최소 4자)",
+  PW_LABEL: "비밀번호 (최소 4자)",
+  PW_CONFIRM_LABEL: "비밀번호 확인",
+  ID_PLACEHOLDER: "아이디를 입력하세요",
+  PW_PLACEHOLDER: "비밀번호를 입력하세요",
+  PW_CONFIRM_PLACEHOLDER: "비밀번호를 다시 입력하세요",
+  BTN_LOGIN: "로그인",
+  BTN_REGISTER: "가입하기",
+  BTN_PROCESSING: "처리 중...",
+  LINK_TO_REGISTER: "계정이 없으신가요? 회원가입",
+  LINK_TO_LOGIN: "이미 계정이 있으신가요? 로그인",
+  ERR_ID_LENGTH: "아이디는 4자 이상이어야 합니다.",
+  ERR_PW_LENGTH: "비밀번호는 4자 이상이어야 합니다.",
+  ERR_PW_MISMATCH: "비밀번호가 일치하지 않습니다.",
+  SUCCESS_REGISTER: "가입 성공! 자동으로 로그인합니다.",
+  LOGOUT: "로그아웃",
+};

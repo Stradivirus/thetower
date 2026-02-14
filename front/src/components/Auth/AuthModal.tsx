@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, LogIn, UserPlus, AlertCircle, User } from 'lucide-react';
 import { loginUser, registerUser } from '../../api/auth';
+import { T } from '../../locales'; // [New] 언어팩
 
 interface Props {
   onClose: () => void;
@@ -11,30 +12,28 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  
-  // [New] 비밀번호 확인용 state
   const [confirmPassword, setConfirmPassword] = useState('');
-  
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // 텍스트 단축어
+  const Text = T.auth;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    // 1. 기본 유효성 검사 (4자 이상)
     if (username.length < 4) {
-      setError("아이디는 4자 이상이어야 합니다.");
+      setError(Text.ERR_ID_LENGTH);
       return;
     }
     if (password.length < 4) {
-      setError("비밀번호는 4자 이상이어야 합니다.");
+      setError(Text.ERR_PW_LENGTH);
       return;
     }
 
-    // 2. [New] 회원가입 시 비밀번호 일치 검사
     if (isRegister && password !== confirmPassword) {
-      setError("비밀번호가 일치하지 않습니다.");
+      setError(Text.ERR_PW_MISMATCH);
       return;
     }
 
@@ -42,29 +41,23 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
 
     try {
       if (isRegister) {
-        // 회원가입 시도 -> 실패 시(중복 아이디 등) catch로 이동
         await registerUser(username, password);
-        alert("가입 성공! 자동으로 로그인합니다.");
-        
-        // 가입 성공 후 바로 로그인
+        alert(Text.SUCCESS_REGISTER);
         const data = await loginUser(username, password);
         onLoginSuccess(data.access_token);
         onClose();
       } else {
-        // 로그인 시도
         const data = await loginUser(username, password);
         onLoginSuccess(data.access_token);
         onClose();
       }
     } catch (err) {
-      // 백엔드에서 보낸 에러 메시지(예: "이미 사용 중인 아이디입니다.")가 여기 표시됨
-      setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
+      setError(err instanceof Error ? err.message : T.common.ERROR);
     } finally {
       setLoading(false);
     }
   };
 
-  // 모드 전환 시 에러 및 입력값 초기화
   const toggleMode = () => {
     setIsRegister(!isRegister);
     setError(null);
@@ -74,48 +67,45 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
-        {/* 헤더 */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-slate-950/50">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <User className="text-blue-500" size={20} />
-            {isRegister ? '회원가입' : '로그인'}
+            {isRegister ? Text.REGISTER_TITLE : Text.LOGIN_TITLE}
           </h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        {/* 폼 */}
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">아이디 (최소 4자)</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">{Text.ID_LABEL}</label>
               <input 
                 type="text" 
                 required
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors text-sm"
-                placeholder="아이디를 입력하세요"
+                placeholder={Text.ID_PLACEHOLDER}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>
             
             <div>
-              <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">비밀번호 (최소 4자)</label>
+              <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">{Text.PW_LABEL}</label>
               <input 
                 type="password" 
                 required
                 className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors text-sm"
-                placeholder="비밀번호를 입력하세요"
+                placeholder={Text.PW_PLACEHOLDER}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
-            {/* [New] 회원가입일 때만 비밀번호 확인 필드 표시 */}
             {isRegister && (
               <div className="animate-fade-in">
-                <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">비밀번호 확인</label>
+                <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">{Text.PW_CONFIRM_LABEL}</label>
                 <input 
                   type="password" 
                   required
@@ -124,7 +114,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
                       ? 'border-red-500/50 focus:border-red-500' 
                       : 'border-slate-700 focus:border-blue-500'
                   }`}
-                  placeholder="비밀번호를 다시 입력하세요"
+                  placeholder={Text.PW_CONFIRM_PLACEHOLDER}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
@@ -142,7 +132,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              {loading ? '처리 중...' : isRegister ? <><UserPlus size={16}/> 가입하기</> : <><LogIn size={16}/> 로그인</>}
+              {loading ? Text.BTN_PROCESSING : isRegister ? <><UserPlus size={16}/> {Text.BTN_REGISTER}</> : <><LogIn size={16}/> {Text.BTN_LOGIN}</>}
             </button>
           </form>
 
@@ -151,7 +141,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
               onClick={toggleMode} 
               className="text-xs text-slate-500 hover:text-blue-400 transition-colors"
             >
-              {isRegister ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입'}
+              {isRegister ? Text.LINK_TO_LOGIN : Text.LINK_TO_REGISTER}
             </button>
           </div>
         </div>

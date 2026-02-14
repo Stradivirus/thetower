@@ -2,6 +2,7 @@ import { Calendar, ChevronDown, ChevronUp, Zap, Coins, Layers } from 'lucide-rea
 import type { BattleMain } from '../../types/report';
 import { formatNumber } from '../../utils/format';
 import ReportList from '../Main/ReportList';
+import { T } from '../../locales'; // 언어팩
 
 interface MonthlyGroup {
   monthKey: string;
@@ -22,20 +23,16 @@ interface Props {
 }
 
 export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelectReport }: Props) {
-  
+  const Text = T.history.MONTH_GROUP; // 언어팩
+
   const formatMonthKey = (monthKey: string) => {
     const [year, month] = monthKey.split('-');
-    return `${year}년 ${parseInt(month)}월`;
+    // {year}년 {parseInt(month)}월
+    return `${year}${Text.FORMAT_YEAR} ${parseInt(month)}${Text.FORMAT_MONTH}`;
   };
 
-  // --------------------------------------------------------------------------
-  // [Mobile Header] 
-  // - 1행: 날짜 + 게임 수(우측 상단)
-  // - 2행: 코인 / 셀 / 리롤 (큼직하게!)
-  // --------------------------------------------------------------------------
   const MobileHeader = () => (
     <div className="md:hidden w-full flex flex-col gap-3">
-      {/* 1행 */}
       <div className="flex items-center justify-between">
         <span className="text-white font-bold text-lg flex items-center gap-2">
           <Calendar size={18} className="text-slate-500" />
@@ -44,7 +41,7 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
         
         <div className="flex items-center gap-2">
            <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-xs border border-slate-700 font-medium">
-              {group.summary.count} Games
+              {group.summary.count} {Text.GAMES}
            </span>
            <div className="text-slate-500">
               {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -52,7 +49,6 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
         </div>
       </div>
 
-      {/* 2행: 자원 정보 */}
       <div className="flex items-center justify-between border-t border-slate-800/50 pt-2 px-1">
         <div className="flex items-center gap-1.5">
            <Coins size={14} className="text-yellow-500"/>
@@ -72,12 +68,8 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
     </div>
   );
 
-  // --------------------------------------------------------------------------
-  // [Desktop Header] 수정됨: 자원 정보를 날짜 옆(왼쪽)으로 이동
-  // --------------------------------------------------------------------------
   const DesktopHeader = () => (
     <div className="hidden md:flex w-full items-center justify-between">
-       {/* 왼쪽 그룹: 날짜 + 게임수 + 자원 정보 */}
        <div className="flex items-center gap-6">
            <span className="text-white font-bold text-lg flex items-center gap-2 min-w-[120px]">
               <Calendar size={18} className="text-slate-500" />
@@ -86,7 +78,7 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
 
            <div className="flex items-center gap-4">
               <span className="bg-slate-800 text-slate-300 px-2 py-1 rounded text-xs border border-slate-700 font-medium whitespace-nowrap">
-                 {group.summary.count} Games
+                 {group.summary.count} {Text.GAMES}
               </span>
               
               <div className="h-4 w-px bg-slate-800"></div>
@@ -110,7 +102,6 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
            </div>
        </div>
 
-       {/* 오른쪽 그룹: 화살표 */}
        <div className="text-slate-500 ml-2 group-hover:text-white transition-colors">
           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
        </div>

@@ -16,15 +16,12 @@ interface Props {
 type TabType = 'unlock' | 'base' | 'plus' | 'card' | 'module';
 
 export default function StonesPage({ onBack, token }: Props) {
-  // UI 관련 상태는 여전히 여기서 관리
   const [activeTab, setActiveTab] = useState<TabType>('unlock');
   const [selectedUw, setSelectedUw] = useState<string>('death_wave');
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
-  // [Optimization] 데이터 로직은 훅에서 한 방에 가져옴
   const {
     progress,
-    // [Fix] modulesState 안쓰므로 제거
     totalStonesUsed,
     isSaving,
     isProgressChanged,
@@ -35,7 +32,6 @@ export default function StonesPage({ onBack, token }: Props) {
     saveToServer
   } = useStonesData(token);
 
-  // 저장 및 요약 핸들러 (UI 로직)
   const handleSaveAndSummary = async () => {
     if (isProgressChanged && token) {
       await saveToServer();
@@ -53,7 +49,6 @@ export default function StonesPage({ onBack, token }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto pb-20 animate-fade-in px-4">
-      {/* 헤더 */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 sticky top-0 bg-slate-950/90 backdrop-blur-md py-3 z-20 border-b border-slate-800 gap-4">
         <div className="flex items-center justify-between w-full md:w-auto gap-4">
           <div className="flex items-center gap-4">
@@ -108,12 +103,11 @@ export default function StonesPage({ onBack, token }: Props) {
             className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSaving || !token}
           >
-            <List size={16} /> {isSaving ? '저장 중...' : (isProgressChanged ? '저장 및 요약*' : '저장 및 요약')}
+            <List size={16} /> {isSaving ? 'Saving...' : (isProgressChanged ? 'Save & Summary*' : 'Save & Summary')}
           </button>
         </div>
       </div>
 
-      {/* 컨텐츠 영역 */}
       <div>
         {activeTab === 'unlock' && (
           <UnlockTab 
@@ -137,7 +131,6 @@ export default function StonesPage({ onBack, token }: Props) {
         {activeTab === 'module' && <ModuleTab progress={progress} updateProgress={updateProgress} />}
       </div>
 
-      {/* [Fix] modulesState prop 제거 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}

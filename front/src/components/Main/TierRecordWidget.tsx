@@ -1,21 +1,21 @@
-// front/src/components/Main/TierRecordWidget.tsx
-
 import React, { useEffect, useState } from 'react';
 import { getGlobalMaxWaves, type TierRecord } from '../../api/stats';
 import { ChevronDown, ChevronUp, Settings, X, Trophy } from 'lucide-react';
+import { T } from '../../locales'; // 언어팩
 
 const STORAGE_KEY_VISIBLE = 'tier_widget_visible';
 const STORAGE_KEY_MIN_TIER = 'tier_widget_min_tier';
-const STORAGE_KEY_MAX_TIER = 'tier_widget_max_tier'; // 추가됨
+const STORAGE_KEY_MAX_TIER = 'tier_widget_max_tier';
 
 const TierRecordWidget: React.FC = () => {
   const [records, setRecords] = useState<TierRecord[]>([]);
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
   const [minTier, setMinTier] = useState(1);
-  const [maxTier, setMaxTier] = useState(20); // 기본 최대 티어 설정 (예: 20)
+  const [maxTier, setMaxTier] = useState(20);
   const [showSettings, setShowSettings] = useState(false);
   
+  const Text = T.main.WIDGET; // 언어팩 연결
   const token = localStorage.getItem('access_token');
 
   useEffect(() => {
@@ -70,7 +70,7 @@ const TierRecordWidget: React.FC = () => {
       <button
         onClick={toggleVisibility}
         className="fixed right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gray-800 text-yellow-400 shadow-lg transition-transform hover:scale-110 hover:bg-gray-700 active:scale-95 border border-gray-600 hover:border-yellow-400 bottom-6 md:bottom-24"
-        title="최고 기록 위젯 켜기"
+        title={Text.TOGGLE_ON}
       >
         <Trophy size={28} />
       </button>
@@ -78,7 +78,6 @@ const TierRecordWidget: React.FC = () => {
   }
 
   const safeRecords = Array.isArray(records) ? records : [];
-  // 최소 티어와 최대 티어 사이의 기록만 필터링
   const filteredRecords = safeRecords.filter(r => r.tier >= minTier && r.tier <= maxTier);
 
   return (
@@ -86,13 +85,13 @@ const TierRecordWidget: React.FC = () => {
       <div className="flex items-center justify-between p-3 border-b border-gray-700">
         <div className="flex items-center gap-2">
           <Trophy size={18} className="text-yellow-400" />
-          <span className="text-yellow-400 font-bold">최고 기록</span>
+          <span className="text-yellow-400 font-bold">{Text.TITLE}</span>
         </div>
         <div className="flex items-center gap-1">
           <button 
             onClick={() => setShowSettings(!showSettings)} 
             className="p-1 hover:bg-gray-700 rounded text-gray-400"
-            title="설정"
+            title={Text.SETTINGS}
           >
             <Settings size={16} />
           </button>
@@ -105,7 +104,7 @@ const TierRecordWidget: React.FC = () => {
           <button 
             onClick={toggleVisibility} 
             className="p-1 hover:bg-gray-700 rounded text-gray-400"
-            title="위젯 끄기"
+            title={Text.TOGGLE_OFF}
           >
             <X size={16} />
           </button>
@@ -115,7 +114,7 @@ const TierRecordWidget: React.FC = () => {
       {showSettings && isExpanded && (
         <div className="p-3 bg-gray-800 border-b border-gray-700 text-sm space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-gray-300">최소 티어:</label>
+            <label className="text-gray-300">{Text.MIN_TIER}</label>
             <input 
               type="number" 
               min="1" 
@@ -126,7 +125,7 @@ const TierRecordWidget: React.FC = () => {
             />
           </div>
           <div className="flex items-center justify-between">
-            <label className="text-gray-300">최대 티어:</label>
+            <label className="text-gray-300">{Text.MAX_TIER}</label>
             <input 
               type="number" 
               min="1" 
@@ -139,32 +138,26 @@ const TierRecordWidget: React.FC = () => {
         </div>
       )}
 
-      {/* 기록 리스트 (3단 컬럼) */}
       {isExpanded && (
         <div className="p-2">
           {filteredRecords.length === 0 ? (
-            <div className="text-center text-gray-500 py-4 text-sm">기록 없음</div>
+            <div className="text-center text-gray-500 py-4 text-sm">{Text.NO_RECORD}</div>
           ) : (
             <table className="w-full text-xs">
               <thead>
                 <tr className="text-gray-400 border-b border-gray-700">
-                  <th className="pb-2 text-left pl-2 w-1/4">티어</th>
-                  <th className="pb-2 text-right w-1/3">내 기록</th>
-                  <th className="pb-2 text-right pr-2 w-1/3">최고 기록</th>
+                  <th className="pb-2 text-left pl-2 w-1/4">{Text.COL_TIER}</th>
+                  <th className="pb-2 text-right w-1/3">{Text.COL_MY}</th>
+                  <th className="pb-2 text-right pr-2 w-1/3">{Text.COL_MAX}</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRecords.map((record) => (
                   <tr key={record.tier} className="hover:bg-gray-800/50 transition-colors">
-                    {/* 티어 */}
                     <td className="py-2 pl-2 text-gray-300">T{record.tier}</td>
-                    
-                    {/* 내 기록 (초록색) */}
                     <td className="py-2 text-right font-mono font-bold text-green-400">
                       {record.my_wave > 0 ? record.my_wave.toLocaleString() : '-'}
                     </td>
-
-                    {/* 서버 기록 (파란색) */}
                     <td className="py-2 pr-2 text-right font-mono font-bold text-blue-400">
                       {record.max_wave.toLocaleString()}
                     </td>
