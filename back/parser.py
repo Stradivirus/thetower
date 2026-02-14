@@ -12,7 +12,6 @@ def parse_number(value_str: str):
     # $, X, x 제거 및 공백 제거
     clean_str = str(value_str).strip().replace('$', '').replace('X', '').replace('x', '')
     
-    # 대소문자 구분 없이 처리하기 위해 로직 유지하되, 
     # The Tower 게임 특성상 대소문자 suffix가 섞여 있으므로 매핑 테이블 활용
     multipliers = {
         'ac': 10**42, 'ab': 10**39, 'aa': 10**36,
