@@ -518,30 +518,6 @@ POST /api/support  - 문의 접수 (Slack 연동)
 └─────────────────────────────────────────┘
 ```
 
-### 환경 변수 구성
-Jenkins에서 자동으로 주입되는 환경 변수:
-```bash
-# 데이터베이스
-POSTGRES_USER=thetower
-POSTGRES_SERVER=10.0.0.6          # Primary (쓰기)
-POSTGRES_SERVER_READ=10.0.0.188   # Replica (읽기)
-POSTGRES_DB=thetower_report
-POSTGRES_PORT=5432
-
-# 보안
-SECRET_KEY=<JWT 서명 키>
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=720    # 12시간
-
-# 알림
-SLACK_WEBHOOK_URL=<시스템 알림용>
-SLACK_INQUIRY_URL=<문의 접수용>
-
-# AWS
-CLOUDFRONT_DISTRIBUTION_ID=<CDN ID>
-AWS_DEFAULT_REGION=ap-northeast-2
-```
-
 ### 배포 프로세스
 1. **코드 푸시**: GitHub `production` 브랜치로 푸시
 2. **자동 감지**: Jenkins가 매일 17:00 또는 수동 트리거로 변경 감지
