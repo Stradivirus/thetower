@@ -32,7 +32,7 @@ export const MAIN = {
 
   // 티어 기록 위젯 (TierRecordWidget.tsx)
   WIDGET: {
-    TITLE: "티어별 최고 웨이브", // 기존
+    TITLE: "최고 웨이브", // 기존
     NO_RECORD: "기록 없음",     // 기존
     // [New]
     TOGGLE_ON: "최고 기록 위젯 켜기",
