@@ -1,12 +1,12 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Search, X, List, Trophy } from 'lucide-react';
+import { Calendar, List } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import Dashboard from '../components/Main/Dashboard';
 import ReportList from '../components/Main/ReportList';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
-import { T } from '../locales'; // [New] 언어팩 Import
+import { T } from '../locales'; // 언어팩
 
 interface MainPageProps {
   reports: BattleMain[];
@@ -20,50 +20,26 @@ export default function MainPage({ reports }: MainPageProps) {
   const Text = T.main.PAGE;
   const ListText = T.main.LIST;
 
-  const [searchTerm, setSearchTerm] = useState('');
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
   const handleSelectReport = useCallback((date: string) => {
     navigate(`/report/${date}`);
   }, [navigate]);
 
-  // [Optimization] 검색 필터링 최적화
-  const filteredReports = useMemo(() => {
-    if (!searchTerm.trim()) return reports;
-    
-    const lowerTerm = searchTerm.toLowerCase();
-    
-    return reports.filter(report => {
-      const noteMatch = report.notes?.toLowerCase().includes(lowerTerm);
-      const killerMatch = report.killer?.toLowerCase().includes(lowerTerm);
-      const tierMatch = report.tier?.toLowerCase().includes(lowerTerm);
-      
-      const dateObj = new Date(report.battle_date);
-      const dateStrKr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
-      const dateStrSlash = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-      
-      const dateMatch = dateStrKr.includes(lowerTerm) || dateStrSlash.includes(lowerTerm);
-      
-      return noteMatch || killerMatch || tierMatch || dateMatch;
-    });
-  }, [reports, searchTerm]);
-
-  // [Optimization] 리스트 표시용 데이터 계산 최적화
+  // [Optimization] 리스트 표시용 데이터 계산 최적화 (최근 2일 기록만 우선 표시)
   const listDisplayReports = useMemo(() => {
-    if (searchTerm) return filteredReports;
-
     const now = new Date();
     const cutoffDate = new Date(now);
     cutoffDate.setDate(now.getDate() - 2); 
     cutoffDate.setHours(0, 0, 0, 0);
 
-    return filteredReports.filter(r => new Date(r.battle_date) >= cutoffDate);
-  }, [filteredReports, searchTerm]);
+    return reports.filter(r => new Date(r.battle_date) >= cutoffDate);
+  }, [reports]);
 
   const handleOpenSummary = useCallback(() => {
     const token = localStorage.getItem('access_token');
     if (!token) {
-        alert("로그인이 필요합니다."); // 공통 알림 메시지는 추후 common으로 뺄 수 있음
+        alert("로그인이 필요합니다.");
         return;
     }
     setIsSummaryOpen(true);
@@ -71,51 +47,23 @@ export default function MainPage({ reports }: MainPageProps) {
 
   return (
     <>
-      <Dashboard reports={filteredReports} />
+      <Dashboard reports={reports} />
 
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
           <Calendar className="text-slate-500" /> {ListText.TITLE}
           <span className="text-sm font-normal text-slate-500 ml-2">
-            (최근 {filteredReports.length}개)
+            (최근 {reports.length}개)
           </span>
         </h2>
         
         <div className="flex items-center gap-2 w-full md:w-auto">
-          {/* 1. 검색창 */}
-          <div className="relative group flex-1 md:flex-none">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={16} />
-            <input 
-              type="text" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={Text.SEARCH_PLACEHOLDER} 
-              className="bg-slate-900 border border-slate-800 rounded-full pl-10 pr-10 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 w-full md:w-72 transition-all" 
-            />
-            {searchTerm && (
-              <button 
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* 2. 토너 버튼 */}
-          <button 
-            onClick={() => setSearchTerm(Text.BTN_TOURNAMENT)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-yellow-500/10 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/20 whitespace-nowrap"
-            title="토너먼트 기록만 보기"
-          >
-            <Trophy size={16} /> 
-            <span className="hidden sm:inline">{Text.BTN_TOURNAMENT}</span>
-          </button>
-
+          {/* 검색창과 토너 버튼을 삭제했습니다. */}
+          
           {/* 3. 궁무 및 모듈 버튼 */}
           <button 
             onClick={handleOpenSummary}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20 whitespace-nowrap"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20 whitespace-nowrap ml-auto"
             title={Text.BTN_SUMMARY_TOOLTIP}
           >
             <List size={16} /> 
@@ -132,13 +80,13 @@ export default function MainPage({ reports }: MainPageProps) {
         </div>
       )}
 
-      {!searchTerm && filteredReports.length > listDisplayReports.length && (
+      {reports.length > listDisplayReports.length && (
         <div className="text-center mt-4">
             <button 
                 onClick={() => navigate('/history')}
                 className="text-xs text-slate-500 hover:text-blue-400 transition-colors flex items-center justify-center gap-1 mx-auto"
             >
-                {Text.LOAD_MORE.replace('{n}', String(filteredReports.length - listDisplayReports.length))}
+                {Text.LOAD_MORE.replace('{n}', String(reports.length - listDisplayReports.length))}
             </button>
         </div>
       )}

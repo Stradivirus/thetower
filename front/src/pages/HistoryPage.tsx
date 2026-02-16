@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Archive, Search, X, Trophy, Loader2, LayoutList, FolderOpen, Filter, StickyNote } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom'; // useSearchParams 추가
+import { Archive, Trophy, Loader2, LayoutList, FolderOpen, Filter, StickyNote, X } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import type { WeeklyStatsResponse } from '../api/reports'; 
 import { getWeeklyStats, getAllReports } from '../api/reports';
 import ReportList from '../components/Main/ReportList';
 import WeeklyStatsChart from '../components/History/WeeklyStatsChart';
 import HistoryMonthGroup from '../components/History/HistoryMonthGroup';
-import { T } from '../locales'; // 언어팩
+import { T } from '../locales'; 
 
 export interface MonthlyGroup {
   monthKey: string;
@@ -24,7 +24,8 @@ type TournamentFilterMode = 'all' | 'include' | 'exclude';
 
 export default function HistoryPage() {
   const navigate = useNavigate();
-  const Text = T.history; // 언어팩
+  const [searchParams, setSearchParams] = useSearchParams(); // URL 파라미터 읽기
+  const Text = T.history; 
   
   const [allReports, setAllReports] = useState<BattleMain[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStatsResponse | null>(null);
@@ -35,7 +36,9 @@ export default function HistoryPage() {
   
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+
+  // URL에서 tier 파라미터 추출
+  const tierFilter = searchParams.get('tier');
 
   useEffect(() => {
     const loadData = async () => {
@@ -55,6 +58,13 @@ export default function HistoryPage() {
     };
     loadData();
   }, []);
+
+  // 티어 필터가 들어오면 자동으로 리스트 보기 모드로 전환
+  useEffect(() => {
+    if (tierFilter) {
+      setViewMode('list');
+    }
+  }, [tierFilter]);
 
   const handleSelectReport = (date: string) => {
     navigate(`/report/${date}`);
@@ -80,38 +90,35 @@ export default function HistoryPage() {
   const filteredReports = useMemo(() => {
     let result = allReports;
 
-    if (searchTerm) {
-      const lower = searchTerm.toLowerCase();
-      result = result.filter(r => 
-        r.notes?.toLowerCase().includes(lower) || 
-        r.killer?.toLowerCase().includes(lower) || 
-        r.tier?.toLowerCase().includes(lower) ||
-        r.battle_date.includes(searchTerm)
-      );
-    }
-
+    // 1. 토너먼트 필터
     if (tournamentFilter === 'include') {
       result = result.filter(r => r.notes?.includes('토너'));
     } else if (tournamentFilter === 'exclude') {
       result = result.filter(r => !r.notes?.includes('토너'));
     }
 
+    // 2. 메모 필터
     if (onlyMemo) {
       result = result.filter(r => r.notes && r.notes.trim().length > 0);
     }
 
+    // 3. 티어 필터 (Widget 연동)
+    if (tierFilter) {
+      result = result.filter(r => String(r.tier) === tierFilter);
+    }
+
     return result;
-  }, [allReports, searchTerm, tournamentFilter, onlyMemo]);
+  }, [allReports, tournamentFilter, onlyMemo, tierFilter]);
 
   const recentReports = useMemo(() => {
-    if (searchTerm || tournamentFilter !== 'all' || onlyMemo || viewMode === 'list') return [];
+    if (tournamentFilter !== 'all' || onlyMemo || tierFilter || viewMode === 'list') return [];
     
     const now = new Date();
     const oneWeekAgo = new Date(now);
     oneWeekAgo.setDate(now.getDate() - 7);
     oneWeekAgo.setHours(0, 0, 0, 0);
     return filteredReports.filter(r => new Date(r.battle_date) >= oneWeekAgo);
-  }, [filteredReports, searchTerm, tournamentFilter, onlyMemo, viewMode]);
+  }, [filteredReports, tournamentFilter, onlyMemo, tierFilter, viewMode]);
 
   const monthlyGroups = useMemo(() => {
     if (viewMode === 'list') return [];
@@ -138,7 +145,7 @@ export default function HistoryPage() {
   }, [filteredReports, viewMode]);
 
   const totalCount = filteredReports.length;
-  const isFilterActive = !!searchTerm || tournamentFilter !== 'all' || onlyMemo;
+  const isFilterActive = tournamentFilter !== 'all' || onlyMemo || !!tierFilter;
 
   return (
     <>
@@ -151,21 +158,24 @@ export default function HistoryPage() {
         </h2>
         
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-          <div className="relative group w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={16} />
-            <input 
-              type="text" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={Text.PAGE.SEARCH_PLACEHOLDER} 
-              className="bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-8 py-2 text-sm text-slate-300 focus:outline-none focus:border-blue-500 w-full transition-all" 
-            />
-            {searchTerm && (
-              <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"><X size={14} /></button>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar ml-auto">
+            
+            {/* 티어 필터 배지 (활성화 시 표시) */}
+            {tierFilter && (
+                <div className="flex items-center gap-2 bg-blue-500/20 border border-blue-500/50 rounded-lg px-3 py-1.5 mr-2">
+                    <span className="text-blue-400 text-xs font-bold">Tier {tierFilter}</span>
+                    <button 
+                        onClick={() => {
+                            searchParams.delete('tier');
+                            setSearchParams(searchParams);
+                        }}
+                        className="text-blue-400 hover:text-white transition-colors"
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
             )}
-          </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar">
             <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
                 <button
                     onClick={() => setViewMode('group')}

@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getGlobalMaxWaves, type TierRecord } from '../../api/stats';
-import { ChevronDown, ChevronUp, Settings, X, Trophy } from 'lucide-react';
-import { T } from '../../locales'; // 언어팩
+import { ChevronDown, ChevronUp, Settings, X, Trophy, Info } from 'lucide-react'; // Info 아이콘 추가
+import { T } from '../../locales'; 
 
 const STORAGE_KEY_VISIBLE = 'tier_widget_visible';
 const STORAGE_KEY_MIN_TIER = 'tier_widget_min_tier';
 const STORAGE_KEY_MAX_TIER = 'tier_widget_max_tier';
 
 const TierRecordWidget: React.FC = () => {
+  const navigate = useNavigate();
   const [records, setRecords] = useState<TierRecord[]>([]);
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -143,28 +145,42 @@ const TierRecordWidget: React.FC = () => {
           {filteredRecords.length === 0 ? (
             <div className="text-center text-gray-500 py-4 text-sm">{Text.NO_RECORD}</div>
           ) : (
-            <table className="w-full text-xs">
-              <thead>
-                <tr className="text-gray-400 border-b border-gray-700">
-                  <th className="pb-2 text-left pl-2 w-1/4">{Text.COL_TIER}</th>
-                  <th className="pb-2 text-right w-1/3">{Text.COL_MY}</th>
-                  <th className="pb-2 text-right pr-2 w-1/3">{Text.COL_MAX}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRecords.map((record) => (
-                  <tr key={record.tier} className="hover:bg-gray-800/50 transition-colors">
-                    <td className="py-2 pl-2 text-gray-300">T{record.tier}</td>
-                    <td className="py-2 text-right font-mono font-bold text-green-400">
-                      {record.my_wave > 0 ? record.my_wave.toLocaleString() : '-'}
-                    </td>
-                    <td className="py-2 pr-2 text-right font-mono font-bold text-blue-400">
-                      {record.max_wave.toLocaleString()}
-                    </td>
+            <>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-gray-400 border-b border-gray-700">
+                    <th className="pb-2 text-left pl-2 w-1/4">{Text.COL_TIER}</th>
+                    <th className="pb-2 text-right w-1/3">{Text.COL_MY}</th>
+                    <th className="pb-2 text-right pr-2 w-1/3">{Text.COL_MAX}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredRecords.map((record) => (
+                    <tr 
+                      key={record.tier} 
+                      className="hover:bg-slate-800/80 transition-all cursor-pointer group active:scale-[0.98]"
+                      onClick={() => navigate(`/history?tier=${record.tier}`)}
+                    >
+                      <td className="py-2 pl-2 text-gray-300 group-hover:text-yellow-400 font-bold transition-colors">T{record.tier}</td>
+                      <td className="py-2 text-right font-mono font-bold text-green-400">
+                        {record.my_wave > 0 ? record.my_wave.toLocaleString() : '-'}
+                      </td>
+                      <td className="py-2 pr-2 text-right font-mono font-bold text-blue-400">
+                        {record.max_wave.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              
+              {/* 하단 안내 문구: 언어팩 적용 */}
+              <div className="mt-3 pt-2 border-t border-gray-800/50 flex items-center justify-center gap-1.5">
+                <Info size={10} className="text-slate-500" />
+                <span className="text-[12px] text-slate-500 font-medium">
+                  {Text.CLICK_INFO}
+                </span>
+              </div>
+            </>
           )}
         </div>
       )}

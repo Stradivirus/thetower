@@ -36,6 +36,7 @@ export const MAIN = {
     COL_TIER: "Tier",
     COL_MY: "My Max",
     COL_MAX: "Server Max",
+    CLICK_INFO: "Click a tier to view its history",
   },
   LIST: {
     TITLE: "Battle Reports",

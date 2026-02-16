@@ -43,6 +43,7 @@ export const MAIN = {
     COL_TIER: "티어",
     COL_MY: "내 기록",
     COL_MAX: "최고 기록",
+    CLICK_INFO: "티어 클릭 시 해당 티어 기록으로 이동",
   },
 
   // 리스트 섹션 (ReportList.tsx)

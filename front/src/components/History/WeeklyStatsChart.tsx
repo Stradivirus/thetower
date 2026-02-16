@@ -186,9 +186,9 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
               itemStyle={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }} 
               labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontSize: '12px' }}
+              itemSorter={(item) => (item.name === 'Growth %' ? 1 : -1)} // 순서 고정: 금액 먼저, 성장률 나중
               formatter={(value: any, name: string, props: any) => {
                 if (viewMode === 'monthly' && props.payload.isCurrent) {
-                    if (name === 'Trend') return [null, null];
                     return [
                         <span style={{ color: currentBarColor, fontWeight: 'bold' }}>{formatNumber(value)} {Text.SUFFIX_ONGOING}</span>, 
                         <span style={{ color: currentBarColor, fontWeight: 'bold' }}>{isCoin ? 'Coins' : 'Cells'}</span>
@@ -199,10 +199,6 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
                   const num = Number(value);
                   const color = num > 0 ? COLORS.increase : (num < 0 ? COLORS.decrease : '#94a3b8');
                   return [<span style={{ color }}>{value}%</span>, Text.LEGEND_GROWTH];
-                }
-                
-                if (name === 'Trend') {
-                  return [<span style={{ color: currentTrendColor }}>{formatNumber(value)}</span>, Text.LEGEND_TREND];
                 }
                 
                 return [
@@ -231,6 +227,7 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
               yAxisId="left" type="linear" dataKey="trendValue" name="Trend" 
               stroke={currentTrendColor} strokeDasharray="5 5" strokeOpacity={0.8} strokeWidth={2}
               dot={false} activeDot={false} isAnimationActive={false} connectNulls={false}
+              tooltipType="none" // 툴팁에서 추세 정보 제외
             />
 
             <ReferenceLine y={0} yAxisId="right" stroke="#475569" strokeDasharray="3 3" />
