@@ -1,26 +1,30 @@
-# back/cron_jobs.py
+"""
+파일명: thetower/back/cron_jobs.py
+용도: 시스템 자동화 작업(Cron Jobs) 정의
+기능: 월간 통계 결산 리포트 및 미활동(유령) 유저 탐지 알림
+"""
 from sqlalchemy import text
 from database import SessionLocal
 from slack import send_slack_notification
 from datetime import datetime, timedelta
 
-# --- [Job 1] 월간 성장/현황 리포트 ---
 def report_monthly_stats():
+    """
+    [Job 1] 월간 성장/현황 리포트 생성 및 Slack 전송
+    - 실행 주기: 매월 1일 09:00 KST (main.py 스케줄러 설정 기준)
+    - 내용: 전체 유저 수, 신규 활동 유저, 누적 전투 기록 및 신규 기록 현황
+    """
     db = SessionLocal()
     print("[System] 월간 통계 집계 중...")
     
     try:
-        # 날짜 계산: 지난달 1일 ~ 이번달 1일 구간
+        # 날짜 계산: 지난달 1일 00:00:00 ~ 이번달 1일 00:00:00 구간
         now = datetime.now()
         this_month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         last_month_end = this_month_start
         last_month_start = (last_month_end - timedelta(days=1)).replace(day=1)
         
-        # 통계 쿼리 (PostgreSQL)
-        # - total_users: 전체 유저 수
-        # - new_users: 지난달에 처음으로 전투 기록을 남긴 신규 유저 수
-        # - total_records: 전체 누적 전투 기록 수
-        # - new_records: 지난달에 새로 쌓인 전투 기록 수
+        # PostgreSQL 기반 집계 쿼리 수행
         sql = text("""
             SELECT
                 (SELECT COUNT(*) FROM users) as total_users,
@@ -39,7 +43,7 @@ def report_monthly_stats():
         
         result = db.execute(sql, {"start_date": last_month_start, "end_date": last_month_end}).first()
         
-        # 슬랙 메시지 전송
+        # 슬랙 메시지 구성
         month_str = last_month_start.strftime('%Y년 %m월')
         
         title = f"📅 *[{month_str} 월간 결산 리포트]*"
@@ -52,6 +56,7 @@ def report_monthly_stats():
             f"• 새로 쌓인 기록: `+{result.new_records:,}개`"
         )
         
+        # Slack 알림 전송
         send_slack_notification(f"{title}\n{content}")
         print(f"[System] {month_str} 월간 리포트 전송 완료")
 
@@ -62,13 +67,17 @@ def report_monthly_stats():
     finally:
         db.close()
 
-# --- [Job 2] 유령 계정 탐지 리포트 ---
 def report_ghost_users():
+    """
+    [Job 2] 유령 계정 탐지 리포트 생성
+    - 실행 주기: 매월 1일 09:05 KST
+    - 내용: 전투 기록, 진행도, 모듈 데이터가 전혀 없는 '껍데기' 계정을 찾아 Slack으로 알림
+    """
     db = SessionLocal()
     print("[System] 유령 계정 스캔 중...")
     
     try:
-        # 전투(battle), 연구(progress), 모듈(modules) 기록이 모두 0인 계정 찾기
+        # 전투(battle), 연구(progress), 모듈(modules) 기록이 모두 0인 계정 스캔
         sql = text("""
             SELECT u.id, u.username
             FROM users u
@@ -84,14 +93,14 @@ def report_ghost_users():
         
         results = db.execute(sql).fetchall()
         
-        # 발견된 유령 계정이 없으면 종료 (알림 안 보냄)
+        # 발견된 유령 계정이 없으면 작업 종료
         if not results:
             print("[System] 유령 계정 없음.")
             return
 
         ghost_count = len(results)
         
-        # 명단 텍스트 생성 (너무 길면 자르기)
+        # 사용자 명단 생성 (길이 제한 처리)
         user_list = [f"{r.username}({r.id})" for r in results]
         user_text = ", ".join(user_list)
         if len(user_text) > 500:

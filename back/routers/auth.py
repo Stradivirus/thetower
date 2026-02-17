@@ -1,3 +1,8 @@
+"""
+파일명: thetower/back/routers/auth.py
+용도: 사용자 인증(회원가입, 로그인) API 라우터
+기능: 회원가입 시 유효성 검사, 로그인 시 JWT 토큰 발급
+"""
 from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
@@ -14,6 +19,12 @@ def register(
     background_tasks: BackgroundTasks,
     db: Session = Depends(database.get_db)
 ):
+    """
+    신규 사용자 등록(회원가입) API
+    - 아이디/비밀번호 최소 길이(4자) 검증
+    - 아이디 중복 확인
+    - 비밀번호 해싱 후 DB 저장
+    """
     if len(user.username) < 4:
         raise HTTPException(status_code=400, detail="아이디는 4자 이상이어야 합니다.")
     if len(user.password) < 4:
@@ -30,6 +41,11 @@ def register(
 
 @router.post("/login", response_model=schemas.Token)
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
+    """
+    사용자 로그인 API
+    - 아이디 및 비밀번호 검증
+    - 성공 시 JWT 액세스 토큰 발급
+    """
     user = crud.get_user_by_username(db, username=form_data.username)
     if not user or not auth.verify_password(form_data.password, user.hashed_password):
         raise HTTPException(

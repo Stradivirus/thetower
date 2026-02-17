@@ -1,6 +1,11 @@
-# back/crud/report_queries.py
+"""
+파일명: thetower/back/crud/report_queries.py
+용도: 전투 기록 조회를 위한 복잡한 RAW SQL 쿼리 정의
+기능: 비율 계산(Kill Ratios)을 포함한 최적화된 SQL 쿼리 제공
+"""
 
-# [최적화 완료] BattleDetail JOIN 없음. Main 테이블 단독 조회.
+# [최적화] BattleDetail JOIN 없이 Main 테이블 단독 조회를 위한 베이스 쿼리
+# CASE 문을 사용하여 처치 수 비율(Death Wave, Spotlight, Golden Bot)을 계산함
 QUERY_REPORTS_WITH_RATIOS = """
     SELECT
         m.battle_date,
@@ -46,18 +51,21 @@ QUERY_REPORTS_WITH_RATIOS = """
 """
 
 def get_recent_reports_query():
+    """최근 7일간의 기록을 조회하는 쿼리를 반환합니다."""
     return QUERY_REPORTS_WITH_RATIOS.format(
         date_filter="AND m.battle_date >= :cutoff_date",
         limit_offset=""
     )
 
 def get_history_reports_query():
+    """전체 기록을 페이징하여 조회하는 쿼리를 반환합니다."""
     return QUERY_REPORTS_WITH_RATIOS.format(
         date_filter="",
         limit_offset="LIMIT :limit OFFSET :skip"
     )
 
 def get_reports_by_month_query():
+    """특정 월의 기록을 조회하는 쿼리를 반환합니다."""
     return QUERY_REPORTS_WITH_RATIOS.format(
         date_filter="""
           AND m.battle_date >= :start_date

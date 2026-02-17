@@ -1,4 +1,8 @@
-# back/mappings.py
+"""
+파일명: thetower/back/mappings.py
+용도: 게임 데이터 파싱을 위한 다국어(한글/영어) 키워드 매핑 테이블
+기능: 섹션 헤더 통합, 데이터 키-DB 컬럼 매핑, 제외 키워드 정의
+"""
 
 # 1. 섹션(Header) 매핑
 SECTION_MAP = {

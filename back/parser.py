@@ -1,4 +1,9 @@
 # back/parser.py
+"""
+파일명: thetower/back/parser.py
+용도: 게임 전투 리포트 텍스트 파싱 엔진
+기능: 숫자 단위 변환, 날짜 파싱, 섹션별 데이터 추출 및 표준화
+"""
 import re
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -6,13 +11,18 @@ from crud import max_wave as max_wave_crud
 from mappings import SECTION_MAP, KEY_MAP, EXCLUDE_TOP_DAMAGE
 
 def parse_number(value_str: str):
+    """
+    게임 특유의 숫자 단위(K, M, B, T 등)를 정수형으로 변환
+    :param value_str: 변환할 문자열 (예: '1.5M', '23.4B')
+    :return: 변환된 정수값
+    """
     if not value_str: return 0
     if isinstance(value_str, (int, float)): return int(value_str)
     
-    # $, X, x 제거 및 공백 제거
+    # 기호 및 공백 제거
     clean_str = str(value_str).strip().replace('$', '').replace('X', '').replace('x', '')
     
-    # The Tower 게임 특성상 대소문자 suffix가 섞여 있으므로 매핑 테이블 활용
+    # 단위 매핑 (대소문자 구분 없음)
     multipliers = {
         'ac': 10**42, 'ab': 10**39, 'aa': 10**36,
         'D': 10**33, 'd': 10**33, 'N': 10**30, 'n': 10**30, 'O': 10**27, 'o': 10**27,
@@ -21,7 +31,7 @@ def parse_number(value_str: str):
     }
     
     multiplier = 1
-    # 긴 suffix부터 매칭 (예: 'ac'가 'c'보다 먼저 매칭되도록)
+    # 긴 접미사부터 매칭 시도
     sorted_suffixes = sorted(multipliers.keys(), key=len, reverse=True)
     
     for suffix in sorted_suffixes:
@@ -36,7 +46,11 @@ def parse_number(value_str: str):
         return 0
 
 def parse_date(date_str: str) -> datetime:
-    """한글 및 영문 날짜 포맷을 모두 처리"""
+    """
+    한글 및 영문 날짜 포맷을 datetime 객체로 변환
+    :param date_str: 날짜 문자열
+    :return: datetime 객체 (실패 시 현재 시간 반환)
+    """
     if not date_str:
         return datetime.now()
 
@@ -51,7 +65,6 @@ def parse_date(date_str: str) -> datetime:
 
     # 2. 영문 포맷 시도: "Feb 10, 2026 13:12"
     try:
-        # 영문 월 이름을 숫자로 매핑
         months = {
             'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
             'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
@@ -59,7 +72,7 @@ def parse_date(date_str: str) -> datetime:
         match = re.match(r'([A-Za-z]+)\s+(\d+),\s+(\d+)\s+(\d+):(\d+)', date_str)
         if match:
             month_str, day, year, hour, minute = match.groups()
-            month = months.get(month_str[:3], 1) # 앞 3글자만 비교
+            month = months.get(month_str[:3], 1)
             return datetime(int(year), month, int(day), int(hour), int(minute))
     except:
         pass
@@ -67,40 +80,42 @@ def parse_date(date_str: str) -> datetime:
     return datetime.now()
 
 def calculate_top_damages(combat_json: dict):
+    """
+    전투 섹션 데이터를 분석하여 가장 많은 대미지를 입힌 항목 TOP 3 추출
+    :param combat_json: 전투 섹션 딕셔너리
+    :return: 대미지 순위 리스트 (이름만 포함)
+    """
     if not combat_json: return []
     
     top_damages = []
     
     for key, val in combat_json.items():
-        # 한글(" 대미지") 또는 영어(" Damage" / " damage") 확인
+        # 대미지 항목 여부 확인
         is_damage_key = key.endswith(" 대미지") or key.lower().endswith(" damage")
-        
-        # 예외: "전자 손상"은 데미지 항목임
         if not is_damage_key and key != "전자 손상" and key != "Electrons Damage":
             continue
 
-        # " 대미지" 또는 " Damage" 제거
+        # 이름 정규화 및 제외 목록 확인
         clean_name = re.sub(r'( 대미지| Damage| damage)$', '', key, flags=re.IGNORECASE)
-        
-        # 제외 목록 확인
         if clean_name in EXCLUDE_TOP_DAMAGE:
             continue
         
         raw_val = parse_number(str(val))
-        
-        top_damages.append({
-            "name": clean_name,
-            "raw": raw_val
-        })
+        top_damages.append({"name": clean_name, "raw": raw_val})
     
+    # 대미지량 기준 내림차순 정렬 후 상위 3개 반환
     top_damages.sort(key=lambda x: x['raw'], reverse=True)
     return [item['name'] for item in top_damages[:3]]
 
 def parse_battle_report(text: str) -> dict:
+    """
+    전체 리포트 텍스트를 파싱하여 메인(Main) 및 상세(Detail) 데이터 딕셔너리로 반환
+    :param text: 사용자가 입력한 전체 리포트 텍스트
+    :return: {'main': {...}, 'detail': {...}} 구조의 딕셔너리
+    """
     clean_text = text.replace('\r\n', '\n').replace('\r', '\n')
     lines = clean_text.split('\n')
     
-    # 4개 섹션 + Report 데이터 임시 저장소
     sections = {'report': {}, 'combat': {}, 'utility': {}, 'enemy': {}, 'bot': {}}
     current_section = 'report'
 
@@ -108,54 +123,41 @@ def parse_battle_report(text: str) -> dict:
         line = line.strip()
         if not line: continue
         
-        # 1. 섹션 헤더 감지 (Mapping 사용)
+        # 섹션 헤더 변경 감지
         if line in SECTION_MAP:
             current_section = SECTION_MAP[line]
             continue
             
         key, val = None, None
         
-        # 2. Key-Value 파싱
+        # Key-Value 파싱 로직
         if '\t' in line:
             parts = line.split('\t')
             key, val = parts[0].strip(), parts[-1].strip()
         else:
-            # Report 섹션의 상단 정보 처리 (날짜, 시간 등)
             if current_section == 'report':
-                # KEY_MAP에 있는 Date 관련 키워드로 시작하는지 확인
                 for map_key, std_key in KEY_MAP.items():
                     if std_key in ['battle_date', 'game_time', 'real_time', 'coins_per_hour']:
                         if line.startswith(map_key):
                             key = map_key
                             val = line.replace(map_key, "", 1).strip()
                             break
-            # 일반적인 공백 구분 처리
             if not key:
                 parts = line.rsplit(' ', 1)
                 if len(parts) == 2: key, val = parts[0].strip(), parts[1].strip()
         
         if key and val:
-            # 원본 키 그대로 저장 (JSON 디테일용)
             sections[current_section][key] = val
-            
-            # 매핑된 표준 키가 있다면 추가 저장 (Main DB 저장용 편의성)
             if key in KEY_MAP:
                 std_key = KEY_MAP[key]
                 sections[current_section][f"_std_{std_key}"] = val
 
-    # 편의 변수
-    repo = sections['report']
-    comb = sections['combat']
-    enemy = sections['enemy']
-    bot = sections['bot']
+    repo, comb, enemy, bot = sections['report'], sections['combat'], sections['enemy'], sections['bot']
     
-    # 표준화된 값 가져오기 헬퍼
     def get_std(section_dict, std_key, default='0'):
         return section_dict.get(f"_std_{std_key}", default)
 
-    # 날짜 파싱
-    date_str = get_std(repo, 'battle_date', '')
-    battle_date = parse_date(date_str)
+    battle_date = parse_date(get_std(repo, 'battle_date', ''))
 
     main_data = {
         'battle_date': battle_date,
@@ -163,22 +165,17 @@ def parse_battle_report(text: str) -> dict:
         'wave': int(get_std(repo, 'wave', '0').replace(',', '')),
         'game_time': get_std(repo, 'game_time', ''),
         'real_time': get_std(repo, 'real_time', ''),
-        
         'coin_earned': parse_number(get_std(repo, 'coin_earned')),
         'coins_per_hour': parse_number(get_std(repo, 'coins_per_hour')),
         'cells_earned': parse_number(get_std(repo, 'cells_earned')),
         'reroll_shards_earned': parse_number(get_std(repo, 'reroll_shards_earned')),
-        
         'killer': get_std(repo, 'killer', ''),
         'damage_dealt': get_std(comb, 'damage_dealt', '0'),
         'damage_taken': get_std(comb, 'damage_taken', '0'),
-        
         'total_enemies': parse_number(get_std(enemy, 'total_enemies')),
-        
         'death_wave_kills': parse_number(get_std(comb, 'death_wave_kills')),
         'spotlight_kills': parse_number(get_std(enemy, 'spotlight_kills')),
         'golden_bot_kills': parse_number(get_std(bot, 'golden_bot_kills')),
-        
         'top_damages': calculate_top_damages(comb) 
     }
     
@@ -192,6 +189,9 @@ def parse_battle_report(text: str) -> dict:
     return {'main': main_data, 'detail': detail_data}
 
 def update_server_max_wave(db: Session, main_data: dict):
+    """
+    파싱된 데이터를 기반으로 서버의 티어별 최고 웨이브 기록 갱신 시도
+    """
     try:
         tier_str = str(main_data.get('tier', '1'))
         tier_val = int(re.search(r'\d+', tier_str).group()) if re.search(r'\d+', tier_str) else 1

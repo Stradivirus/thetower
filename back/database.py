@@ -1,11 +1,15 @@
-# back/database.py
+"""
+파일명: thetower/back/database.py
+용도: SQLAlchemy를 활용한 PostgreSQL 데이터베이스 연결 설정 및 세션 관리
+특징: 메인(Primary) 서버와 리플리카(Replica) 서버를 분리하여 읽기/쓰기 부하 분산 적용
+"""
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
-# import random  <-- [제거] 랜덤 로드밸런싱 제거
 from dotenv import load_dotenv
 
+# .env 파일에서 환경 변수 로드
 load_dotenv()
 
 POSTGRES_USER = os.getenv("POSTGRES_USER")
@@ -46,18 +50,22 @@ SessionLocalRead = sessionmaker(autocommit=False, autoflush=False, bind=engine_r
 
 Base = declarative_base()
 
-# [기본] 쓰기 작업 및 BattleMain(리스트) 조회용
-# 메인 서버(고성능)를 사용합니다.
 def get_db():
+    """
+    메인 DB(Primary) 세션을 생성하고 반환합니다.
+    주로 데이터 생성, 수정, 삭제 및 고성능이 필요한 목록 조회에 사용됩니다.
+    """
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-# [수정] BattleDetail(상세) 조회 전용
-# 무조건 리플리카 서버(Standby)로 연결합니다.
 def get_db_replica():
+    """
+    리플리카 DB(Replica) 세션을 생성하고 반환합니다.
+    주로 BattleDetail과 같이 데이터가 크고 무거운 상세 조회 작업에 사용됩니다.
+    """
     db = SessionLocalRead()
     try:
         yield db

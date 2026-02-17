@@ -1,3 +1,8 @@
+"""
+파일명: thetower/back/slack.py
+용도: Slack Webhook을 이용한 알림 전송 유틸리티
+기능: 일반 시스템 알림 및 사용자 문의(Block Kit 형식) 알림 전송
+"""
 import os
 import json
 import urllib.request
@@ -6,13 +11,16 @@ from dotenv import load_dotenv
 # 환경 변수 로드
 load_dotenv()
 
-# [기존] 시스템 알림용
+# 시스템 알림 및 문의 접수용 Webhook URL
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK_URL")
-# [신규] 문의 접수용
 SLACK_INQUIRY_URL = os.getenv("SLACK_INQUIRY_URL")
 
 def _send_to_slack(url: str, payload: dict):
-    """내부 전송용 공통 함수"""
+    """
+    Slack Webhook으로 JSON 데이터를 전송하는 내부 함수
+    :param url: Slack Webhook URL
+    :param payload: 전송할 데이터 (딕셔너리)
+    """
     if not url:
         print(f"[System] Slack URL not configured for payload: {payload}")
         return
@@ -33,18 +41,18 @@ def _send_to_slack(url: str, payload: dict):
 
 def send_slack_notification(message: str):
     """
-    [기존] 시스템 알림 전송 (단순 텍스트)
+    일반 텍스트 형식의 시스템 알림을 Slack으로 전송
+    :param message: 전송할 메시지 문자열
     """
     payload = {"text": message}
     _send_to_slack(SLACK_WEBHOOK_URL, payload)
 
 def send_inquiry(content: str):
     """
-    [신규] 문의 접수 알림 전송 (Block Kit 사용)
-    - contact 관련 로직 완전 삭제
+    사용자 문의 사항을 Slack의 Block Kit 형식을 사용하여 미려하게 전송
+    :param content: 문의 내용 문자열
     """
-    
-    # 블록 구성 (헤더 + 내용 + 푸터)
+    # Slack Block Kit 구성
     blocks = [
         {
             "type": "header",

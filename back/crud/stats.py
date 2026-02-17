@@ -1,22 +1,29 @@
-# back/crud/stats.py
+"""
+파일명: thetower/back/crud/stats.py
+용도: 통계 데이터 집계 및 차트 데이터 생성 로직
+기능: 일간/주간/월간 자원 획득 통계 조회 및 성장률 계산 (SQL Window 함수 활용)
+"""
 from sqlalchemy.orm import Session
 from sqlalchemy import func, text
 from models import BattleMain
 from datetime import datetime, timedelta, timezone
 
-# 헬퍼 함수: UTC 기준 오늘 자정
 def get_today_utc():
+    """UTC 기준 오늘 자정 날짜를 반환합니다."""
     return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
 
-# 1. 일간 통계 조회 (Daily Graph)
-# [수정] 기준일을 오늘(Today) -> 어제(Yesterday)로 변경하여 오늘 진행 중인 데이터 제외
 def get_weekly_stats(db: Session, user_id: int):
+    """
+    일간 성장 분석 데이터를 조회합니다 (최근 7일).
+    - 윈도우 함수 LAG를 사용하여 전일 대비 성장률 계산
+    - 진행 중인 오늘 데이터를 제외하기 위해 어제 날짜를 기준으로 집계
+    """
     today_utc = get_today_utc()
-    target_date = today_utc.date() - timedelta(days=1)  # [변경됨] 어제까지의 데이터만 조회
+    target_date = today_utc.date() - timedelta(days=1)  # 어제까지의 데이터만 조회
     
     display_start_date = target_date - timedelta(days=6)
     
-    # 넉넉하게 과거 데이터 조회
+    # 전일 대비 계산을 위해 넉넉하게 14일 전부터 조회
     utc_start_limit = datetime.now(timezone.utc) - timedelta(days=14)
 
     sql = text("""
@@ -28,7 +35,7 @@ def get_weekly_stats(db: Session, user_id: int):
             FROM battle_mains
             WHERE owner_id = :user_id
               AND battle_date >= :utc_start_limit 
-              AND battle_date::date <= :target_date  -- [추가] 미래/오늘 데이터 확실히 제외
+              AND battle_date::date <= :target_date
             GROUP BY 1
         ),
         with_prev AS (
@@ -91,11 +98,13 @@ def get_weekly_stats(db: Session, user_id: int):
 
     return {"daily_stats": daily_stats}
 
-# 2. 주간 트렌드 (Weekly Trend)
-# -> 목적: 안정적인 추세 분석 (어제 기준 역산 7일 롤링)
 def get_weekly_trends(db: Session, user_id: int):
+    """
+    주간 트렌드 분석 데이터를 조회합니다 (최근 8주).
+    - 7일 단위 롤링 집계를 통해 안정적인 성장 추세를 파악함
+    """
     today_utc = get_today_utc()
-    target_date = today_utc.date() - timedelta(days=1)  # 기준: 어제
+    target_date = today_utc.date() - timedelta(days=1)
 
     # 넉넉하게 70일 전 데이터부터 조회
     utc_start_limit = datetime.now(timezone.utc) - timedelta(days=70)
@@ -167,8 +176,11 @@ def get_weekly_trends(db: Session, user_id: int):
     
     return {"weekly_stats": trend_stats}
 
-# 3. 월간 트렌드 (유지)
 def get_monthly_trends(db: Session, user_id: int):
+    """
+    월간 트렌드 분석 데이터를 조회합니다 (최근 6개월).
+    - 현재 진행 중인 달(is_current)을 표시하여 시각화에 활용
+    """
     today_utc = get_today_utc()
     this_month_str = today_utc.strftime("%Y-%m")
     
