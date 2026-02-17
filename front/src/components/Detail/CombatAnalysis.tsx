@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function CombatAnalysis({ combatJson }: Props) {
-  const [showMinors : boolean, setShowMinors] = useState(false);
+  const [showMinors, setShowMinors] = useState(false);
   const Text = T.detail;
 
   // 표준화된 필드 및 원본 키 필터링
