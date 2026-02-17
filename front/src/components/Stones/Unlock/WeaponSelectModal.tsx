@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/components/Stones/Unlock/WeaponSelectModal.tsx
+ * 용도: 해금할 궁극 무기(UW) 또는 UW+를 수동으로 선택하기 위한 모달
+ * 기능: 해금 가능한 무기 리스트 필터링 및 표시, 다중 선택 상태 관리, 선택 완료 시 부모로 상태 전달
+ */
 import { X, MousePointerClick, Check } from 'lucide-react';
 
 interface Props {
@@ -6,11 +11,11 @@ interface Props {
     count: number; 
     selected: string[];
   };
-  allWeaponKeys: string[];
-  unlockedBase: string[];
-  unlockedPlus: string[];
-  onToggle: (uwKey: string) => void;
-  onClose: () => void;
+  allWeaponKeys: string[]; // 전체 무기 키 배열
+  unlockedBase: string[];  // 이미 해금된 기본 무기 목록
+  unlockedPlus: string[];  // 이미 해금된 UW+ 목록
+  onToggle: (uwKey: string) => void; // 아이템 클릭 시 선택 토글 핸들러
+  onClose: () => void;               // 모달 닫기 핸들러
 }
 
 export default function WeaponSelectModal({ 
@@ -26,6 +31,8 @@ export default function WeaponSelectModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
       <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 w-full max-w-md shadow-2xl flex flex-col max-h-[80vh]">
+        
+        {/* 모달 헤더: 선택 목표 개수 및 현재 상태 표시 */}
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -37,15 +44,20 @@ export default function WeaponSelectModal({
           <button onClick={onClose} className="text-slate-400 hover:text-white bg-slate-800 p-1 rounded-full"><X size={20} /></button>
         </div>
 
+        {/* 무기 아이템 그리드 리스트 */}
         <div className="grid grid-cols-2 gap-2 overflow-y-auto custom-scrollbar flex-1 mb-4 pr-1">
           {allWeaponKeys.map(uwKey => {
+            // 무기 표시 이름 생성 (예: golden_tower -> Golden Tower)
             const displayName = uwKey.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
             const isSelected = selected.includes(uwKey);
             
+            // 해금 가능 여부 필터링 로직
             let isDisabled = false;
             if (type === 'base') {
+              // 기본 무기 해금 모드: 이미 해금된 것은 비활성화
               if (unlockedBase.includes(uwKey)) isDisabled = true;
             } else {
+              // UW+ 해금 모드: 기본 무기가 해금되어 있어야 하며, UW+는 아직 해금되지 않은 것만 가능
               if (!unlockedBase.includes(uwKey)) isDisabled = true; 
               if (unlockedPlus.includes(uwKey)) isDisabled = true;
             }
@@ -65,6 +77,7 @@ export default function WeaponSelectModal({
           })}
         </div>
 
+        {/* 하단 상태 바: 남은 선택 개수 표시 */}
         <div className="text-center py-2 text-sm font-bold text-slate-500 bg-slate-950/50 rounded-lg border border-slate-800">
           {count - selected.length} more to select...
         </div>

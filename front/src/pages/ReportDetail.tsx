@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/pages/ReportDetail.tsx
+ * 용도: 개별 전투 기록의 상세 분석 정보 표시 페이지
+ * 기능: 전투 요약 정보, 상세 통계(Utility, Enemy, Bot), 리팩토링된 전투 분석 차트 제공 및 기록 삭제 기능
+ */
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Activity, Skull, Shield, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react';
 import { getFullReport, deleteReport } from '../api/reports';
@@ -5,30 +10,35 @@ import type { FullReport } from '../types/report';
 import { formatDate } from '../utils/format';
 import CombatAnalysis from '../components/Detail/CombatAnalysis';
 import StatGrid from '../components/Detail/StatGrid';
-import { T } from '../locales'; // [New]
+import { T } from '../locales'; 
 
 interface Props {
-  battleDate: string;
-  onBack: () => void;
+  battleDate: string; // 조회할 리포트의 날짜 ID
+  onBack: () => void;  // 뒤로 가기 핸들러
 }
 
 export default function ReportDetailPage({ battleDate, onBack }: Props) {
   const [data, setData] = useState<FullReport | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // 삭제 확인 팝업 상태 (위치 및 오픈 여부)
   const [deletePopup, setDeletePopup] = useState<{isOpen: boolean; x: number; y: number;}>({ isOpen: false, x: 0, y: 0 });
 
-  const Text = T.detail; // 페이지 상세 텍스트
-  const Common = T.common; // 공통 텍스트
+  const Text = T.detail; 
+  const Common = T.common; 
 
+  // 초기 데이터 로드: 상세 리포트 정보 페칭
   useEffect(() => {
     getFullReport(battleDate).then(setData).finally(() => setLoading(false));
   }, [battleDate]);
 
+  /** 삭제 버튼 클릭 시 확인 팝업 표시 */
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setDeletePopup({ isOpen: true, x: e.clientX, y: e.clientY + 20 });
   };
 
+  /** 실제 삭제 수행 */
   const handleConfirmDelete = async () => {
     try {
       await deleteReport(battleDate);
@@ -41,6 +51,7 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
     }
   };
 
+  /** 팝업 닫기 */
   const closePopup = () => setDeletePopup(prev => ({ ...prev, isOpen: false }));
 
   if (loading) return <div className="text-center text-slate-400 py-20">{Common.LOADING}</div>;
@@ -50,6 +61,7 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto pb-20 animate-fade-in px-4" onClick={closePopup}>
+      {/* 상단 헤더: 요약 정보 및 제어 버튼 */}
       <div className="flex items-start justify-between mb-8 sticky top-0 bg-slate-950/90 backdrop-blur-md py-4 z-10 border-b border-slate-800">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
@@ -71,6 +83,7 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
         </div>
 
         <div className="flex items-start gap-3">
+          {/* 메모 표시 (모바일에서는 숨김) */}
           {main.notes && (
             <div className="hidden md:flex flex-col items-end max-w-md">
                <div className="flex items-start gap-2 bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-300 shadow-sm">
@@ -80,6 +93,7 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
             </div>
           )}
           
+          {/* 삭제 버튼 */}
           <button onClick={handleDeleteClick} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all shadow-sm group" title={Text.DELETE_TITLE}>
             <Trash2 size={20} />
           </button>
@@ -87,9 +101,12 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
       </div>
 
       <div className="space-y-6">
+        {/* 중앙: 대미지 및 전투 분석 차트 */}
         <div className="w-full">
             <CombatAnalysis combatJson={detail.combat_json} />
         </div>
+        
+        {/* 하단: 유틸리티, 적, 봇 상세 스탯 그리드 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <StatGrid title={Text.SECTION_UTILITY} icon={Activity} color="text-blue-500" data={detail.utility_json} defaultOpen={false} />
           <StatGrid title={Text.SECTION_ENEMY} icon={Skull} color="text-orange-500" data={detail.enemy_json} defaultOpen={false} />
@@ -97,6 +114,7 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
         </div>
       </div>
 
+      {/* 삭제 확인 플로팅 팝업 */}
       {deletePopup.isOpen && (
         <div 
           className="fixed z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-xl p-4 w-64 animate-fade-in"

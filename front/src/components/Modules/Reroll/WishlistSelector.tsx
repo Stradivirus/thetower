@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/components/Modules/Reroll/WishlistSelector.tsx
+ * 용도: 리롤 타겟 옵션(Target) 및 제외 옵션(Ban) 선택 리스트
+ * 기능: 옵션 다중 선택, 밴 모드 전환 및 개수 제한 처리, 사용 중인 슬롯 개수 카운팅 및 선택 제한
+ */
 import { CheckSquare, Square, Check } from 'lucide-react';
 
 interface EffectData {
@@ -6,19 +11,18 @@ interface EffectData {
 }
 
 interface Props {
-  targetOptions: string[];
-  onItemClick: (id: string) => void;
-  isSimulating: boolean;
-  availableEffects: EffectData[];
+  targetOptions: string[];              // 현재 선택된 타겟 옵션 ID 배열
+  onItemClick: (id: string) => void;    // 아이템 클릭 핸들러
+  isSimulating: boolean;                // 시뮬레이션 중 여부
+  availableEffects: EffectData[];       // 선택 가능한 전체 효과 목록
   
-  // [밴 관련]
-  bannedOptions: string[];
-  isBanMode: boolean;
-  banCount: number;
-  onConfirmBans: () => void;
+  // 밴(Ban) 관련 상태
+  bannedOptions: string[];              // 현재 선택된 밴 옵션 ID 배열
+  isBanMode: boolean;                   // 밴 선택 모드 활성화 여부
+  banCount: number;                     // 설정된 최대 밴 개수
+  onConfirmBans: () => void;            // 밴 선택 완료 핸들러
 
-  // [New] 사용 중인 슬롯 개수 (수동 잠금 + 타겟)
-  usedSlotCount: number;
+  usedSlotCount: number;                // 현재 사용 중인 슬롯 개수 (8개 제한 확인용)
 }
 
 export default function WishlistSelector({ 
@@ -30,12 +34,12 @@ export default function WishlistSelector({
   isBanMode,
   banCount,
   onConfirmBans,
-  usedSlotCount // [New]
+  usedSlotCount 
 }: Props) {
   return (
     <div className="flex flex-col">
       
-      {/* Header */}
+      {/* 헤더 섹션: 현재 모드(Target/Ban)에 따른 상태 및 개수 표시 */}
       <div className="flex justify-between items-center mb-2 px-1 shrink-0 h-6">
         {isBanMode ? (
           <>
@@ -52,7 +56,6 @@ export default function WishlistSelector({
         ) : (
           <>
             <span className="text-xs font-bold text-slate-400">Target Wishlist</span>
-            {/* [Modified] usedSlotCount로 표시 변경 */}
             <span className={`text-[10px] font-bold ${usedSlotCount >= 8 ? 'text-blue-500' : 'text-slate-400'}`}>
               {usedSlotCount} / 8
             </span>
@@ -60,7 +63,7 @@ export default function WishlistSelector({
         )}
       </div>
 
-      {/* List Body */}
+      {/* 옵션 리스트 본문 */}
       <div className="space-y-1">
         {availableEffects.map((effect) => {
           const isTarget = targetOptions.includes(effect.id);
@@ -70,6 +73,7 @@ export default function WishlistSelector({
           let textStyle = "";
           let isDisabled = isSimulating;
 
+          // 1. 밴 모드일 때의 스타일 및 처리
           if (isBanMode) {
             if (isBanned) {
               containerStyle = "bg-rose-950/40 border-rose-500/50 text-rose-300"; 
@@ -77,15 +81,17 @@ export default function WishlistSelector({
               isDisabled = true; 
               containerStyle += " opacity-50";
             }
-          } else {
+          } 
+          // 2. 일반(타겟) 모드일 때의 스타일 및 처리
+          else {
             if (isBanned) {
               containerStyle = "bg-slate-950/50 border-transparent text-slate-700"; 
               textStyle = "line-through decoration-slate-700";
-              isDisabled = true; 
+              isDisabled = true; // 밴된 옵션은 타겟으로 선택 불가
             } else if (isTarget) {
               containerStyle = "bg-blue-500/10 border-blue-500/30 text-blue-100"; 
             } else if (usedSlotCount >= 8) { 
-              // [Modified] 8개 꽉 차면 비활성화 (타겟 선택 불가)
+              // 슬롯 8개가 모두 찼으면 추가 선택 불가
               isDisabled = true; 
               containerStyle += " opacity-50";
             }

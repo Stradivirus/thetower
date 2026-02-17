@@ -1,16 +1,21 @@
+/**
+ * 파일명: thetower/front/src/components/Modules/Reroll/RerollControls.tsx
+ * 용도: 리롤 시뮬레이터 상단의 실행 및 옵션 설정 컨트롤러
+ * 기능: 타겟 등급(Min Target Rarity) 설정, 시뮬레이션 시작/정지/초기화, 연구(Lab) 밴 기능 설정
+ */
 import { Play, Pause, RotateCcw, FlaskConical } from 'lucide-react';
 import { RARITY, RARITY_LABELS } from '../../../data/module_reroll_data';
 
 interface Props {
-  minTargetRarity: number;
-  setMinTargetRarity: (r: number) => void;
-  isSimulating: boolean;
-  toggleSimulation: () => void;
-  canRoll: boolean;
-  onReset: () => void;
-  banCount: number;
-  setBanCount: (n: number) => void;
-  maxBans: number;
+  minTargetRarity: number;               // 최소 타겟 등급
+  setMinTargetRarity: (r: number) => void; // 타겟 등급 변경 핸들러
+  isSimulating: boolean;                 // 실행 중 여부
+  toggleSimulation: () => void;          // 실행 토글 핸들러
+  canRoll: boolean;                      // 리롤 가능 여부 (타겟 설정 확인)
+  onReset: () => void;                   // 초기화 핸들러
+  banCount: number;                      // 현재 설정된 밴 개수
+  setBanCount: (n: number) => void;      // 밴 개수 변경 핸들러
+  maxBans: number;                       // 최대 허용 밴 개수
 }
 
 export default function RerollControls({ 
@@ -27,6 +32,7 @@ export default function RerollControls({
   
   const targetRarities = [RARITY.EPIC, RARITY.LEGENDARY, RARITY.MYTHIC, RARITY.ANCESTRAL];
 
+  /** 등급 버튼의 시각적 스타일을 반환합니다. */
   const getRarityBtnStyle = (targetRarity: number) => {
     const isSelected = minTargetRarity === targetRarity;
     let baseStyle = "border-slate-800 bg-slate-900/50 text-slate-500 hover:bg-slate-800";
@@ -44,7 +50,7 @@ export default function RerollControls({
   return (
     <div className="w-full flex flex-col gap-3 mb-3 shrink-0">
       
-      {/* 1. Rarity & Actions */}
+      {/* 1. 등급 선택 및 실행/초기화 버튼 영역 */}
       <div className="w-full grid grid-cols-6 gap-2 h-10">
         {targetRarities.map((r) => (
           <button
@@ -57,6 +63,7 @@ export default function RerollControls({
           </button>
         ))}
 
+        {/* 실행/정지 버튼 */}
         <button
           onClick={toggleSimulation}
           disabled={!canRoll && !isSimulating}
@@ -65,6 +72,7 @@ export default function RerollControls({
           {isSimulating ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" className="ml-0.5"/>}
         </button>
 
+        {/* 초기화 버튼 */}
         <button
           onClick={onReset}
           disabled={isSimulating}
@@ -74,7 +82,7 @@ export default function RerollControls({
         </button>
       </div>
 
-      {/* 2. Lab: Ban Selection */}
+      {/* 2. 연구실 효과: 밴(Ban) 개수 선택 영역 */}
       <div className="flex items-center gap-2 bg-slate-950/30 border border-slate-800/50 rounded-lg p-2">
         <div className="flex items-center gap-1.5 text-slate-500 mr-2 shrink-0">
           <FlaskConical size={14} className="text-cyan-400" />

@@ -1,4 +1,9 @@
+# 파일명: thetower/docker/docker-compose.yml
+# 용도: 전체 서비스(백엔드, 프론트엔드) 컨테이너 오케스트레이션 설정
+# 특징: 서비스 간 의존성 관리 및 볼륨 영구화 설정 포함
+
 services:
+  # 1. FastAPI 백엔드 서비스
   backend:
     build:
       context: ../
@@ -18,6 +23,7 @@ services:
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
       SLACK_INQUIRY_URL: ${SLACK_INQUIRY_URL}
 
+  # 2. React + Caddy 프론트엔드 서비스
   frontend:
     build:
       context: ../
@@ -29,17 +35,14 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "443:443/udp"
-    # Caddy 데이터 및 설정 볼륨 마운트 추가
+      - "443:443/udp" # HTTP/3 지원을 위한 UDP 포트 개방
     volumes:
-      # Caddyfile 경로를 그대로 유지 (설정 파일)
+      # 설정 파일 및 데이터 영구 저장 처리
       - ./Caddyfile:/etc/caddy/Caddyfile
-      # Let's Encrypt 인증서 및 데이터 영구 저장
       - caddy_data:/data/caddy
-      # Caddy 설정 파일 영구 저장 (선택 사항이지만 권장)
       - caddy_config:/config/caddy
 
-# 볼륨 정의 추가
+# 데이터 영구 저장을 위한 도커 볼륨 정의
 volumes:
-  caddy_data: # Caddy의 인증서, 키, 기타 상태 정보 저장
-  caddy_config: # Caddy의 자동 저장 설정 파일 저장 (autosave.json)
+  caddy_data:   # SSL 인증서 및 상태 정보 보관
+  caddy_config: # Caddy 자동 저장 설정 보관

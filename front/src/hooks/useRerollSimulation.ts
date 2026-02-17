@@ -1,8 +1,16 @@
+/**
+ * 파일명: thetower/front/src/hooks/useRerollSimulation.ts
+ * 용도: 모듈 부옵션 리롤(Reroll) 시뮬레이션 로직
+ * 기능: 확률 기반 옵션 추출, 슬롯 잠금 관리, 시뮬레이션 상태 및 비용 추적
+ */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { RARITY, REROLL_COSTS } from '../data/module_reroll_data';
 import type { SimulationSlot } from '../components/Modules/Reroll/SlotViewer';
 
-// 등급 뽑기 함수
+/** 
+ * 설정된 확률표에 따라 랜덤한 등급(Rarity)을 반환합니다.
+ * @param maxCap 허용되는 최대 등급
+ */
 const getRandomRarity = (maxCap: number) => {
   const rand = Math.random() * 100;
   let accumulated = 0;
@@ -24,7 +32,11 @@ const getRandomRarity = (maxCap: number) => {
   return RARITY.COMMON;
 };
 
+/** 
+ * 리롤 시뮬레이션 관리를 위한 커스텀 훅
+ */
 export function useRerollSimulation() {
+  // 초기 슬롯 상태 (8개 슬롯)
   const initialSlots: SimulationSlot[] = Array.from({ length: 8 }, (_, i) => ({
     id: i,
     effectId: null,
@@ -39,6 +51,7 @@ export function useRerollSimulation() {
   const [isSimulating, setIsSimulating] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
+  /** 시뮬레이션을 중단합니다. */
   const stopSimulation = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -47,13 +60,14 @@ export function useRerollSimulation() {
     setIsSimulating(false);
   }, []);
 
+  /** 상태를 초기화합니다. */
   const resetSimulation = useCallback(() => {
     stopSimulation();
     setSlots(initialSlots);
     setTotalCost(0);
   }, [stopSimulation]);
 
-  // [New] 수동 장착 기능
+  /** 특정 슬롯에 옵션을 수동으로 설정(장착)합니다. */
   const manualSetSlot = useCallback((slotIdx: number, effectId: string, rarity: number, value: any, unit: string) => {
     setSlots(prev => prev.map((slot, idx) => {
       if (idx === slotIdx) {
@@ -63,23 +77,27 @@ export function useRerollSimulation() {
           rarity,
           value,
           unit,
-          isLocked: true // 수동 장착 시 자동 잠금
+          isLocked: true // 수동 장착 시 자동 잠금 처리
         };
       }
       return slot;
     }));
   }, []);
 
-  // [New] 슬롯 잠금 해제 기능 (선택 사항: 클릭해서 풀고 싶을 때)
+  /** 특정 슬롯의 잠금을 해제하고 초기화합니다. */
   const manualUnlockSlot = useCallback((slotIdx: number) => {
     setSlots(prev => prev.map((slot, idx) => {
       if (idx === slotIdx) {
-        return { ...slot, isLocked: false, effectId: null, value: '-' }; // 초기화
+        return { ...slot, isLocked: false, effectId: null, value: '-' }; 
       }
       return slot;
     }));
   }, []);
 
+  /** 
+   * 리롤 시뮬레이션을 시작합니다. 
+   * 20ms 간격으로 옵션을 무작위 추출하며 타겟 등급 이상이 나오면 해당 슬롯을 잠급니다.
+   */
   const startSimulation = useCallback((
     targetOptions: string[],
     bannedOptions: string[],
@@ -88,19 +106,9 @@ export function useRerollSimulation() {
     isBanMode: boolean
   ) => {
     if (targetOptions.length === 0) {
-      // 타겟이 없어도, 수동으로 잠긴 슬롯이 있으면 나머지만 돌릴 수 있어야 함
-      // 하지만 보통은 타겟을 정하고 돌리므로 경고 유지, 혹은 정책에 따라 변경 가능
-      // 여기서는 타겟 옵션이 없으면 경고
       alert("Please select target options first.");
       return;
     }
-    
-    // 활성 슬롯(타겟 개수만큼) 체크 -> 수동 장착으로 인해 slots 전체가 활성 대상이 될 수도 있음.
-    // 기존 로직: targetOptions.length 만큼만 앞에서부터 사용.
-    // 변경 제안: 수동 장착된 슬롯이 있다면, 그 슬롯 뒤쪽까지도 활성화되어야 자연스럽지만,
-    // 일단 기존 로직(Target 개수 = 활성 슬롯 개수)을 따르되, 
-    // "수동으로 넣은 슬롯이 비활성 영역(Target 개수보다 뒤)에 있다면 무시"되는 구조임.
-    // 따라서 사용자는 Target Wishlist에 옵션을 넉넉히 넣어서 슬롯을 열어두고 수동 장착을 해야 함.
     
     const activeSlots = slots.slice(0, targetOptions.length);
     if (activeSlots.every(s => s.isLocked)) return;
@@ -116,24 +124,24 @@ export function useRerollSimulation() {
       setSlots(prevSlots => {
         const numActive = targetOptions.length;
         
-        // 비용 계산
+        // 잠금 개수에 따른 리롤 비용 누적
         const currentLockCount = prevSlots.slice(0, numActive).filter(s => s.isLocked).length;
         const costPerRoll = REROLL_COSTS[currentLockCount] || 0;
         setTotalCost(c => c + costPerRoll);
 
-        // 현재 잠긴 옵션 ID 목록 (중복 방지용)
+        // 현재 잠긴 옵션 목록 (중복 옵션 추출 방지)
         const activeLockedIds = prevSlots
           .slice(0, numActive)
           .filter(s => s.isLocked && s.effectId)
           .map(s => s.effectId!);
 
-        // 슬롯 업데이트
         const newSlots = prevSlots.map((slot, idx) => {
           if (idx >= numActive) return { ...slot, effectId: null, value: '-', isLocked: false, rarity: 0 }; 
           if (slot.isLocked) return slot; 
 
           const newRarity = getRandomRarity(targetRarityCap);
 
+          // 밴 옵션 및 중복 옵션 제외한 유효 옵션 리스트 필터링
           const validOptions = currentEffects.filter(e => {
             if (activeLockedIds.includes(e.id)) return false;
             if (bannedOptions.includes(e.id)) return false;
@@ -156,6 +164,7 @@ export function useRerollSimulation() {
           };
         });
 
+        // 모든 활성 슬롯이 잠기면 시뮬레이션 종료
         const allActiveLocked = newSlots.slice(0, numActive).every(s => s.isLocked);
         if (allActiveLocked) {
           stopSimulation();
@@ -166,6 +175,7 @@ export function useRerollSimulation() {
     }, 20); 
   }, [slots, stopSimulation]);
 
+  // 컴포넌트 언마운트 시 인터벌 정리
   useEffect(() => {
     return () => stopSimulation();
   }, [stopSimulation]);
@@ -177,7 +187,7 @@ export function useRerollSimulation() {
     startSimulation,
     stopSimulation,
     resetSimulation,
-    manualSetSlot,   // [New]
-    manualUnlockSlot // [New]
+    manualSetSlot,
+    manualUnlockSlot
   };
 }

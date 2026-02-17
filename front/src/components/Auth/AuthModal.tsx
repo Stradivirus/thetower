@@ -1,11 +1,16 @@
+/**
+ * 파일명: thetower/front/src/components/Auth/AuthModal.tsx
+ * 용도: 사용자 인증(로그인 및 회원가입)을 위한 모달 컴포넌트
+ * 기능: 로그인/회원가입 폼 전환, 입력 유효성 검사, API 연동 및 성공 시 토큰 전달
+ */
 import { useState } from 'react';
 import { X, LogIn, UserPlus, AlertCircle, User } from 'lucide-react';
 import { loginUser, registerUser } from '../../api/auth';
-import { T } from '../../locales'; // [New] 언어팩
+import { T } from '../../locales'; 
 
 interface Props {
-  onClose: () => void;
-  onLoginSuccess: (token: string) => void;
+  onClose: () => void;                   // 모달 닫기 핸들러
+  onLoginSuccess: (token: string) => void; // 인증 성공 시 실행할 콜백
 }
 
 export default function AuthModal({ onClose, onLoginSuccess }: Props) {
@@ -16,13 +21,16 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 텍스트 단축어
   const Text = T.auth;
 
+  /** 
+   * 폼 제출 핸들러: 유효성 검사 후 서버 API를 호출합니다.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    // 1. 입력 유효성 검사
     if (username.length < 4) {
       setError(Text.ERR_ID_LENGTH);
       return;
@@ -31,7 +39,6 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
       setError(Text.ERR_PW_LENGTH);
       return;
     }
-
     if (isRegister && password !== confirmPassword) {
       setError(Text.ERR_PW_MISMATCH);
       return;
@@ -41,12 +48,14 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
 
     try {
       if (isRegister) {
+        // 회원가입 성공 시 자동 로그인 시도
         await registerUser(username, password);
         alert(Text.SUCCESS_REGISTER);
         const data = await loginUser(username, password);
         onLoginSuccess(data.access_token);
         onClose();
       } else {
+        // 로그인 시도
         const data = await loginUser(username, password);
         onLoginSuccess(data.access_token);
         onClose();
@@ -58,6 +67,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
     }
   };
 
+  /** 로그인/회원가입 모드 전환 */
   const toggleMode = () => {
     setIsRegister(!isRegister);
     setError(null);
@@ -67,6 +77,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4">
       <div className="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+        {/* 모달 헤더 */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-slate-950/50">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <User className="text-blue-500" size={20} />
@@ -79,6 +90,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
 
         <div className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 아이디 입력 */}
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">{Text.ID_LABEL}</label>
               <input 
@@ -91,6 +103,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
               />
             </div>
             
+            {/* 비밀번호 입력 */}
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">{Text.PW_LABEL}</label>
               <input 
@@ -103,6 +116,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
               />
             </div>
 
+            {/* 비밀번호 확인 (회원가입 시에만 표시) */}
             {isRegister && (
               <div className="animate-fade-in">
                 <label className="block text-xs font-bold text-slate-400 mb-1 ml-1">{Text.PW_CONFIRM_LABEL}</label>
@@ -121,12 +135,14 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
               </div>
             )}
 
+            {/* 에러 피드백 */}
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-3 py-2 rounded-lg text-xs flex items-center gap-2 animate-fade-in">
                 <AlertCircle size={14} /> {error}
               </div>
             )}
 
+            {/* 제출 버튼 */}
             <button 
               type="submit" 
               disabled={loading}
@@ -136,6 +152,7 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
             </button>
           </form>
 
+          {/* 모드 전환 링크 */}
           <div className="mt-6 text-center">
             <button 
               onClick={toggleMode} 

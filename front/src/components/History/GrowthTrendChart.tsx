@@ -1,10 +1,15 @@
+/**
+ * 파일명: thetower/front/src/components/History/GrowthTrendChart.tsx
+ * 용도: 히스토리 페이지에서 사용되는 성장 추세 차트 (컴포넌트 분리용)
+ * 기능: 자원 획득량(Bar)과 성장률(Line)을 결합하여 추세 시각화
+ */
 import { useMemo } from 'react';
 import { 
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend 
 } from 'recharts';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { formatNumber } from '../../utils/format';
-import { T } from '../../locales'; // 언어팩
+import { T } from '../../locales'; 
 
 interface Props {
   data: any[]; 
@@ -15,8 +20,9 @@ interface Props {
 
 export default function GrowthTrendChart({ data, summary, viewMode, resourceType }: Props) {
   const isCoin = resourceType === 'coin';
-  const Text = T.history.CHART; // 언어팩
+  const Text = T.history.CHART;
 
+  // 차트 색상 테마
   const COLORS = {
     coinBar: '#fbbf24',
     cellBar: '#22d3ee',
@@ -29,12 +35,14 @@ export default function GrowthTrendChart({ data, summary, viewMode, resourceType
 
   const currentBarColor = isCoin ? COLORS.coinBar : COLORS.cellBar;
 
+  // 평균 성장률에 따른 추세선 색상
   const currentTrendColor = useMemo(() => {
     if (summary.avgGrowth >= 1.0) return COLORS.trendUp;
     if (summary.avgGrowth <= -1.0) return COLORS.trendDown;
     return COLORS.trendFlat;
   }, [summary.avgGrowth]);
 
+  /** 성장률 선 차트의 그라데이션 임계값(0 기준) 계산 */
   const gradientOffset = () => {
     if (data.length === 0) return 0;
     const dataMax = Math.max(...data.map((i) => i.currentGrowth));
@@ -46,6 +54,7 @@ export default function GrowthTrendChart({ data, summary, viewMode, resourceType
 
   const off = gradientOffset();
 
+  /** 범례 커스텀 렌더링 */
   const renderCustomLegend = () => {
     const isPositive = summary.avgGrowth >= 0;
     const TrendIcon = isPositive ? TrendingUp : TrendingDown;

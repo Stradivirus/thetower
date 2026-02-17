@@ -1,15 +1,24 @@
+/**
+ * 파일명: thetower/front/src/components/Layout/SupportButton.tsx
+ * 용도: 서비스 이용 문의 및 피드백 전송을 위한 플로팅 버튼 및 모달
+ * 기능: 문의 내용 입력 폼 제공, Slack API 연동 전송, 전송 상태 피드백 표시
+ */
 import React, { useState } from 'react';
 import { useGameData } from '../../contexts/GameDataContext';
-import { T } from '../../locales'; // 언어팩 연결
+import { T } from '../../locales'; 
 
 export default function SupportButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success'>('idle');
-  const Text = T.layout.SUPPORT; // 언어팩
+  const Text = T.layout.SUPPORT; 
 
   const { isLoggedIn } = useGameData();
 
+  /** 
+   * 문의 내용 제출 핸들러
+   * - 슬랙 웹훅과 연결된 백엔드 API로 데이터를 전송합니다.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
@@ -26,12 +35,13 @@ export default function SupportButton() {
         setStatus('success');
         setContent('');
         
+        // 성공 메시지 표시 후 1.5초 뒤 모달 닫기
         setTimeout(() => {
           setIsOpen(false);
           setStatus('idle');
         }, 1500);
       } else {
-        alert(Text.ERR_SERVER); // 언어팩 사용
+        alert(Text.ERR_SERVER);
         setStatus('idle');
       }
     } catch (error) {
@@ -40,12 +50,14 @@ export default function SupportButton() {
     }
   };
 
+  // 비로그인 사용자에게는 고객지원 버튼을 노출하지 않음
   if (!isLoggedIn) {
     return null;
   }
 
   return (
     <>
+      {/* 플로팅 문의 버튼 (데스크탑 전용) */}
       <button
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 z-50 hidden md:flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition-transform hover:scale-110 hover:bg-blue-700 active:scale-95"
@@ -56,10 +68,12 @@ export default function SupportButton() {
         </svg>
       </button>
 
+      {/* 문의 입력 모달 */}
       {isOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm transition-opacity">
           <div className="w-full max-w-sm rounded-xl bg-gray-800 p-6 shadow-2xl ring-1 ring-white/10">
             {status === 'success' ? (
+              /* 전송 성공 피드백 화면 */
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <div className="mb-4 rounded-full bg-green-500/20 p-3 text-green-400">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-8 w-8">
@@ -70,6 +84,7 @@ export default function SupportButton() {
                 <p className="mt-2 text-sm text-gray-400">{Text.SUCCESS_DESC}</p>
               </div>
             ) : (
+              /* 문의 입력 폼 화면 */
               <>
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-lg font-bold text-white">{Text.MODAL_TITLE}</h3>

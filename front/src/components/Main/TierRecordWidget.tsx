@@ -1,9 +1,15 @@
+/**
+ * 파일명: thetower/front/src/components/Main/TierRecordWidget.tsx
+ * 용도: 티어별 서버 최고 기록과 개인 기록을 비교 표시하는 사이드 위젯
+ * 기능: 실시간 기록 페칭, 위젯 가시성 및 티어 범위 설정 저장(Local Storage), 클릭 시 티어별 히스토리 이동
+ */
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getGlobalMaxWaves, type TierRecord } from '../../api/stats';
-import { ChevronDown, ChevronUp, Settings, X, Trophy, Info } from 'lucide-react'; // Info 아이콘 추가
+import { ChevronDown, ChevronUp, Settings, X, Trophy, Info } from 'lucide-react'; 
 import { T } from '../../locales'; 
 
+// 로컬 스토리지 키 상수 정의
 const STORAGE_KEY_VISIBLE = 'tier_widget_visible';
 const STORAGE_KEY_MIN_TIER = 'tier_widget_min_tier';
 const STORAGE_KEY_MAX_TIER = 'tier_widget_max_tier';
@@ -17,9 +23,10 @@ const TierRecordWidget: React.FC = () => {
   const [maxTier, setMaxTier] = useState(20);
   const [showSettings, setShowSettings] = useState(false);
   
-  const Text = T.main.WIDGET; // 언어팩 연결
+  const Text = T.main.WIDGET; 
   const token = localStorage.getItem('access_token');
 
+  // 데이터 및 사용자 설정 로드
   useEffect(() => {
     if (!token) return;
 
@@ -38,6 +45,7 @@ const TierRecordWidget: React.FC = () => {
     };
     loadData();
 
+    // 저장된 설정 불러오기
     const savedVisible = localStorage.getItem(STORAGE_KEY_VISIBLE);
     const savedMinTier = localStorage.getItem(STORAGE_KEY_MIN_TIER);
     const savedMaxTier = localStorage.getItem(STORAGE_KEY_MAX_TIER);
@@ -47,18 +55,21 @@ const TierRecordWidget: React.FC = () => {
     if (savedMaxTier !== null) setMaxTier(parseInt(savedMaxTier, 10));
   }, [token]);
 
+  /** 위젯 표시 여부 토글 */
   const toggleVisibility = () => {
     const newState = !isVisible;
     setIsVisible(newState);
     localStorage.setItem(STORAGE_KEY_VISIBLE, String(newState));
   };
 
+  /** 최소 표시 티어 변경 핸들러 */
   const handleMinTierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value, 10) || 1;
     setMinTier(val);
     localStorage.setItem(STORAGE_KEY_MIN_TIER, String(val));
   };
 
+  /** 최대 표시 티어 변경 핸들러 */
   const handleMaxTierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value, 10) || 20;
     setMaxTier(val);
@@ -67,6 +78,7 @@ const TierRecordWidget: React.FC = () => {
 
   if (!token) return null;
 
+  // 위젯이 숨겨진 상태일 때의 플로팅 버튼 뷰
   if (!isVisible) {
     return (
       <button
@@ -84,6 +96,7 @@ const TierRecordWidget: React.FC = () => {
 
   return (
     <div className="fixed right-6 top-24 w-64 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-2xl z-40 transition-all">
+      {/* 위젯 헤더 */}
       <div className="flex items-center justify-between p-3 border-b border-gray-700">
         <div className="flex items-center gap-2">
           <Trophy size={18} className="text-yellow-400" />
@@ -113,6 +126,7 @@ const TierRecordWidget: React.FC = () => {
         </div>
       </div>
 
+      {/* 티어 범위 설정 패널 */}
       {showSettings && isExpanded && (
         <div className="p-3 bg-gray-800 border-b border-gray-700 text-sm space-y-2">
           <div className="flex items-center justify-between">
@@ -140,6 +154,7 @@ const TierRecordWidget: React.FC = () => {
         </div>
       )}
 
+      {/* 기록 테이블 (확장 시 노출) */}
       {isExpanded && (
         <div className="p-2">
           {filteredRecords.length === 0 ? (
@@ -173,7 +188,6 @@ const TierRecordWidget: React.FC = () => {
                 </tbody>
               </table>
               
-              {/* 하단 안내 문구: 언어팩 적용 */}
               <div className="mt-3 pt-2 border-t border-gray-800/50 flex items-center justify-center gap-1.5">
                 <Info size={10} className="text-slate-500" />
                 <span className="text-[12px] text-slate-500 font-medium">

@@ -1,16 +1,22 @@
+/**
+ * 파일명: thetower/front/src/components/Main/Dashboard.tsx
+ * 용도: 메인 페이지 상단의 핵심 통계 요약 대시보드
+ * 기능: 일간 코인 흐름 비교, 주요 자원(셀, 리롤 파편) 현황, 최근 죽음 원인 및 딜량 순위 시각화
+ */
 import { useMemo } from 'react';
 import { Zap, Layers, Skull, CalendarDays, Sword } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber } from '../../utils/format';
-import { T } from '../../locales'; // 언어팩
+import { T } from '../../locales'; 
 
 interface Props {
-  reports: BattleMain[];
+  reports: BattleMain[]; // 통계 계산 대상 리포트 목록
 }
 
 export default function Dashboard({ reports }: Props) {
-  const Text = T.main.DASHBOARD; // 언어팩 연결
+  const Text = T.main.DASHBOARD;
 
+  // --- 날짜 계산 로직 ---
   const todayDate = new Date();
   const todayStr = todayDate.toDateString();
   
@@ -22,6 +28,7 @@ export default function Dashboard({ reports }: Props) {
   twoDaysAgoDate.setDate(twoDaysAgoDate.getDate() - 2);
   const twoDaysAgoStr = twoDaysAgoDate.toDateString();
 
+  // --- 통계 집계 로직 ---
   const todayStats = reports.filter(r => new Date(r.battle_date).toDateString() === todayStr);
   const yesterdayStats = reports.filter(r => new Date(r.battle_date).toDateString() === yesterdayStr);
   const twoDaysAgoStats = reports.filter(r => new Date(r.battle_date).toDateString() === twoDaysAgoStr);
@@ -36,6 +43,7 @@ export default function Dashboard({ reports }: Props) {
   const todayShards = todayStats.reduce((acc, cur) => acc + cur.reroll_shards_earned, 0);
   const yesterdayShards = yesterdayStats.reduce((acc, cur) => acc + cur.reroll_shards_earned, 0);
 
+  // 최근 일주일간의 데이터 필터링 (위협 및 딜 순위용)
   const oneWeekAgoDate = new Date(todayDate);
   oneWeekAgoDate.setDate(oneWeekAgoDate.getDate() - 7);
   const oneWeekAgoTimestamp = oneWeekAgoDate.setHours(0,0,0,0);
@@ -45,17 +53,26 @@ export default function Dashboard({ reports }: Props) {
     return reportDate >= oneWeekAgoTimestamp;
   });
 
+  /** 
+   * [최근 위협] 최근 1주일간 가장 많이 죽게 만든 '처치자' TOP 3 집계
+   */
   const recentKillers = useMemo(() => {
     const counts: Record<string, number> = {};
     recentReports.forEach(r => {
       counts[r.killer] = (counts[r.killer] || 0) + 1;
     });
-    return Object.entries(counts).sort(([, a], [, b]) => b - a).slice(0, 3).map(([name, count]) => ({ name, count }));
+    return Object.entries(counts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([name, count]) => ({ name, count }));
   }, [recentReports]);
 
+  /** 
+   * [주간 딜 순위] 최근 1주일간 가장 빈번하게 TOP Damage에 이름을 올린 스탯 TOP 3 집계
+   */
   const topDamages = useMemo(() => {
     const damageCountMap: Record<string, number> = {};
-    const utilityKeywords = ['오브', '블랙홀'];
+    const utilityKeywords = ['오브', '블랙홀']; // 유틸리티성 항목은 딜 순위에서 제외
 
     recentReports.forEach(r => {
       (r.top_damages || []).forEach((name: string) => {
@@ -73,7 +90,7 @@ export default function Dashboard({ reports }: Props) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
       
-      {/* 1. 최근 코인 획득 흐름 */}
+      {/* 1. 최근 코인 획득 흐름 섹션 */}
       <div className="col-span-2 md:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-40 h-40 bg-yellow-500/5 rounded-full blur-3xl -mr-20 -mt-20 transition-all group-hover:bg-yellow-500/10"></div>
         <h3 className="text-slate-400 text-base font-bold flex items-center justify-center gap-2 z-10 mb-3">
@@ -97,7 +114,7 @@ export default function Dashboard({ reports }: Props) {
         </div>
       </div>
 
-      {/* 2. 오늘 주요 자원 */}
+      {/* 2. 오늘 주요 자원 섹션 */}
       <div className="col-span-2 md:col-span-1 bg-slate-900 border border-slate-800 p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-cyan-500/10 group-hover:bg-cyan-500/20"></div>
         <h3 className="text-slate-400 text-base font-bold mb-3 flex items-center justify-center gap-2 z-10">
@@ -125,7 +142,7 @@ export default function Dashboard({ reports }: Props) {
         </div>
       </div>
 
-      {/* 3. 최근 위협 */}
+      {/* 3. 최근 위협 섹션 */}
       <div className="bg-slate-900 border border-slate-800 p-2 md:p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-rose-500/10 group-hover:bg-rose-500/20"></div>
         <h3 className="text-slate-400 font-bold mb-2 md:mb-3 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 z-10 text-xs md:text-base">
@@ -158,7 +175,7 @@ export default function Dashboard({ reports }: Props) {
         </div>
       </div>
 
-      {/* 4. 주간 딜 순위 */}
+      {/* 4. 주간 딜 순위 섹션 */}
       <div className="bg-slate-900 border border-slate-800 p-2 md:p-4 rounded-2xl relative overflow-hidden group flex flex-col min-h-[140px]">
         <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl -mr-16 -mt-16 transition-all bg-purple-500/10 group-hover:bg-purple-500/20"></div>
         <h3 className="text-slate-400 font-bold mb-1 flex flex-col md:flex-row items-center justify-center gap-1 md:gap-2 z-10 text-xs md:text-base">

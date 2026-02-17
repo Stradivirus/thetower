@@ -1,19 +1,27 @@
+/**
+ * 파일명: thetower/front/src/pages/LoginPage.tsx
+ * 용도: 사용자 인증(로그인 및 회원가입) 인터페이스 페이지
+ * 기능: 로그인/회원가입 모드 전환, 폼 유효성 검사, API 연동 및 에러 처리
+ */
 import { useState } from 'react';
 import { LogIn, UserPlus, AlertCircle } from 'lucide-react';
 import { loginUser, registerUser } from '../api/auth';
 
 interface Props {
-  onLoginSuccess: (token: string) => void;
-  onCancel: () => void;
+  onLoginSuccess: (token: string) => void; // 로그인 성공 시 실행할 콜백 (토큰 전달)
+  onCancel: () => void;                   // 취소 시 실행할 콜백
 }
 
 export default function LoginPage({ onLoginSuccess, onCancel }: Props) {
-  const [isRegister, setIsRegister] = useState(false);
+  const [isRegister, setIsRegister] = useState(false); // 회원가입 모드 여부
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  /** 
+   * 폼 제출 핸들러: 모드에 따라 로그인 또는 회원가입 API 호출 
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -21,13 +29,12 @@ export default function LoginPage({ onLoginSuccess, onCancel }: Props) {
 
     try {
       if (isRegister) {
-        // 회원가입 후 바로 로그인 처리 or 로그인 유도 (여기선 바로 로그인 시도)
+        // 회원가입 프로세스
         await registerUser(email, password);
         alert("회원가입 성공! 로그인합니다.");
-        setIsRegister(false); // 로그인 모드로 전환
-        // UX상 다시 로그인 요청하거나, 바로 로그인 API 호출 가능
+        setIsRegister(false); // 회원가입 완료 후 로그인 모드로 자동 전환
       } else {
-        // 로그인
+        // 로그인 프로세스
         const data = await loginUser(email, password);
         onLoginSuccess(data.access_token);
       }
@@ -74,6 +81,7 @@ export default function LoginPage({ onLoginSuccess, onCancel }: Props) {
             />
           </div>
 
+          {/* 에러 메시지 표시 */}
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
               <AlertCircle size={16} /> {error}

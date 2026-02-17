@@ -1,9 +1,13 @@
+/**
+ * 파일명: thetower/front/src/components/Stones/CardTab.tsx
+ * 용도: 스톤 계산기 페이지의 'Cards' 탭 컨텐츠
+ * 기능: 마스터리 완료된 카드 관리, 미완료 카드 목록 및 해금 비용 표시, 다국어 카드 이름 및 설명 지원
+ */
 import { Check } from 'lucide-react';
 import cardCosts from '../../data/card_mastery_costs.json';
 import { stoneStyles as styles, formatNum, ResetButton } from './StoneShared';
 import { T } from '../../locales';
 
-// JSON 데이터의 현재 구조 정의 (desc 제거됨)
 interface CardItem {
   name: string;
   cost: number;
@@ -16,18 +20,19 @@ interface Props {
 }
 
 export default function CardTab({ progress, updateProgress, resetCards }: Props) {
-  // 타입을 CardItem[]로 지정하여 빌드 에러 해결
   const cards = cardCosts as CardItem[];
   
-  // 언어팩 데이터 참조 (안전하게 빈 객체 폴백)
+  // 언어팩 데이터 로드
   const cardTranslations = T.data?.CARDS || {};
 
+  // 진행도 데이터를 기반으로 완료/미완료 카드 필터링
   const completedCards = cards.filter(c => progress[`card_${c.name}`] === 1);
   const remainingCards = cards.filter(c => progress[`card_${c.name}`] !== 1);
 
   return (
     <div className="animate-fade-in">
       <div className={styles.card}>
+        {/* 섹션 헤더 */}
         <div className={styles.uwHeader}>
           <span>Card Mastery Costs</span>
           {completedCards.length > 0 && (
@@ -35,6 +40,7 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
           )}
         </div>
 
+        {/* 1. 완료된 카드 리스트 (배지 형태) */}
         {completedCards.length > 0 && (
           <div className="px-4 py-4 border-b border-slate-800 bg-slate-950/30">
             <div className="flex items-center gap-2 mb-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -44,7 +50,6 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
             
             <div className="flex flex-wrap gap-2">
               {completedCards.map((card) => {
-                // 언어팩에서 번역된 이름 가져오기
                 const cardInfo = (cardTranslations as any)[card.name];
                 return (
                   <button
@@ -60,6 +65,7 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
           </div>
         )}
 
+        {/* 2. 미완료 카드 테이블 */}
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead>
@@ -72,7 +78,6 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
             <tbody>
               {remainingCards.length > 0 ? (
                 remainingCards.map((card, idx) => {
-                  // 언어팩에서 번역 데이터 찾기
                   const cardInfo = (cardTranslations as any)[card.name];
                   return (
                     <tr 
@@ -85,13 +90,13 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
                       </td>
                       <td className={`${styles.td} text-yellow-400`}>{formatNum(card.cost)}</td>
                       <td className={`${styles.td} text-slate-200 whitespace-normal min-w-[300px] leading-relaxed`}>
-                        {/* [Fix] JSON에 없는 card.desc 참조를 제거하고 언어팩 데이터만 사용 */}
                         {cardInfo?.desc || "No Description available"}
                       </td>
                     </tr>
                   );
                 })
               ) : (
+                /* 모든 카드 완료 시 메시지 */
                 <tr><td colSpan={3} className="px-4 py-8 text-center text-slate-500">
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-2xl">🎉</span>
@@ -100,6 +105,7 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
                 </td></tr>
               )}
             </tbody>
+            {/* 하단 요약: 남은 총 비용 */}
             {remainingCards.length > 0 && (
               <tfoot>
                 <tr>

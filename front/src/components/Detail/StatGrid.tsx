@@ -1,27 +1,37 @@
+/**
+ * 파일명: thetower/front/src/components/Detail/StatGrid.tsx
+ * 용도: 전투 리포트 상세 데이터(Utility, Enemy, Bot)를 그리드 형태로 표시
+ * 기능: 섹션별 데이터 필터링(0 제외) 및 정렬, 중요 스탯(적 합계 등) 강조, 접기/펼치기 및 다국어 지원
+ */
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { parseGameNumber } from '../../utils/format';
-import { T } from '../../locales'; // [New]
+import { T } from '../../locales'; 
 import { 
   HIDDEN_KEYS, ENEMY_LEFT_ORDER, ENEMY_RIGHT_ORDER, RESOURCE_ORDER 
-} from '../../constants/reportRules'; // [New]
+} from '../../constants/reportRules'; 
 
 interface StatGridProps {
-  data: Record<string, string | number>;
-  icon: any;
-  title: string;
-  color: string;
-  defaultOpen?: boolean;
+  data: Record<string, string | number>; // 섹션별 스탯 데이터 객체
+  icon: any;                             // 타이틀 옆에 표시할 아이콘
+  title: string;                         // 섹션 제목
+  color: string;                         // 섹션 테마 색상
+  defaultOpen?: boolean;                 // 기본 확장 여부
 }
 
 export default function StatGrid({ data, icon: Icon, title, color, defaultOpen = false }: StatGridProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const Text = T.detail; // 언어팩
+  const Text = T.detail; 
 
+  // 섹션 타입 판별
   const isUtility = title === Text.SECTION_UTILITY;
   const isEnemy = title === Text.SECTION_ENEMY; 
   const isBot = title === Text.SECTION_BOT; 
 
+  /** 
+   * 표시할 유효한 데이터 엔트리 필터링
+   * - 내부 필드(_std_), 숨김 설정 필드, 값이 0인 데이터는 제외
+   */
   const entries = Object.entries(data).filter(([key, value]) => {
     if (key.startsWith('_std_')) return false;
     if (HIDDEN_KEYS.includes(key)) return false;
@@ -29,7 +39,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     return true;
   });
 
-  // --- [A] 유틸리티 섹션 ---
+  // --- [A] 유틸리티 섹션: 코인 관련 항목과 기타 항목으로 분류 ---
   let utilCoinItems: [string, string | number][] = [];
   let utilMiscItems: [string, string | number][] = [];
 
@@ -41,18 +51,20 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     utilMiscItems = otherItems;
   }
 
-  // --- [B] 적 통계 섹션 ---
+  // --- [B] 적 통계 섹션: 스폰 정보(좌/우)와 처치 정보(Kill)로 분류 ---
   let enemyLeftItems: [string, string | number][] = [];
   let enemyRightItems: [string, string | number][] = [];
   let enemyKillItems: [string, string | number][] = [];
 
   if (isEnemy) {
+    // 처치 관련 스탯 분리
     enemyKillItems = entries.filter(([key]) => {
         const lower = key.toLowerCase();
         const isKillStat = key.includes('파괴') || lower.includes('destroyed') || lower.includes('killed');
         if (['파괴 공작원', 'Saboteur', 'Saboteurs'].includes(key)) return false;
         return isKillStat;
     });
+    // 스폰/등장 관련 스탯 분리
     const spawnItems = entries.filter(([key]) => {
         const lower = key.toLowerCase();
         const isKillStat = key.includes('파괴') || lower.includes('destroyed') || lower.includes('killed');
@@ -60,11 +72,13 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
         return !isKillStat;
     });
 
+    // 사전에 정의된 순서에 따라 좌측/우측 배치
     spawnItems.forEach(item => {
       if (ENEMY_LEFT_ORDER.includes(item[0])) enemyLeftItems.push(item);
       else enemyRightItems.push(item);
     });
 
+    /** 지정된 리스트 순서에 맞춰 정렬하는 함수 */
     const sortFn = (orderList: string[]) => (a: [string, any], b: [string, any]) => {
       const idxA = orderList.indexOf(a[0]);
       const idxB = orderList.indexOf(b[0]);
@@ -78,7 +92,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     enemyRightItems.sort(sortFn(ENEMY_RIGHT_ORDER));
   }
 
-  // --- [C] 봇 & 가디언 섹션 ---
+  // --- [C] 봇 & 가디언 섹션: 자원 정보와 봇 효과 정보로 분류 ---
   let botLeftItems: [string, string | number][] = [];
   let botRightItems: [string, string | number][] = [];
 
@@ -110,10 +124,16 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     });
   }
 
+  /** 
+   * 개별 스탯 항목을 렌더링합니다. 
+   * - 중요도에 따른 색상 및 폰트 크기 조정
+   */
   const renderItem = ([key, value]: [string, string | number]) => {
     let labelColor = "text-slate-500";
     let valueColor = "text-slate-200";
     let valueSize = "text-sm";
+    
+    // 특수 강조 항목 (총합 정보 등)
     if (['적 합계', 'Total Enemies'].includes(key)) {
         labelColor = "text-orange-400 font-bold";
         valueColor = "text-orange-300 font-bold";
@@ -125,6 +145,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
         valueSize = "text-base";
     }
 
+    // 이름 간소화 (UI 가독성 향상)
     let displayLabel = key;
     if (isUtility) {
       displayLabel = displayLabel.replace('코인 업그레이드로 얻은 코인', '코인 업그레이드로 획득');
@@ -141,14 +162,18 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden transition-all shadow-md h-fit">
+      {/* 아코디언 헤더 버튼 */}
       <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-5 hover:bg-slate-800/50 transition-colors text-left">
         <h3 className={`text-lg font-bold flex items-center gap-2 ${color}`}><Icon size={20} /> {title}</h3>
         {isOpen ? <ChevronUp size={20} className="text-slate-500" /> : <ChevronDown size={20} className="text-slate-500" />}
       </button>
       
+      {/* 확장 영역 컨텐츠 */}
       {isOpen && (
         <div className="px-5 pb-5 animate-fade-in-down">
           <div className="border-t border-slate-800 mb-4"></div>
+          
+          {/* 1. 유틸리티 레이아웃 (코인 vs 기타) */}
           {isUtility ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
               <div className="flex flex-col">
@@ -160,7 +185,9 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
                 {utilMiscItems.map(renderItem)}
               </div>
             </div>
-          ) : isEnemy ? (
+          ) : 
+          /* 2. 적 통계 레이아웃 (스폰 vs 처치) */
+          isEnemy ? (
             <div className="flex flex-col gap-6">
               <div className="grid grid-cols-2 gap-x-8">
                 <div className="flex flex-col">{enemyLeftItems.map(renderItem)}</div>
@@ -177,12 +204,16 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
                 </div>
               )}
             </div>
-          ) : isBot ? (
+          ) : 
+          /* 3. 봇 레이아웃 */
+          isBot ? (
             <div className="grid grid-cols-2 gap-x-8">
                <div className="flex flex-col">{botLeftItems.map(renderItem)}</div>
                <div className="flex flex-col">{botRightItems.map(renderItem)}</div>
             </div>
-          ) : (
+          ) : 
+          /* 4. 기본 그리드 레이아웃 */
+          (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-y-4 gap-x-2">{entries.map(renderItem)}</div>
           )}
         </div>

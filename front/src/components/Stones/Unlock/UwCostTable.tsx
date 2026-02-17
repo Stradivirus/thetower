@@ -1,15 +1,21 @@
+/**
+ * 파일명: thetower/front/src/components/Stones/Unlock/UwCostTable.tsx
+ * 용도: 무기 해금(Unlock) 비용을 보여주는 데이터 테이블
+ * 기능: 해금 순서에 따른 비용 표시, 다음 해금 대상 강조, 누적 비용 계산 및 초기화 기능
+ */
 import { stoneStyles as styles, formatNum, ResetButton } from '../StoneShared';
 
 interface Props {
-  title: string;
-  type: 'base' | 'plus';
-  costs: number[];
-  unlockedCount: number;
-  onRowClick: (type: 'base' | 'plus', count: number, totalCost: number) => void;
-  onReset: (type: 'base' | 'plus') => void;
+  title: string;                                         // 테이블 제목
+  type: 'base' | 'plus';                                 // 해금 타입 (기본 무기 또는 UW+)
+  costs: number[];                                       // 순서별 비용 배열
+  unlockedCount: number;                                 // 현재까지 해금된 개수
+  onRowClick: (type: 'base' | 'plus', count: number, totalCost: number) => void; // 행 클릭 핸들러
+  onReset: (type: 'base' | 'plus') => void;              // 리셋 버튼 클릭 핸들러
 }
 
 export default function UwCostTable({ title, type, costs, unlockedCount, onRowClick, onReset }: Props) {
+  /** 아직 해금되지 않은 남은 데이터들만 추출합니다. */
   const remainingData = costs
     .map((cost, idx) => ({ cost, level: idx + 1 }))
     .filter(item => item.level > unlockedCount);
@@ -18,12 +24,14 @@ export default function UwCostTable({ title, type, costs, unlockedCount, onRowCl
 
   return (
     <div className={styles.card}>
+      {/* 테이블 헤더: 제목 및 리셋 버튼 */}
       <div className={styles.uwHeader}>
         <span>{title}</span>
         {unlockedCount > 0 && (
           <ResetButton onClick={(e) => { e.stopPropagation(); onReset(type); }} />
         )}
       </div>
+
       <table className="w-full text-xs text-left">
         <thead>
           <tr>
@@ -36,7 +44,7 @@ export default function UwCostTable({ title, type, costs, unlockedCount, onRowCl
             const batchItems = remainingData.slice(0, index + 1);
             const batchCost = batchItems.reduce((sum, i) => sum + i.cost, 0);
             const batchCount = batchItems.length;
-            const isNext = index === 0;
+            const isNext = index === 0; // 바로 다음 해금 순서 여부
 
             return (
               <tr 
@@ -58,6 +66,7 @@ export default function UwCostTable({ title, type, costs, unlockedCount, onRowCl
               </tr>
             );
           })}
+          {/* 모든 아이템 해금 시 */}
           {remainingData.length === 0 && (
             <tr>
               <td colSpan={2} className="px-4 py-6 text-center text-slate-500">
@@ -66,6 +75,7 @@ export default function UwCostTable({ title, type, costs, unlockedCount, onRowCl
             </tr>
           )}
         </tbody>
+        {/* 하단 요약: 남은 총 비용 */}
         {remainingData.length > 0 && (
           <tfoot>
             <tr>

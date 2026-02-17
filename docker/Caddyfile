@@ -1,30 +1,32 @@
+# 파일명: thetower/docker/Caddyfile
+# 용도: Caddy 웹 서버 설정 (HTTPS 자동화, 리버스 프록시, 캐싱 및 보안 헤더)
+# 특징: Let's Encrypt를 통한 자동 SSL 적용 및 SPA 라우팅 지원
+
 towerreport.o-r.kr, origin.towerreport.o-r.kr {
-    # [추가] 기본 보안 헤더 (모든 요청에 공통 적용)
+    # [보안] 기본 보안 헤더 설정
     header {
-        # 1. 클릭재킹 방지 (내 사이트를 다른 사이트의 iframe에 못 넣게 함)
+        # 클릭재킹 방지 (SAMEORIGIN)
         X-Frame-Options "SAMEORIGIN"
         
-        # 2. MIME 타입 스니핑 차단 (해커가 이미지를 스크립트로 둔갑시키는 것 방지)
+        # MIME 타입 스니핑 차단
         X-Content-Type-Options "nosniff"
         
-        # 3. HTTPS 강제 (HSTS) - 브라우저가 http로 접속 시도조차 안 하게 함
-        # (주의: preload 옵션은 도메인을 HSTS 리스트에 등록할 확신이 있을 때만 사용. 지금은 안전하게 뺌 or 포함 선택)
+        # HTTPS 강제 (HSTS 설정: 1년 적용)
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         
-        # 4. 리퍼러 정보 최소화 (개인정보 보호)
+        # 리퍼러 정보 최소화
         Referrer-Policy "strict-origin-when-cross-origin"
         
-        # 5. Caddy 버전 정보 숨기기 (해커에게 불필요한 힌트 제공 X)
+        # Caddy 버전 정보 노출 제한
         -Server
     }
 
-    # 1. API 요청은 백엔드로 전달
+    # 1. API 요청 처리: 백엔드 컨테이너(8000번 포트)로 프록시 전달
     handle /api/* {
         reverse_proxy backend:8000
     }
 
-    # 2. 정적 파일들 (JS, CSS, 이미지 등) - 1년 캐시 (Vite가 파일명에 해시를 붙이므로 길어도 안전)
-    # Vite 기본 빌드 폴더인 /assets/ 경로와 일반적인 정적 파일 확장자를 매칭합니다.
+    # 2. 정적 자원 처리 (JS, CSS, 이미지 등): 브라우저 캐싱 최적화 (1년 적용)
     @static_assets {
         path /assets/*
         path *.js *.css *.png *.jpg *.jpeg *.svg *.ico *.woff *.woff2
@@ -35,14 +37,13 @@ towerreport.o-r.kr, origin.towerreport.o-r.kr {
         header Cache-Control "public, max-age=31536000, immutable"
     }
 
-    # 3. 그 외 요청 (index.html 및 라우팅) - 캐시 끄기 (배포 즉시 반영)
+    # 3. SPA 라우팅 및 일반 요청 처리: index.html로 폴백 설정
     handle {
         root * /usr/share/caddy/html
         try_files {path} /index.html
         file_server
 
-        # index.html은 2시간 캐시보다는 no-cache가 낫습니다 (새 배포 시 바로 반영되도록)
-        # 만약 트래픽 비용이 걱정되면 "max-age=3600" 등으로 조절하세요.
+        # index.html은 새 버전 배포 시 즉시 반영되도록 캐싱 비활성화
         header Cache-Control "no-cache"
     }
 }

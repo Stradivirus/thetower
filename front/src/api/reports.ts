@@ -1,8 +1,16 @@
+/**
+ * 파일명: thetower/front/src/api/reports.ts
+ * 용도: 전투 기록(Battle Report) 및 통계 관련 API 호출 함수 정의
+ * 기능: 리포트 생성, 상세 조회, 목록 페이징, 일간/주간/월간 통계 데이터 페칭
+ */
 import type { BattleMain, FullReport, HistoryViewResponse } from '../types/report';
 import { API_BASE_URL, fetchWithAuth } from '../utils/apiConfig';
 
 const REPORTS_URL = `${API_BASE_URL}/reports`;
 
+/** 
+ * 인증 헤더를 생성합니다. 
+ */
 const getAuthHeaders = (): HeadersInit => {
   const token = localStorage.getItem('access_token');
   if (token) {
@@ -11,7 +19,7 @@ const getAuthHeaders = (): HeadersInit => {
   return {};
 };
 
-// --- 기존 통계 타입들 ---
+// --- 통계 관련 인터페이스 정의 ---
 export interface DailyStat {
   date: string;
   total_coins: number;
@@ -32,20 +40,21 @@ export interface WeeklyTrendStat {
 export interface WeeklyTrendResponse {
   weekly_stats: WeeklyTrendStat[];
 }
-// [New] 월간 통계 타입 정의
 export interface MonthlyTrendStat {
-  month: string;       // "2024-12"
+  month: string;       // 형식: "2024-12"
   total_coins: number;
   total_cells: number;
   coin_growth: number;
   cell_growth: number;
-  is_current?: boolean; // 진행 중 여부
+  is_current?: boolean; 
 }
 export interface MonthlyTrendResponse {
   monthly_stats: MonthlyTrendStat[];
 }
-// ----------------------
 
+/** 
+ * 새로운 전투 기록을 생성(업로드)합니다.
+ */
 export const createReport = async (reportText: string, notes: string): Promise<BattleMain> => {
   const formData = new FormData();
   formData.append('report_text', reportText);
@@ -64,7 +73,9 @@ export const createReport = async (reportText: string, notes: string): Promise<B
   return response.json();
 };
 
-// [New] 기록실 뷰 데이터 조회 (최근 7일 + 월별 요약)
+/** 
+ * 기록실 뷰 데이터를 조회합니다 (최근 7일 상세 + 그 이전 월별 요약).
+ */
 export const getHistoryView = async (): Promise<HistoryViewResponse> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/view`, {
     headers: getAuthHeaders(),
@@ -74,7 +85,9 @@ export const getHistoryView = async (): Promise<HistoryViewResponse> => {
   return response.json();
 };
 
-// [New] 특정 월의 상세 기록 조회 (Lazy Loading)
+/** 
+ * 특정 월의 상세 기록 목록을 조회합니다 (기록실 확장 시 호출).
+ */
 export const getReportsByMonth = async (monthKey: string): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/month/${monthKey}`, {
     headers: getAuthHeaders(),
@@ -84,7 +97,9 @@ export const getReportsByMonth = async (monthKey: string): Promise<BattleMain[]>
   return response.json();
 };
 
-// [Added] 전체 기록 조회 (검색 및 전체 통계용)
+/** 
+ * 전체 기록 목록을 조회합니다 (검색 및 전체 통계용).
+ */
 export const getAllReports = async (): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/history?skip=0&limit=10000`, {
     headers: getAuthHeaders(),
@@ -93,7 +108,9 @@ export const getAllReports = async (): Promise<BattleMain[]> => {
   return response.json();
 };
 
-// 일간 통계 조회
+/** 
+ * 최근 7일간의 일간 통계 데이터를 조회합니다.
+ */
 export const getWeeklyStats = async (): Promise<WeeklyStatsResponse> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/weekly-stats`, {
     headers: getAuthHeaders(),
@@ -102,7 +119,9 @@ export const getWeeklyStats = async (): Promise<WeeklyStatsResponse> => {
   return response.json();
 };
 
-// 주간 트렌드 조회
+/** 
+ * 최근 8주간의 주간 트렌드 데이터를 조회합니다.
+ */
 export const getWeeklyTrends = async (): Promise<WeeklyTrendResponse> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/weekly-trends`, {
     headers: getAuthHeaders(),
@@ -111,7 +130,9 @@ export const getWeeklyTrends = async (): Promise<WeeklyTrendResponse> => {
   return response.json();
 };
 
-// [New] 월간 트렌드 조회
+/** 
+ * 최근 6개월간의 월간 트렌드 데이터를 조회합니다.
+ */
 export const getMonthlyTrends = async (): Promise<MonthlyTrendResponse> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/monthly-trends`, {
     headers: getAuthHeaders(),
@@ -120,6 +141,9 @@ export const getMonthlyTrends = async (): Promise<MonthlyTrendResponse> => {
   return response.json();
 };
 
+/** 
+ * 대시보드 표시를 위한 최근 기록들을 조회합니다.
+ */
 export const getRecentReports = async (): Promise<BattleMain[]> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/recent`, {
     headers: getAuthHeaders(),
@@ -128,6 +152,9 @@ export const getRecentReports = async (): Promise<BattleMain[]> => {
   return response.json();
 };
 
+/** 
+ * 특정 시점의 상세 리포트 데이터를 조회합니다.
+ */
 export const getFullReport = async (battleDate: string): Promise<FullReport> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/${battleDate}`, {
     headers: getAuthHeaders(),
@@ -136,6 +163,9 @@ export const getFullReport = async (battleDate: string): Promise<FullReport> => 
   return response.json();
 };
 
+/** 
+ * 특정 전투 기록을 삭제합니다.
+ */
 export const deleteReport = async (battleDate: string): Promise<void> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/${battleDate}`, {
     method: 'DELETE',

@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/components/Modules/Reroll/RerollDashboard.tsx
+ * 용도: 리롤 시뮬레이터의 정보 요약 패널
+ * 기능: 확률표, 소모 비용표, 그리고 타겟 옵션 획득을 위한 기대 소모 비용(Total Expected) 계산 결과 표시
+ */
 import { Percent, Dices, BarChart3, ArrowRight } from 'lucide-react';
 import { 
   RARITY, 
@@ -6,7 +11,7 @@ import {
   REROLL_COSTS 
 } from '../../../data/module_reroll_data';
 
-// 확률표 텍스트 색상 (Epic 부터 사용하므로 인덱스 조정 필요 혹은 그대로 사용)
+// 등급별 시각적 색상 매핑
 const RARITY_COLORS = {
   [RARITY.EPIC]: "text-purple-400",
   [RARITY.LEGENDARY]: "text-yellow-400",
@@ -19,20 +24,20 @@ interface DashboardProps {
     baseChance: number;
     targetRarityLabel: string;
     baseCost: number;
-    expectedCost: number;
+    expectedCost: number; // 기대 소모 리롤 파편 수
   };
-  lockedCount: number;
+  lockedCount: number; // 현재 잠긴 슬롯 개수
 }
 
 export default function RerollDashboard({ calculation, lockedCount }: DashboardProps) {
-  // Common(0), Rare(1)을 제외하고 Epic(2)부터 필터링
+  // Epic(2) 이상의 등급만 필터링하여 확률표 구성
   const visibleChances = Object.entries(SUB_MODULE_CHANCES)
     .filter(([rIdx]) => parseInt(rIdx) >= RARITY.EPIC);
 
   return (
     <div className="grid grid-cols-12 gap-4 mb-6 shrink-0 h-48">
       
-      {/* [Left] 확률표 (Epic+) */}
+      {/* 1. [좌측] 확률 정보 패널 */}
       <div className="col-span-4 bg-slate-950/50 border border-slate-800 rounded-xl p-3 flex flex-col relative overflow-hidden">
         <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1 flex items-center gap-1">
           <Percent size={10} /> Rarity Chances
@@ -42,7 +47,6 @@ export default function RerollDashboard({ calculation, lockedCount }: DashboardP
             <tbody>
               {visibleChances.map(([rIdx, chance]) => {
                 const idx = parseInt(rIdx);
-                // 타입 단언을 사용하여 인덱싱
                 const colorClass = RARITY_COLORS[idx as keyof typeof RARITY_COLORS] || "text-slate-400";
                 
                 return (
@@ -61,7 +65,7 @@ export default function RerollDashboard({ calculation, lockedCount }: DashboardP
         </div>
       </div>
 
-      {/* [Center] 비용표 (전체 숫자 표기) */}
+      {/* 2. [중앙] 리롤 비용 정보 패널 */}
       <div className="col-span-4 bg-slate-950/50 border border-slate-800 rounded-xl p-3 flex flex-col relative overflow-hidden">
         <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 border-b border-slate-800 pb-1 flex justify-between items-center">
           <span className="flex items-center gap-1"><Dices size={10} /> Reroll Costs</span>
@@ -81,7 +85,6 @@ export default function RerollDashboard({ calculation, lockedCount }: DashboardP
                       {locks} Lock{locks !== '1' ? 's' : ''}
                     </td>
                     <td className={`py-1 pr-2 text-right font-mono ${isCurrent ? 'text-yellow-400 font-bold' : 'text-slate-500'}`}>
-                      {/* [수정] formatNumber 제거하고 toLocaleString 사용 */}
                       {cost.toLocaleString()}
                     </td>
                     <td className="w-4 text-center">
@@ -95,7 +98,7 @@ export default function RerollDashboard({ calculation, lockedCount }: DashboardP
         </div>
       </div>
 
-      {/* [Right] 최종 결과 (전체 숫자 표기) */}
+      {/* 3. [우측] 기대 소모 비용 결과 섹션 */}
       <div className="col-span-4 bg-gradient-to-br from-slate-900 to-green-900/10 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center relative overflow-hidden">
         <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
         
@@ -104,7 +107,6 @@ export default function RerollDashboard({ calculation, lockedCount }: DashboardP
           Total Expected
         </span>
         <div className="text-3xl font-bold text-white font-mono drop-shadow-md tracking-tight">
-          {/* [수정] formatNumber 제거하고 toLocaleString 사용 */}
           {Math.round(calculation.expectedCost).toLocaleString()}
         </div>
         <div className="text-[10px] text-slate-500 mt-2 text-center leading-tight">

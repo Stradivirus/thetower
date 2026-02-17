@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/pages/StonesPage.tsx
+ * 용도: 게임 재화인 '스톤(Stones)'의 총 사용량 계산 및 관리 페이지
+ * 기능: UW 해금/스탯, 카드, 모듈 등 각 카테고리별 스톤 소모량 계산 및 서버 동기화
+ */
 import { useState } from 'react';
 import { ArrowLeft, Triangle, Lock, Zap, PlusCircle, Layers, Box, List, RotateCcw } from 'lucide-react';
 import UnlockTab from '../components/Stones/UnlockTab';
@@ -13,13 +18,15 @@ interface Props {
   token: string | null;
 }
 
+// 탭 종류 타입 정의
 type TabType = 'unlock' | 'base' | 'plus' | 'card' | 'module';
 
 export default function StonesPage({ onBack, token }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('unlock');
-  const [selectedUw, setSelectedUw] = useState<string>('death_wave');
+  const [selectedUw, setSelectedUw] = useState<string>('death_wave'); // 선택된 궁극 무기
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
+  // 전용 커스텀 훅을 통한 상태 및 로직 주입
   const {
     progress,
     totalStonesUsed,
@@ -32,6 +39,9 @@ export default function StonesPage({ onBack, token }: Props) {
     saveToServer
   } = useStonesData(token);
 
+  /** 
+   * [저장 및 요약] 변경 사항이 있으면 서버에 저장하고 요약 모달을 엽니다.
+   */
   const handleSaveAndSummary = async () => {
     if (isProgressChanged && token) {
       await saveToServer();
@@ -39,6 +49,7 @@ export default function StonesPage({ onBack, token }: Props) {
     setIsSummaryOpen(true);
   };
 
+  // 탭 메뉴 설정
   const tabs = [
     { id: 'unlock', icon: Lock, label: 'Unlock' },
     { id: 'base', icon: Zap, label: 'Base Stats' },
@@ -49,6 +60,7 @@ export default function StonesPage({ onBack, token }: Props) {
 
   return (
     <div className="max-w-7xl mx-auto pb-20 animate-fade-in px-4">
+      {/* 상단 스티키 헤더: 총 사용량 표시 및 제어 버튼 */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 sticky top-0 bg-slate-950/90 backdrop-blur-md py-3 z-20 border-b border-slate-800 gap-4">
         <div className="flex items-center justify-between w-full md:w-auto gap-4">
           <div className="flex items-center gap-4">
@@ -68,6 +80,7 @@ export default function StonesPage({ onBack, token }: Props) {
             </h1>
           </div>
 
+          {/* 모바일용 요약 버튼 */}
           <button 
             onClick={handleSaveAndSummary}
             className="md:hidden p-2 text-cyan-400 hover:bg-slate-800 rounded-full border border-cyan-500/30 bg-cyan-500/10 disabled:opacity-50"
@@ -77,6 +90,7 @@ export default function StonesPage({ onBack, token }: Props) {
           </button>
         </div>
 
+        {/* 탭 네비게이션 및 액션 버튼 */}
         <div className="flex items-center gap-3 self-stretch md:self-auto">
           <div className="flex flex-wrap gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-1 justify-center md:justify-start">
             {tabs.map(tab => (
@@ -90,6 +104,7 @@ export default function StonesPage({ onBack, token }: Props) {
             ))}
           </div>
 
+          {/* 초기화 버튼 */}
           <button 
             onClick={resetAll}
             className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all font-bold text-sm"
@@ -98,6 +113,7 @@ export default function StonesPage({ onBack, token }: Props) {
             <RotateCcw size={16} /> Reset
           </button>
 
+          {/* 저장 및 요약 버튼 */}
           <button 
             onClick={handleSaveAndSummary}
             className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -108,6 +124,7 @@ export default function StonesPage({ onBack, token }: Props) {
         </div>
       </div>
 
+      {/* 탭 콘텐츠 영역 */}
       <div>
         {activeTab === 'unlock' && (
           <UnlockTab 
@@ -131,6 +148,7 @@ export default function StonesPage({ onBack, token }: Props) {
         {activeTab === 'module' && <ModuleTab progress={progress} updateProgress={updateProgress} />}
       </div>
 
+      {/* 결과 요약 모달 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}

@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/pages/ModulesInfoPage.tsx
+ * 용도: 사용자의 모듈(장비) 관리 및 리롤 시뮬레이션 페이지
+ * 기능: 장착 중인 모듈 조회, 인벤토리 관리, 모듈 상세 설정(등급/효과) 및 리롤 시뮬레이터 제공
+ */
 import { useState } from 'react';
 import { saveModules } from '../api/modules';
 import { MODULE_TYPES } from '../components/Modules/ModuleConstants';
@@ -8,7 +13,9 @@ import ModuleHeader from '../components/Modules/ModuleHeader';
 import ModuleRerollView from '../components/Modules/RerollPanel';
 import ModuleDetailModal from '../components/Modules/ModuleDetailModal';
 
-// [Helper] 모듈 상태를 서버 전송용 JSON 포맷으로 변환하는 함수
+/** 
+ * [헬퍼] 클라이언트의 모듈 상태를 서버 저장용 JSON 포맷으로 변환합니다.
+ */
 const generateSavePayload = (modulesData: any) => {
   const inventory_json: Record<string, any> = {};
   const equipped_json: Record<string, any> = {};
@@ -29,14 +36,14 @@ const generateSavePayload = (modulesData: any) => {
 };
 
 export default function ModulesInfoPage() {
-  const [isChanged, setIsChanged] = useState(false);
+  const [isChanged, setIsChanged] = useState(false); // 변경 사항 발생 여부
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
-  
-  // [New] 저장 중 로딩 상태
   const [isSaving, setIsSaving] = useState(false);
   
+  // 뷰 모드 상태: 장착중 / 인벤토리 / 리롤 시뮬레이터
   const [viewMode, setViewMode] = useState<'equipped' | 'inventory' | 'reroll'>('equipped');
 
+  // 상세 모달 상태
   const [detailModal, setDetailModal] = useState<{
     isOpen: boolean;
     type: string;
@@ -52,13 +59,14 @@ export default function ModulesInfoPage() {
   const { modules, progress, setModules } = useGameData();
   const token = localStorage.getItem('access_token');
 
+  // 슬롯 ID와 연구 키 매핑
   const slotIdMap: Record<string, string> = {
     'cannon': 'attack', 'armor': 'defense', 'generator': 'generator', 'core': 'core'
   };
 
-  // --- Data Logic ---
-
-  // 전체 저장 (상단 헤더 버튼용)
+  /** 
+   * [전체 저장] 변경된 모듈 상태를 서버에 저장합니다.
+   */
   const handleSaveProgress = async () => {
     if (!token) { alert("Login Required"); return; }
     
@@ -70,8 +78,7 @@ export default function ModulesInfoPage() {
           
           localStorage.setItem('thetower_modules', JSON.stringify(modules));
           setIsChanged(false);
-          console.log("Modules saved successfully");
-          setIsSummaryOpen(true); // 저장 성공 시 요약 모달 오픈
+          setIsSummaryOpen(true); 
       } catch (e) { 
           console.error("Save failed", e); 
           alert("Save Failed"); 
@@ -83,8 +90,9 @@ export default function ModulesInfoPage() {
     }
   };
 
-  // --- Interaction Handlers ---
-
+  /** 
+   * 모듈 카드 클릭 시 상세 설정 모달을 엽니다.
+   */
   const handleModuleClick = (type: string, name: string, data: any) => {
     setDetailModal({
       isOpen: true,
@@ -94,46 +102,33 @@ export default function ModulesInfoPage() {
     });
   };
 
-  // [Fix] 2. 모달: 즉시 저장 (DB 반영)
+  /** 
+   * 상세 모달에서 수정한 내용을 DB에 즉시 저장합니다. (낙관적 업데이트 적용)
+   */
   const handleModalSave = async (newData: { rarity: number; effects: string[] }) => {
     if (!token) { alert("Login Required"); return; }
 
     const { name, type } = detailModal;
-    
-    // 1. 새로운 로컬 상태 미리 계산 (낙관적 업데이트 준비)
     const newState = { ...modules };
 
-    // 보유 목록 업데이트
+    // 1. 상태 업데이트 준비
     newState[`owned_${name}`] = newData;
-
-    // 장착 중인 데이터도 동기화
     const mainKey = `equipped_${type}_main`;
     const subKey = `equipped_${type}_sub`;
 
-    if (modules[mainKey]?.name === name) {
-      newState[mainKey] = { name, ...newData };
-    }
-    if (modules[subKey]?.name === name) {
-      newState[subKey] = { name, ...newData };
-    }
+    if (modules[mainKey]?.name === name) newState[mainKey] = { name, ...newData };
+    if (modules[subKey]?.name === name) newState[subKey] = { name, ...newData };
 
-    // 2. DB 저장 시도
+    // 2. 서버 저장 시도
     try {
       setIsSaving(true);
-      
-      // 계산된 newState를 기준으로 페이로드 생성
       const payload = generateSavePayload(newState);
       await saveModules(payload);
 
-      // 3. 성공 시: 로컬 상태 업데이트 및 로컬 스토리지 동기화
+      // 3. 성공 시 상태 확정
       setModules(newState);
       localStorage.setItem('thetower_modules', JSON.stringify(newState));
-      
-      // 모달 데이터 업데이트 (UI 반영)
-      setDetailModal(prev => ({ ...prev, data: newData }));
-      
-      console.log("Module updated and saved to DB");
-      setDetailModal(prev => ({ ...prev, isOpen: false })); // 저장 후 닫기
+      setDetailModal(prev => ({ ...prev, data: newData, isOpen: false }));
       
     } catch (e) {
       console.error("Modal Instant Save Failed", e);
@@ -143,6 +138,7 @@ export default function ModulesInfoPage() {
     }
   };
 
+  /** 모듈을 목록에서 삭제합니다. */
   const handleModalDelete = () => {
     const { name, type } = detailModal;
     const newState = { ...modules };
@@ -160,9 +156,11 @@ export default function ModulesInfoPage() {
     setDetailModal(prev => ({ ...prev, isOpen: false }));
   };
 
+  /** 모듈을 특정 슬롯(Main/Sub)에 장착합니다. */
   const handleModalEquip = (slot: 'main' | 'sub') => {
     const { name, type, data } = detailModal;
     
+    // Sub 슬롯 장착 시 연구 해금 여부 체크
     if (slot === 'sub') {
        const unlockKey = `module_unlock_${slotIdMap[type]}`;
        const unlockLevel = progress[unlockKey] || 0;
@@ -177,13 +175,13 @@ export default function ModulesInfoPage() {
     const otherSlot = slot === 'main' ? 'sub' : 'main';
     const otherKey = `equipped_${type}_${otherSlot}`;
 
-    if (newState[otherKey]?.name === name) {
-      delete newState[otherKey];
-    }
+    // 다른 슬롯에 같은 모듈이 있으면 해제
+    if (newState[otherKey]?.name === name) delete newState[otherKey];
 
     const moduleDataToEquip = { name, ...(data || { rarity: 5, effects: [] }) };
     newState[targetKey] = moduleDataToEquip;
     
+    // 보유 목록에 없으면 추가
     if (!newState[`owned_${name}`]) {
        newState[`owned_${name}`] = { 
          rarity: moduleDataToEquip.rarity, 
@@ -195,6 +193,7 @@ export default function ModulesInfoPage() {
     setIsChanged(true);
   };
 
+  /** 모듈 장착을 해제합니다. */
   const handleModalUnequip = () => {
     const { name, type } = detailModal;
     const newState = { ...modules };
@@ -209,6 +208,7 @@ export default function ModulesInfoPage() {
     setIsChanged(true);
   };
 
+  /** 현재 선택된 모듈의 장착 상태를 확인합니다. */
   const getEquipStatus = () => {
     if (!detailModal.isOpen) return null;
     const { name, type } = detailModal;
@@ -222,6 +222,7 @@ export default function ModulesInfoPage() {
 
   return (
     <div className="w-full px-4 pb-12 animate-fade-in flex flex-col">
+      {/* 상단 탭 및 저장 컨트롤 헤더 */}
       <ModuleHeader 
         handleSave={handleSaveProgress}
         isChanged={isChanged}
@@ -230,6 +231,7 @@ export default function ModulesInfoPage() {
         setViewMode={setViewMode}
       />
 
+      {/* 리롤 시뮬레이션 또는 모듈 목록 표시 */}
       {viewMode === 'reroll' ? (
         <div className="mt-4">
           <ModuleRerollView />
@@ -249,12 +251,14 @@ export default function ModulesInfoPage() {
         </div>
       )}
 
+      {/* 궁무/모듈 상태 요약 모달 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}
         progress={progress}
       />
 
+      {/* 모듈 상세 설정 모달 */}
       <ModuleDetailModal 
         isOpen={detailModal.isOpen}
         onClose={() => setDetailModal(prev => ({ ...prev, isOpen: false }))}

@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/components/Modal/SummaryModules.tsx
+ * 용도: 요약 모달 내에서 장착 중인 모듈들의 상세 정보 표시
+ * 기능: 타입별(Cannon, Armor 등) 메인/어시스트 모듈 렌더링, 연구 등급에 따른 등급 보정 및 효율(%) 계산 표시
+ */
 import { useGameData } from '../../contexts/GameDataContext';
 import { 
   MODULE_TYPES, 
@@ -7,16 +12,17 @@ import {
 } from '../Modules/ModuleConstants';
 import { MODULE_TYPES as REROLL_DATA } from '../../data/module_reroll_data';
 import moduleCosts from '../../data/module_costs.json';
-import { T } from '../../locales'; // 언어팩 추가
+import { T } from '../../locales'; 
 
 export default function SummaryModules() {
   const { modules, progress } = useGameData();
 
+  // 슬롯 ID와 연구 키 매핑 테이블
   const slotIdMap: Record<string, string> = {
     'cannon': 'attack', 'armor': 'defense', 'generator': 'generator', 'core': 'core'
   };
 
-  // 타입별 네온 색상 정의
+  /** 모듈 타입별 시각적 테마(네온 색상 및 글로우 효과) 정의 */
   const typeColors: Record<string, { border: string; shadow: string; glow: string }> = {
     'cannon': {
       border: 'border-red-500',
@@ -40,7 +46,7 @@ export default function SummaryModules() {
     }
   };
 
-  // 효율(%) 가져오기
+  /** 연구 레벨에 따른 어시스트 슬롯 효율(%) 수치를 반환합니다. */
   const getEfficiencyPercent = (level: number) => {
     const costs = moduleCosts as any;
     const efficiencyTable = costs.sub_efficiency || costs.common_efficiency;
@@ -48,7 +54,11 @@ export default function SummaryModules() {
     return effData ? effData.value : 1; 
   };
 
-  // 개별 모듈 렌더링 헬퍼
+  /** 
+   * 개별 모듈 아이템을 렌더링합니다.
+   * - 어시스트 슬롯의 경우 연구 해금 등급에 따라 시각적 등급이 제한될 수 있습니다.
+   * - 효율(%)에 따라 부옵션의 수치를 실시간으로 계산하여 표시합니다.
+   */
   const renderModuleItem = (
     typeId: string,
     moduleData: EquippedModule | undefined,
@@ -58,6 +68,7 @@ export default function SummaryModules() {
   ) => {
     if (!moduleData) return null;
 
+    // 등급 제한 로직 (어시스트 슬롯 전용)
     let visualRarity = moduleData.rarity;
     if (slotType === 'ASSIST') {
       const maxRarityIndex = unlockLevel > 0 ? Math.min(5, unlockLevel + 1) : 0;
@@ -70,6 +81,7 @@ export default function SummaryModules() {
 
     return (
       <div className={`relative ${slotType === 'ASSIST' ? 'mt-4 pt-4 border-t-2 border-slate-700/50' : ''}`}>
+        {/* 모듈 이름 및 태그 */}
         <div className="flex justify-between items-center mb-1 gap-2">
           <h4 className="font-bold text-slate-100 text-sm truncate flex-1 min-w-0" title={moduleData.name}>
             {moduleData.name}
@@ -84,6 +96,7 @@ export default function SummaryModules() {
           </div>
         </div>
 
+        {/* 부가 정보 (실제 등급 보정 및 효율) */}
         {hasMetaInfo && (slotType === 'ASSIST') && (
           <div className="flex items-center gap-2 mb-2 text-[10px] text-slate-500">
              {moduleData.rarity > visualRarity && (
@@ -98,6 +111,7 @@ export default function SummaryModules() {
         )}
         {slotType === 'MAIN' && <div className="mb-2"></div>}
 
+        {/* 부옵션 리스트: 효율에 따른 계산된 수치 표시 */}
         {moduleData.effects && moduleData.effects.length > 0 ? (
           <div className="space-y-1 bg-slate-950/30 p-2 rounded-lg border border-slate-800/50">
             {moduleData.effects.map((effectId, idx) => {
@@ -108,6 +122,7 @@ export default function SummaryModules() {
               const baseVal = effectData.values[moduleData.rarity];
               let displayVal = baseVal;
 
+              // 효율(%) 반영 계산
               if (typeof baseVal === 'number') {
                 const calculated = baseVal * (efficiency / 100);
                 displayVal = Number.isInteger(calculated) ? calculated : parseFloat(calculated.toFixed(2));
@@ -142,6 +157,7 @@ export default function SummaryModules() {
         const mainModule = modules[mainKey] as EquippedModule | undefined;
         const subModule = modules[subKey] as EquippedModule | undefined;
 
+        // 관련 연구 데이터 로드
         const mappedId = slotIdMap[typeId];
         const unlockKey = `module_unlock_${mappedId}`;
         const unlockLevel = progress[unlockKey] || 0;
@@ -156,6 +172,7 @@ export default function SummaryModules() {
             key={typeId} 
             className={`bg-slate-900 border-2 ${colors.border} ${colors.shadow} hover:${colors.glow} rounded-xl overflow-hidden h-fit transition-all duration-300`}
           >
+            {/* 슬롯 타입 헤더 */}
             <div className={`px-4 py-3 border-b-2 ${colors.border} flex items-center justify-between ${typeConfig.bg}`}>
               <div className="flex items-center gap-2">
                 <typeConfig.icon size={18} className={typeConfig.color} />
@@ -166,6 +183,7 @@ export default function SummaryModules() {
             </div>
 
             <div className="p-3">
+              {/* 메인 슬롯 */}
               {mainModule ? (
                 renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100)
               ) : (
@@ -174,6 +192,7 @@ export default function SummaryModules() {
                 </div>
               )}
 
+              {/* 어시스트 슬롯 */}
               {subModule ? (
                 renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, subEfficiency)
               ) : (

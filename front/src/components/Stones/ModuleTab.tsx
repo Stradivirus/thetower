@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/components/Stones/ModuleTab.tsx
+ * 용도: 스톤 계산기 페이지의 'Modules' 탭 컨텐츠
+ * 기능: 모듈 슬롯별 해금 상태 확인, 메인/서브 스탯 효율 강화 비용 테이블 표시 및 업그레이드 관리
+ */
 import { useState } from 'react';
 import { Sword, Shield, Zap, Box, Disc, Star, Lock } from 'lucide-react';
 import moduleCosts from '../../data/module_costs.json';
@@ -9,11 +14,11 @@ interface Props {
 }
 
 export default function ModuleTab({ progress, updateProgress }: Props) {
-  // 선택 상태 관리
+  // 현재 선택된 모듈 타입 및 스탯 종류 상태 관리
   const [selectedType, setSelectedType] = useState<'attack' | 'defense' | 'generator' | 'core'>('attack');
   const [selectedStat, setSelectedStat] = useState<'main' | 'sub'>('main');
 
-  // 모듈 종류 정의
+  // 모듈 종류 정의 (아이콘 및 테마 색상 포함)
   const moduleTypes = [
     { id: 'attack', label: 'Attack', icon: Sword, color: 'text-rose-400', border: 'border-rose-500/50' },
     { id: 'defense', label: 'Defense', icon: Shield, color: 'text-blue-400', border: 'border-blue-500/50' },
@@ -21,37 +26,34 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
     { id: 'core', label: 'Core', icon: Box, color: 'text-purple-400', border: 'border-purple-500/50' },
   ] as const;
 
-  // 스탯 종류 정의
+  // 스탯 종류 정의 (메인/서브)
   const statTypes = [
     { id: 'main', label: 'Main Stat', icon: Star },
     { id: 'sub', label: 'Sub Stat', icon: Disc },
   ] as const;
 
-  // [New] 현재 선택된 모듈의 해금 여부 확인
-  // UnlockTab에서 저장한 키: module_unlock_{id} (1이면 해금, 0이면 잠김)
+  /** 현재 선택된 모듈의 슬롯이 해금(Unlock)되었는지 여부를 확인합니다. */
   const isUnlocked = progress[`module_unlock_${selectedType}`] === 1;
 
-  // 현재 선택된 키 생성 (예: module_attack_main)
+  // 현재 선택된 탭의 진행도 키 생성
   const currentKey = `module_${selectedType}_${selectedStat}`;
   const currentLevel = progress[currentKey] || 0;
 
-  // 데이터 필터링
+  /** 아직 도달하지 않은 레벨의 비용 데이터만 필터링합니다. */
   const remainingLevels = moduleCosts.common_efficiency.levels
     .map((lv, idx) => ({ ...lv, displayLevel: idx === 0 ? 'Base' : idx }))
     .filter(lv => lv.level > currentLevel);
 
   const totalCost = remainingLevels.reduce((acc, cur) => acc + cur.cost, 0);
 
-  // 현재 선택된 타입의 정보 가져오기 (스타일링용)
   const activeTypeInfo = moduleTypes.find(t => t.id === selectedType)!;
 
   return (
     <div className="flex flex-col items-center animate-fade-in w-full">
       
-      {/* 1. 모듈 종류 선택 (4개) */}
+      {/* 1. 모듈 종류 선택 섹션 (4개 슬롯) */}
       <div className="flex flex-wrap justify-center gap-3 mb-4 w-full max-w-3xl">
         {moduleTypes.map((type) => {
-          // 각 버튼별 잠김 상태 확인
           const typeUnlocked = progress[`module_unlock_${type.id}`] === 1;
           
           return (
@@ -67,7 +69,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
                 ${!typeUnlocked && selectedType !== type.id ? 'opacity-50' : ''}
               `}
             >
-              {/* 잠김 아이콘 오버레이 (선택 안 된 잠긴 버튼일 때) */}
+              {/* 잠김 상태일 때 자물쇠 아이콘 표시 */}
               {!typeUnlocked && (
                 <div className="absolute top-1 right-1.5">
                   <Lock size={12} className="text-slate-600" />
@@ -83,7 +85,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
         })}
       </div>
 
-      {/* 2. 스탯 종류 선택 (2개) - 잠겨있으면 숨기거나 비활성화 */}
+      {/* 2. 스탯 종류 선택 섹션 (슬롯이 해금된 경우에만 표시) */}
       {isUnlocked && (
         <div className="flex justify-center bg-slate-900/50 p-1 rounded-xl border border-slate-800 mb-8 animate-fade-in">
           {statTypes.map((stat) => (
@@ -105,7 +107,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
         </div>
       )}
 
-      {/* 3. 테이블 or 잠김 메시지 */}
+      {/* 3. 비용 테이블 또는 잠김 안내 섹션 */}
       <div className={`w-full max-w-2xl ${styles.card} border-t-4 ${isUnlocked ? activeTypeInfo.border.replace('/50', '') : 'border-slate-700'} transition-colors duration-300`}>
         
         {/* 테이블 헤더 */}
@@ -126,12 +128,13 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
             )}
           </div>
           
+          {/* 해금된 상태에서 진행도가 있을 때만 리셋 버튼 노출 */}
           {isUnlocked && currentLevel > 0 && (
             <ResetButton onClick={(e) => { e.stopPropagation(); updateProgress(currentKey, 0); }} />
           )}
         </div>
 
-        {/* 컨텐츠 영역 */}
+        {/* 테이블 본문 컨텐츠 */}
         {isUnlocked ? (
           <div className={styles.tableContainer}>
             <table className="w-full text-xs text-left">
@@ -161,6 +164,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
                     </tr>
                    );
                 })}
+                {/* 모든 레벨 완료 시 */}
                 {remainingLevels.length === 0 && (
                   <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">
                     Maximum Level Reached! 🎉
@@ -179,7 +183,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
             </table>
           </div>
         ) : (
-          // 잠김 상태 표시
+          /* 슬롯이 잠겨있을 때의 안내 화면 */
           <div className="flex flex-col items-center justify-center py-16 text-slate-500 gap-4">
             <div className="p-4 bg-slate-800/50 rounded-full">
               <Lock size={32} className="text-slate-600" />

@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/components/Stones/UwStatsTab.tsx
+ * 용도: 스톤 계산기 페이지의 'Base Stats' 및 'UW+ Stats' 탭 컨텐츠
+ * 기능: 해금된 무기별 스탯 정보 리스트업, 레벨별 비용 및 누적 비용 계산, 연구(Lab) 효과 토글 기능
+ */
 import { useEffect, useMemo } from 'react';
 import baseStats from '../../data/uw_base_stats.json';
 import plusStats from '../../data/uw_plus_stats.json';
@@ -14,6 +19,9 @@ interface Props {
   onSelectUw: (uw: string) => void;
 }
 
+/** 
+ * [내부 컴포넌트] 연구소(Lab) 효과를 켜고 끌 수 있는 카드형 버튼
+ */
 const LabCard = ({ labKey, labInfo, progress, updateProgress }: {
   labKey: string;
   labInfo: any;
@@ -68,9 +76,10 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
     ? (progress['unlocked_weapons'] || []) 
     : (progress['unlocked_plus_weapons'] || []);
 
+  // 현재 해금된 무기들만 필터링
   const availableUwKeys = Object.keys(statsData).filter(key => unlockedList.includes(key));
 
-  // [수정] 선택된 무기를 배열의 맨 앞으로 이동시키는 로직
+  /** [정렬] 선택된 무기를 목록의 최상단으로 올립니다. */
   const sortedUwKeys = useMemo(() => {
     if (!selectedUw) return availableUwKeys;
     const filtered = availableUwKeys.filter(key => key !== selectedUw);
@@ -79,12 +88,14 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
   
   const labStats = (labConfig as any)[selectedUw]; 
 
+  // 유효하지 않은 무기가 선택되어 있으면 첫 번째 무기로 자동 전환
   useEffect(() => {
     if (availableUwKeys.length > 0 && !availableUwKeys.includes(selectedUw)) {
       onSelectUw(availableUwKeys[0]);
     }
   }, [availableUwKeys, selectedUw, onSelectUw]);
 
+  /** 무기 키를 번역된 표시 이름으로 변환합니다. */
   const getUwDisplayName = (uwKey: string) => {
     const localizedName = (T.data as any)?.UW_NAMES?.[uwKey];
     if (localizedName) return localizedName;
@@ -104,7 +115,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
 
   return (
     <div className="animate-fade-in">
-      {/* 상단 탭 버튼 영역 */}
+      {/* 1. 상단 무기 선택 탭 버튼 영역 (Sticky) */}
       <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide sticky top-16 bg-slate-950/95 z-10 pt-2">
         <div className="flex gap-2">
           {availableUwKeys.map((uwKey) => (
@@ -123,7 +134,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
         </div>
       </div>
 
-      {/* Lab 옵션 영역 (Base Stats일 때만 표시) */}
+      {/* 2. 연구실(Lab) 옵션 영역 (Base Stats 카테고리 전용) */}
       {category === 'base' && labStats && (
           <div className={`mb-8 animate-fade-in ${
               selectedUw === 'golden_tower' 
@@ -148,7 +159,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
           </div>
       )}
 
-      {/* 스탯 카드 리스트 영역 */}
+      {/* 3. 스탯별 비용 테이블 리스트 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {sortedUwKeys.map((uwKey) => {
            const uwDetail = (statsData as any)[uwKey];
@@ -161,6 +172,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
             let displayName = detail.name || statName;
             let displayDesc = detail.desc;
 
+            // UW+의 경우 다국어 이름 및 설명 적용
             if (category === 'plus') {
               const localizedPlus = (T.data as any)?.UW_PLUS?.[uwKey]?.[statName];
               if (localizedPlus) {
@@ -169,6 +181,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
               }
             }
             
+            // 현재 레벨 이후의 비용 데이터만 필터링
             const remainingCosts = detail.costs
               .map((cost: number, idx: number) => ({ 
                 cost, 
@@ -191,6 +204,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
                   }
                 `}
               >
+                {/* 카드 헤더: 스탯 이름 및 현재 레벨 정보 */}
                 <div className={`${styles.uwHeader} ${isSelected ? 'bg-slate-700' : 'bg-slate-800'}`}>
                   <div className="flex flex-col">
                      <span className={`text-[10px] font-normal mb-0.5 ${isSelected ? 'text-green-400' : 'text-slate-400'}`}>
@@ -221,6 +235,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
                 
                 {displayDesc && <div className={styles.descBox}>{displayDesc}</div>}
                 
+                {/* 비용 상세 테이블 */}
                 <div className={styles.tableContainer}>
                   <table className="w-full text-xs">
                     <thead>

@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/pages/MainPage.tsx
+ * 용도: 애플리케이션의 메인 대시보드 페이지
+ * 기능: 요약 위젯(Dashboard) 및 최근 전투 기록 목록 표시, 궁무/모듈 요약 모달 제어
+ */
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, List } from 'lucide-react';
@@ -6,27 +11,31 @@ import Dashboard from '../components/Main/Dashboard';
 import ReportList from '../components/Main/ReportList';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
-import { T } from '../locales'; // 언어팩
+import { T } from '../locales'; 
 
 interface MainPageProps {
-  reports: BattleMain[];
+  reports: BattleMain[]; // 상위(App.tsx)에서 전달받은 최근 리포트 목록
 }
 
 export default function MainPage({ reports }: MainPageProps) {
   const navigate = useNavigate();
   const { progress } = useGameData();
   
-  // 언어팩 연결
+  // 다국어 텍스트 매핑
   const Text = T.main.PAGE;
   const ListText = T.main.LIST;
 
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
+  /** 리포트 항목 클릭 시 상세 페이지로 이동 */
   const handleSelectReport = useCallback((date: string) => {
     navigate(`/report/${date}`);
   }, [navigate]);
 
-  // [Optimization] 리스트 표시용 데이터 계산 최적화 (최근 2일 기록만 우선 표시)
+  /** 
+   * [최적화] 리스트에 표시할 데이터 필터링
+   * - 최근 2일 이내의 기록만 우선적으로 메인 리스트에 표시함
+   */
   const listDisplayReports = useMemo(() => {
     const now = new Date();
     const cutoffDate = new Date(now);
@@ -36,6 +45,7 @@ export default function MainPage({ reports }: MainPageProps) {
     return reports.filter(r => new Date(r.battle_date) >= cutoffDate);
   }, [reports]);
 
+  /** 요약(Summary) 모달 열기 - 로그인 체크 포함 */
   const handleOpenSummary = useCallback(() => {
     const token = localStorage.getItem('access_token');
     if (!token) {
@@ -47,8 +57,10 @@ export default function MainPage({ reports }: MainPageProps) {
 
   return (
     <>
+      {/* 상단 대시보드 위젯 섹션 */}
       <Dashboard reports={reports} />
 
+      {/* 리스트 헤더 및 컨트롤 섹션 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
           <Calendar className="text-slate-500" /> {ListText.TITLE}
@@ -58,9 +70,7 @@ export default function MainPage({ reports }: MainPageProps) {
         </h2>
         
         <div className="flex items-center gap-2 w-full md:w-auto">
-          {/* 검색창과 토너 버튼을 삭제했습니다. */}
-          
-          {/* 3. 궁무 및 모듈 버튼 */}
+          {/* 궁무 및 모듈 요약 버튼 */}
           <button 
             onClick={handleOpenSummary}
             className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20 whitespace-nowrap ml-auto"
@@ -72,6 +82,7 @@ export default function MainPage({ reports }: MainPageProps) {
         </div>
       </div>
 
+      {/* 최근 기록 목록 표시 영역 */}
       {listDisplayReports.length > 0 ? (
         <ReportList reports={listDisplayReports} onSelectReport={handleSelectReport} />
       ) : (
@@ -80,6 +91,7 @@ export default function MainPage({ reports }: MainPageProps) {
         </div>
       )}
 
+      {/* 전체 기록 보기 버튼 (필터링된 데이터보다 전체 데이터가 많을 때 표시) */}
       {reports.length > listDisplayReports.length && (
         <div className="text-center mt-4">
             <button 
@@ -91,6 +103,7 @@ export default function MainPage({ reports }: MainPageProps) {
         </div>
       )}
 
+      {/* 궁무/모듈 상태 요약 모달 */}
       <UwSummaryModal 
         isOpen={isSummaryOpen}
         onClose={() => setIsSummaryOpen(false)}

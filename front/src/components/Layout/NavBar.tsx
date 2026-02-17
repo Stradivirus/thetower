@@ -1,12 +1,17 @@
+/**
+ * 파일명: thetower/front/src/components/Layout/NavBar.tsx
+ * 용도: 애플리케이션 상단 네비게이션 바
+ * 기능: 페이지 이동 라우팅, 인증 상태 표시, 다국어 전환 버튼 및 리포트 추가 모달 트리거
+ */
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, Box, Languages } from 'lucide-react';
-import { T, CURRENT_LANG, toggleLanguage } from '../../locales'; // [New] 언어 관리 모듈 추가
+import { T, CURRENT_LANG, toggleLanguage } from '../../locales'; 
 
 interface NavBarProps {
-  token: string | null;
-  onLogout: () => void;
-  onOpenAuth: () => void;
-  onOpenReport: () => void;
+  token: string | null;      // 인증 토큰 (로그인 여부 확인용)
+  onLogout: () => void;      // 로그아웃 핸들러
+  onOpenAuth: () => void;    // 로그인 모달 오픈 핸들러
+  onOpenReport: () => void;  // 리포트 입력 모달 오픈 핸들러
 }
 
 export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: NavBarProps) {
@@ -15,6 +20,11 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
   const currentPath = location.pathname;
   const Text = T.layout.NAV;
 
+  /** 
+   * 현재 경로에 따라 활성화된 버튼 스타일을 반환합니다.
+   * @param path 체크할 경로
+   * @param colorClass 활성화 시 적용할 색상 클래스
+   */
   const navBtnClass = (path: string, colorClass: string) => 
     `flex items-center gap-2 px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all border ${
       currentPath === path 
@@ -26,7 +36,7 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
     <nav className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-20">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         
-        {/* Logo */}
+        {/* 로고 영역 */}
         <div 
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => navigate('/')}
@@ -35,7 +45,7 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
           <span className="font-bold text-xl tracking-tight text-white hidden sm:block">The Tower <span className="text-slate-500 text-base font-normal">Analytics</span></span>
         </div>
 
-        {/* Navigation Items */}
+        {/* 메뉴 항목 영역 */}
         <div className="flex items-center gap-2 md:gap-3">
           <button onClick={() => navigate('/')} className={navBtnClass('/', 'bg-blue-500/10 text-blue-400 border-blue-500/50')}>
             <LayoutGrid size={16} /> <span className="hidden md:inline">{Text.MAIN}</span>
@@ -63,11 +73,10 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
             <Plus size={16} /> <span className="hidden md:inline">{Text.ADD}</span>
           </button>
 
-          {/* Divider */}
           <div className="h-6 w-px bg-slate-800 mx-1"></div>
           
           <div className="flex items-center gap-2">
-            {/* [New] 언어 변환 버튼 */}
+            {/* 다국어 변환 버튼 */}
             <button 
               onClick={toggleLanguage}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white"

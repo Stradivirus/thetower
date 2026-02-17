@@ -1,5 +1,10 @@
+/**
+ * 파일명: thetower/front/src/pages/HistoryPage.tsx
+ * 용도: 과거 전투 기록 관리 및 성과 분석 페이지
+ * 기능: 일간/주간/월간 성장 차트 표시, 월별 기록 그룹화, 다양한 필터링(토너먼트, 메모, 티어) 기능
+ */
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // useSearchParams 추가
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Archive, Trophy, Loader2, LayoutList, FolderOpen, Filter, StickyNote, X } from 'lucide-react';
 import type { BattleMain } from '../types/report';
 import type { WeeklyStatsResponse } from '../api/reports'; 
@@ -9,6 +14,9 @@ import WeeklyStatsChart from '../components/History/WeeklyStatsChart';
 import HistoryMonthGroup from '../components/History/HistoryMonthGroup';
 import { T } from '../locales'; 
 
+/** 
+ * 월별 그룹화된 데이터 인터페이스 
+ */
 export interface MonthlyGroup {
   monthKey: string;
   reports: BattleMain[];
@@ -24,12 +32,13 @@ type TournamentFilterMode = 'all' | 'include' | 'exclude';
 
 export default function HistoryPage() {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams(); // URL 파라미터 읽기
+  const [searchParams, setSearchParams] = useSearchParams();
   const Text = T.history; 
   
   const [allReports, setAllReports] = useState<BattleMain[]>([]);
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStatsResponse | null>(null);
   
+  // 뷰 모드 및 필터 상태
   const [viewMode, setViewMode] = useState<'group' | 'list'>('group');
   const [tournamentFilter, setTournamentFilter] = useState<TournamentFilterMode>('all');
   const [onlyMemo, setOnlyMemo] = useState(false);
@@ -37,9 +46,10 @@ export default function HistoryPage() {
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
-  // URL에서 tier 파라미터 추출
+  // URL 쿼리 파라미터에서 티어 필터 추출 (위젯 연동용)
   const tierFilter = searchParams.get('tier');
 
+  // 초기 데이터 로드 (전체 리포트 및 주간 통계)
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -59,17 +69,19 @@ export default function HistoryPage() {
     loadData();
   }, []);
 
-  // 티어 필터가 들어오면 자동으로 리스트 보기 모드로 전환
+  // 티어 필터가 활성화되면 자동으로 리스트 보기 모드로 전환하여 가독성 확보
   useEffect(() => {
     if (tierFilter) {
       setViewMode('list');
     }
   }, [tierFilter]);
 
+  /** 리포트 상세 페이지로 이동 */
   const handleSelectReport = (date: string) => {
     navigate(`/report/${date}`);
   };
 
+  /** 특정 월의 그룹 접기/펼치기 토글 */
   const toggleMonth = (monthKey: string) => {
     setExpandedMonths(prev => {
       const next = new Set(prev);
@@ -79,6 +91,7 @@ export default function HistoryPage() {
     });
   };
 
+  /** 토너먼트 필터 순환 전환 (전체 -> 포함 -> 제외) */
   const cycleTournamentFilter = () => {
     setTournamentFilter(prev => {
       if (prev === 'all') return 'include';
@@ -87,22 +100,25 @@ export default function HistoryPage() {
     });
   };
 
+  /** 
+   * 설정된 모든 필터를 적용하여 표시할 리포트 목록 계산
+   */
   const filteredReports = useMemo(() => {
     let result = allReports;
 
-    // 1. 토너먼트 필터
+    // 1. 토너먼트 키워드 필터
     if (tournamentFilter === 'include') {
       result = result.filter(r => r.notes?.includes('토너'));
     } else if (tournamentFilter === 'exclude') {
       result = result.filter(r => !r.notes?.includes('토너'));
     }
 
-    // 2. 메모 필터
+    // 2. 메모 존재 여부 필터
     if (onlyMemo) {
       result = result.filter(r => r.notes && r.notes.trim().length > 0);
     }
 
-    // 3. 티어 필터 (Widget 연동)
+    // 3. 티어 필터
     if (tierFilter) {
       result = result.filter(r => String(r.tier) === tierFilter);
     }
@@ -110,6 +126,10 @@ export default function HistoryPage() {
     return result;
   }, [allReports, tournamentFilter, onlyMemo, tierFilter]);
 
+  /** 
+   * '최근 7일' 섹션에 표시할 데이터 필터링
+   * - 필터가 활성화되어 있거나 리스트 모드일 때는 표시하지 않음
+   */
   const recentReports = useMemo(() => {
     if (tournamentFilter !== 'all' || onlyMemo || tierFilter || viewMode === 'list') return [];
     
@@ -120,6 +140,9 @@ export default function HistoryPage() {
     return filteredReports.filter(r => new Date(r.battle_date) >= oneWeekAgo);
   }, [filteredReports, tournamentFilter, onlyMemo, tierFilter, viewMode]);
 
+  /** 
+   * 데이터를 월별(YYYY-MM)로 그룹화 및 요약 정보 계산
+   */
   const monthlyGroups = useMemo(() => {
     if (viewMode === 'list') return [];
 
@@ -149,6 +172,7 @@ export default function HistoryPage() {
 
   return (
     <>
+      {/* 페이지 헤더 및 필터 컨트롤 섹션 */}
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4 animate-fade-in">
         <h2 className="text-xl font-bold text-white flex items-center gap-2">
           <Archive className="text-slate-500" /> {Text.PAGE.TITLE}
@@ -160,7 +184,7 @@ export default function HistoryPage() {
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar ml-auto">
             
-            {/* 티어 필터 배지 (활성화 시 표시) */}
+            {/* 티어 필터 활성화 배지 */}
             {tierFilter && (
                 <div className="flex items-center gap-2 bg-blue-500/20 border border-blue-500/50 rounded-lg px-3 py-1.5 mr-2">
                     <span className="text-blue-400 text-xs font-bold">Tier {tierFilter}</span>
@@ -176,6 +200,7 @@ export default function HistoryPage() {
                 </div>
             )}
 
+            {/* 뷰 모드 전환 버튼 (그룹 / 리스트) */}
             <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
                 <button
                     onClick={() => setViewMode('group')}
@@ -195,6 +220,7 @@ export default function HistoryPage() {
 
             <div className="w-px h-8 bg-slate-800 mx-1"></div>
 
+            {/* 토너먼트 필터 버튼 */}
             <button
                 onClick={cycleTournamentFilter}
                 className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg text-xs transition-all whitespace-nowrap shadow-sm min-w-[90px] justify-center ${
@@ -215,6 +241,7 @@ export default function HistoryPage() {
                 </span>
             </button>
 
+            {/* 메모 있는 기록만 보기 버튼 */}
             <button
                 onClick={() => {
                    const nextOnlyMemo = !onlyMemo;
@@ -236,12 +263,14 @@ export default function HistoryPage() {
         </div>
       </div>
 
+      {/* 성장 분석 차트 (필터 미적용 및 그룹 뷰일 때만 표시) */}
       {!isFilterActive && viewMode === 'group' && (
         <div className="mb-6">
            <WeeklyStatsChart data={weeklyStats} loading={isLoading} />
         </div>
       )}
 
+      {/* 데이터 표시 영역 */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500">
           <Loader2 size={32} className="animate-spin mb-2 text-blue-500" />
@@ -250,8 +279,10 @@ export default function HistoryPage() {
       ) : (
         <div className="space-y-4">
           
+          {/* 그룹 뷰 모드 */}
           {viewMode === 'group' && (
               <>
+                {/* 최근 7일 상세 기록 섹션 */}
                 {recentReports.length > 0 && !isFilterActive && (
                     <div className="animate-fade-in mb-8">
                     <div className="text-xs font-bold text-slate-500 mb-3 px-1 flex items-center gap-2">
@@ -267,6 +298,7 @@ export default function HistoryPage() {
                     </div>
                 )}
 
+                {/* 월별 기록 그룹 섹션 */}
                 <div>
                     {!isFilterActive && <div className="text-xs font-bold text-slate-500 mb-3 px-1 flex items-center gap-2">
                         <div className="w-1 h-4 bg-slate-600 rounded-full"></div>
@@ -286,6 +318,7 @@ export default function HistoryPage() {
               </>
           )}
 
+          {/* 전체 리스트 뷰 모드 */}
           {viewMode === 'list' && (
               <div className="animate-fade-in">
                   <div className="text-xs font-bold text-slate-500 mb-3 px-1 flex items-center gap-2">
@@ -301,6 +334,7 @@ export default function HistoryPage() {
               </div>
           )}
 
+          {/* 검색 결과 없음 안내 */}
           {!isLoading && totalCount === 0 && (
             <div className="text-center py-20 text-slate-500 bg-slate-900/30 rounded-xl border border-slate-800 border-dashed animate-fade-in">
               <p>{Text.PAGE.EMPTY_RESULT}</p>

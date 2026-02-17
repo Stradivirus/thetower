@@ -1,17 +1,25 @@
+/**
+ * 파일명: thetower/front/src/contexts/GameDataContext.tsx
+ * 용도: 게임 데이터(진행도, 모듈)의 전역 상태 관리
+ * 기능: 서버 데이터 페칭, 로컬 상태 동기화, 컨텍스트 API 공급자 및 훅 제공
+ */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { fetchProgress } from '../api/progress';
 import { fetchModules } from '../api/modules';
 import type { UserProgress, UserModules } from '../types/gameData';
 
+/** 
+ * 전역 게임 데이터 컨텍스트 인터페이스
+ */
 interface GameDataContextType {
-  progress: UserProgress;
-  modules: UserModules;
-  isLoading: boolean;
-  refreshData: () => Promise<void>;
+  progress: UserProgress;      // 게임 진행도 (카드, UW 등)
+  modules: UserModules;        // 모듈 데이터 (인벤토리 및 장착)
+  isLoading: boolean;          // 데이터 로딩 상태
+  refreshData: () => Promise<void>; // 데이터를 서버에서 다시 불러오는 함수
   setProgress: (newProgress: UserProgress) => void;
   setModules: (newModules: UserModules) => void;
-  isLoggedIn: boolean;
+  isLoggedIn: boolean;         // 로그인 여부
 }
 
 const GameDataContext = createContext<GameDataContextType | null>(null);
@@ -29,6 +37,9 @@ export function GameDataProvider({ children, token }: ProviderProps) {
 
   const isLoggedIn = !!token;
 
+  /** 
+   * 서버에서 게임 데이터를 로드하여 상태를 업데이트합니다.
+   */
   const loadData = useCallback(async () => {
     if (!token) {
       setProgress({});
@@ -38,6 +49,7 @@ export function GameDataProvider({ children, token }: ProviderProps) {
 
     setIsLoading(true);
     try {
+      // 진행도와 모듈 데이터를 병렬로 호출
       const [progressData, modulesData] = await Promise.all([
         fetchProgress().catch((err) => {
           console.error("Progress fetch error:", err);
@@ -54,13 +66,12 @@ export function GameDataProvider({ children, token }: ProviderProps) {
       }
 
       if (modulesData) {
-        // 1. 장착된 모듈 데이터 복사
+        // 장착된 모듈과 인벤토리를 병합하여 관리하기 쉬운 형태로 변환
         const mergedModules: any = { ...(modulesData.equipped_json || {}) };
         
-        // 2. 인벤토리 데이터 병합
         const inventory = modulesData.inventory_json || {};
         Object.entries(inventory).forEach(([name, data]: [string, any]) => {
-            // [Fix] data.rarity만 뽑지 않고, 객체 전체(effects 포함)를 저장
+            // 인벤토리 아이템은 'owned_' 접두사를 붙여 저장
             mergedModules[`owned_${name}`] = data; 
         });
 
@@ -75,6 +86,7 @@ export function GameDataProvider({ children, token }: ProviderProps) {
     }
   }, [token]);
 
+  // 토큰이 유효하고 아직 로드되지 않은 경우 데이터 로드 실행
   useEffect(() => {
     if (token && !isLoaded) {
       loadData();
@@ -85,6 +97,9 @@ export function GameDataProvider({ children, token }: ProviderProps) {
     }
   }, [token, isLoaded, loadData]);
 
+  /** 
+   * 수동으로 데이터를 새로고침하는 함수
+   */
   const refreshData = async () => {
     await loadData();
   };
@@ -106,6 +121,9 @@ export function GameDataProvider({ children, token }: ProviderProps) {
   );
 }
 
+/** 
+ * 컴포넌트에서 게임 데이터에 접근하기 위한 커스텀 훅
+ */
 export function useGameData() {
   const context = useContext(GameDataContext);
   if (!context) {

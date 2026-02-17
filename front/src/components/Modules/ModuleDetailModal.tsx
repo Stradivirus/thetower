@@ -1,5 +1,10 @@
+/**
+ * 파일명: thetower/front/src/components/Modules/ModuleDetailModal.tsx
+ * 용도: 개별 모듈의 상세 설정(등급 변경, 부옵션 편집, 장착/해제)을 위한 모달
+ * 기능: 등급 선택기 제공, 슬롯별 부옵션 수동 선택 및 자동 잠금, 메인/어시스트 슬롯 장착 제어
+ */
 import { useState, useEffect, useMemo } from 'react';
-import { X, Save, Trash2, Shield, Zap, Target, Cpu, Loader2 } from 'lucide-react'; // [New] Loader2 아이콘 추가
+import { X, Save, Trash2, Shield, Zap, Target, Cpu, Loader2 } from 'lucide-react'; 
 import { RARITIES, RARITY } from './ModuleConstants';
 import { MODULE_TYPES } from '../../data/module_reroll_data'; 
 import SlotViewer, { type SimulationSlot } from './Reroll/SlotViewer';
@@ -17,7 +22,7 @@ interface Props {
   onEquip: (slot: 'main' | 'sub') => void;
   onUnequip: () => void;
   equipStatus: 'main' | 'sub' | null;
-  isSaving: boolean; // [New] 저장 중 상태 Prop
+  isSaving: boolean; 
 }
 
 export default function ModuleDetailModal({
@@ -31,11 +36,12 @@ export default function ModuleDetailModal({
   onEquip,
   onUnequip,
   equipStatus,
-  isSaving // [New]
+  isSaving
 }: Props) {
   
   const isDataObject = currentData && typeof currentData === 'object';
 
+  // 초기 상태 설정: 기존 데이터가 있으면 로드, 없으면 기본값 적용
   const initialRarity = isDataObject 
     ? currentData.rarity 
     : (typeof currentData === 'number' ? currentData : RARITY.ANCESTRAL);
@@ -48,6 +54,7 @@ export default function ModuleDetailModal({
   const [isSelectorOpen, setSelectorOpen] = useState(false);
   const [selectedSlotIdx, setSelectedSlotIdx] = useState<number | null>(null);
 
+  // 모달이 열릴 때마다 데이터 동기화
   useEffect(() => {
     const filled = Array(8).fill(null);
     initialEffects.forEach((eff: string, idx: number) => {
@@ -60,10 +67,14 @@ export default function ModuleDetailModal({
   // ESC 키 처리 (저장 중이 아닐 때만 닫기 허용)
   useEscKey(onClose, isOpen && !isSelectorOpen && !isSaving);
 
+  /** 현재 모듈 타입에 사용 가능한 부옵션 리스트를 가져옵니다. */
   const availableEffects = useMemo(() => {
     return MODULE_TYPES[moduleType] || [];
   }, [moduleType]);
 
+  /** 
+   * 슬롯 뷰어 표시를 위해 현재 편집 중인 효과 데이터를 Slot 인터페이스에 맞게 가공합니다.
+   */
   const simulationSlots: SimulationSlot[] = useMemo(() => {
     return effects.map((effectId, idx) => {
       if (!effectId) {
@@ -87,12 +98,14 @@ export default function ModuleDetailModal({
     });
   }, [effects, availableEffects, rarity]);
 
+  /** 슬롯 클릭 시 부옵션 수동 선택 모달을 엽니다. */
   const handleSlotClick = (idx: number) => {
-    if (isSaving) return; // 저장 중 클릭 방지
+    if (isSaving) return; 
     setSelectedSlotIdx(idx);
     setSelectorOpen(true);
   };
 
+  /** 선택 모달에서 옵션을 골랐을 때 호출되는 콜백 */
   const handleEffectSelect = (effectId: string) => {
     if (selectedSlotIdx === null) return;
     const newEffects = [...effects];
@@ -101,11 +114,11 @@ export default function ModuleDetailModal({
     setSelectorOpen(false);
   };
 
+  /** 현재 편집된 내용을 부모 컴포넌트로 전달하여 저장합니다. */
   const handleSave = () => {
-    if (isSaving) return; // 중복 클릭 방지
+    if (isSaving) return; 
     const cleanEffects = effects.filter(e => e !== null) as string[];
     onSave({ rarity, effects: cleanEffects });
-    // [Fix] onClose는 이제 부모가 저장 성공 후 호출하거나, 사용자가 닫을 때만 호출
   };
 
   const Icon = moduleType === 'cannon' ? Target : 
@@ -118,7 +131,6 @@ export default function ModuleDetailModal({
 
   return (
     <div 
-      // 저장 중일 때는 배경 클릭 닫기 방지
       onClick={(e) => { 
         if (!isSaving && e.target === e.currentTarget) onClose(); 
       }}
@@ -126,7 +138,7 @@ export default function ModuleDetailModal({
     >
       <div className="bg-slate-900 border border-slate-700 w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] cursor-default">
         
-        {/* Header */}
+        {/* 모달 헤더 */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-slate-950/50 rounded-t-2xl shrink-0">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg bg-slate-800 text-slate-200`}>
@@ -146,10 +158,10 @@ export default function ModuleDetailModal({
           </button>
         </div>
 
-        {/* Body */}
+        {/* 모달 본문 */}
         <div className={`flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
           
-          {/* 1. Rarity Selector */}
+          {/* 1. 등급 선택 섹션 */}
           <div className="space-y-2">
              <label className="text-sm font-bold text-slate-400">Module Rarity</label>
              <div className="grid grid-cols-4 gap-2">
@@ -176,7 +188,7 @@ export default function ModuleDetailModal({
              </div>
           </div>
 
-          {/* 2. Sub-Effects Editor */}
+          {/* 2. 부옵션 편집 섹션 */}
           <div className="space-y-2">
             <div className="flex justify-between items-end">
               <label className="text-sm font-bold text-slate-400">Sub-Effects ({effects.filter(e => e).length}/8)</label>
@@ -195,9 +207,10 @@ export default function ModuleDetailModal({
           </div>
         </div>
 
-        {/* Footer Actions */}
+        {/* 푸터 액션 영역 */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/30 rounded-b-2xl flex justify-between items-center gap-4 shrink-0">
           
+          {/* 삭제 버튼 */}
           <button 
              onClick={() => { if(confirm('Delete this module?')) onDelete(); }}
              disabled={isSaving}
@@ -207,6 +220,7 @@ export default function ModuleDetailModal({
           </button>
 
           <div className={`flex items-center gap-3 ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
+            {/* 메인 슬롯 장착/해제 */}
             {equipStatus === 'main' ? (
                <button onClick={onUnequip} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-700">
                  Unequip Main
@@ -217,6 +231,7 @@ export default function ModuleDetailModal({
                </button>
             )}
 
+            {/* 어시스트 슬롯 장착/해제 */}
             {equipStatus === 'sub' ? (
                <button onClick={onUnequip} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-sm font-bold hover:bg-slate-700">
                  Unequip Assist
@@ -229,6 +244,7 @@ export default function ModuleDetailModal({
 
             <div className="w-px h-8 bg-slate-700 mx-2" />
 
+            {/* 저장 버튼 (로딩 표시 포함) */}
             <button 
               onClick={handleSave}
               disabled={isSaving}
@@ -251,6 +267,7 @@ export default function ModuleDetailModal({
         </div>
       </div>
 
+      {/* 부옵션 선택을 위한 중첩 모달 */}
       <ManualSelectorModal 
         isOpen={isSelectorOpen}
         onClose={() => setSelectorOpen(false)}

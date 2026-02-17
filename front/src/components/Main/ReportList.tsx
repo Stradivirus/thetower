@@ -1,25 +1,35 @@
+/**
+ * 파일명: thetower/front/src/components/Main/ReportList.tsx
+ * 용도: 전투 기록 목록을 날짜별로 그룹화하여 표시하는 컴포넌트
+ * 기능: 날짜별 그룹 접기/펼치기, 그룹별 총합 통계(코인, 셀, 리롤, 시간) 계산 및 가동률 표시
+ */
 import { useMemo, useState } from 'react';
 import { Zap, Layers, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import type { BattleMain } from '../../types/report';
 import { formatNumber, formatDateHeader, parseDurationToHours } from '../../utils/format'; 
 import ReportListItem from './ReportListItem'; 
-import { T } from '../../locales'; // 언어팩
+import { T } from '../../locales'; 
 
 interface Props {
-  reports: BattleMain[];
-  onSelectReport: (date: string) => void;
-  hideHeader?: boolean;
-  collapseThresholdDays?: number;
+  reports: BattleMain[];               // 표시할 리포트 목록
+  onSelectReport: (date: string) => void; // 리포트 선택 시 실행할 콜백
+  hideHeader?: boolean;                // 테이블 헤더 숨김 여부
+  collapseThresholdDays?: number;      // 이 날짜보다 오래된 기록은 기본적으로 접어서 표시
 }
 
 export default function ReportList({ reports, onSelectReport, hideHeader = false, collapseThresholdDays = 3 }: Props) {
+  // 날짜별 그룹의 확장 상태 관리
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
-  const Text = T.main.LIST; // 언어팩 연결
+  const Text = T.main.LIST;
 
+  /** 그룹 접기/펼치기 토글 */
   const toggleDate = (dateKey: string) => {
     setExpandedDates(prev => ({ ...prev, [dateKey]: !prev[dateKey] }));
   };
 
+  /** 
+   * 리포트 데이터를 날짜별(Header 기준)로 그룹화합니다.
+   */
   const groupedReports = useMemo(() => {
     const groups: Record<string, BattleMain[]> = {};
     reports.forEach(report => {
@@ -27,6 +37,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
       if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(report);
     });
+    // 최신 날짜순으로 정렬
     return Object.entries(groups).sort(([, a], [, b]) => 
       new Date(b[0].battle_date).getTime() - new Date(a[0].battle_date).getTime()
     );
@@ -37,6 +48,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
   return (
     <>
+      {/* 데스크탑 전용 테이블 헤더 */}
       {!hideHeader && (
         <div className="hidden md:grid grid-cols-12 gap-2 px-4 py-3 border-b border-slate-800 text-center select-none items-end pb-2">
           <div className="col-span-2 text-xs font-bold text-slate-300">{Text.COL_TIME}</div>
@@ -54,6 +66,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
       <div className="space-y-6 mt-4">
         {groupedReports.map(([dateHeader, groupItems]) => {
+          // 날짜 차이 계산을 통해 오래된 기록인지 확인
           const reportDate = new Date(groupItems[0].battle_date);
           reportDate.setHours(0, 0, 0, 0);
           const diffTime = today.getTime() - reportDate.getTime();
@@ -61,16 +74,19 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
           const isOld = diffDays >= collapseThresholdDays;
           const isExpanded = expandedDates[dateHeader];
           
+          // 해당 날짜의 총합 통계 계산
           const totalCoins = groupItems.reduce((acc, r) => acc + r.coin_earned, 0);
           const totalCells = groupItems.reduce((acc, r) => acc + r.cells_earned, 0);
           const totalShards = groupItems.reduce((acc, r) => acc + r.reroll_shards_earned, 0);
 
+          // 플레이 시간 및 가동률(24시간 기준 %) 계산
           const totalHours = groupItems.reduce((acc, r) => acc + parseDurationToHours(r.real_time), 0);
           const totalMinutes = Math.round(totalHours * 60);
           const hoursInt = Math.floor(totalMinutes / 60);
           const minutesInt = totalMinutes % 60;
           const coveragePercent = Math.round((totalHours / 24) * 100);
 
+          // 가동률에 따른 색상 설정
           let timeColor = "text-slate-500"; 
           if (totalHours >= 18) timeColor = "text-lime-400";       
           else if (totalHours >= 12) timeColor = "text-yellow-400"; 
@@ -78,7 +94,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
 
           const timeDisplay = `${hoursInt}h ${minutesInt}m (${coveragePercent}%)`;
 
-          // [Case 1] 접혀있는 오래된 기록
+          // [Case 1] 접혀있는 오래된 기록 (요약 정보 표시)
           if (isOld) {
              return (
               <div key={dateHeader} className="border-b border-slate-800/50">
@@ -86,7 +102,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                   onClick={() => toggleDate(dateHeader)}
                   className="flex items-center justify-between py-4 px-4 hover:bg-slate-900/50 cursor-pointer transition-colors group select-none"
                 >
-                  {/* Mobile Header */}
+                  {/* 모바일 헤더: 날짜와 핵심 재화량 표시 */}
                   <div className="md:hidden flex flex-col gap-3 flex-1 mr-4">
                        <div className="flex items-start justify-between">
                           <div className="flex flex-col gap-1">
@@ -119,7 +135,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                       </div>
                   </div>
 
-                  {/* Desktop Header */}
+                  {/* 데스크탑 헤더: 가로형 배치로 상세 총합 정보 표시 */}
                   <div className="hidden md:flex items-center gap-6">
                     <div className="w-32 flex-shrink-0">
                       <h3 className="text-slate-400 group-hover:text-slate-200 font-bold text-sm transition-colors">
@@ -155,6 +171,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
                   </div>
                 </div>
 
+                {/* 펼쳐졌을 때의 아이템 리스트 */}
                 {isExpanded && (
                   <div className="px-4 pb-4 bg-slate-950/30 animate-fade-in border-t border-slate-800/30 pt-4">
                     {groupItems.map(report => (
@@ -170,7 +187,7 @@ export default function ReportList({ reports, onSelectReport, hideHeader = false
              );
           }
 
-          // [Case 2] 최신 기록
+          // [Case 2] 최신 기록 (기본적으로 펼쳐서 표시)
           return (
             <div key={dateHeader} className="animate-fade-in">
               <div className="mb-3 px-2">

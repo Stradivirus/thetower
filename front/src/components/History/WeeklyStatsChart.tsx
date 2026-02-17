@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/components/History/WeeklyStatsChart.tsx
+ * 용도: 사용자의 성장 지표(코인, 셀)를 차트로 시각화
+ * 기능: 일간/주간/월간 뷰 전환, 자원 종류 전환, 성장률 및 추세선 표시, Recharts 라이브러리 활용
+ */
 import { useMemo } from 'react';
 import { 
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend, Cell 
@@ -6,14 +11,15 @@ import { BarChart3, Zap, CircleDollarSign, RefreshCw, CalendarDays, CalendarRang
 import type { WeeklyStatsResponse } from '../../api/reports';
 import { formatNumber } from '../../utils/format';
 import { useGrowthStats } from './useGrowthStats'; 
-import { T } from '../../locales'; // 언어팩
+import { T } from '../../locales'; 
 
 interface Props {
-  data: WeeklyStatsResponse | null;
-  loading: boolean;
+  data: WeeklyStatsResponse | null; // 서버에서 받은 통계 데이터
+  loading: boolean;                 // 로딩 상태
 }
 
 export default function WeeklyStatsChart({ data, loading }: Props) {
+  // 성장 통계 계산 및 상태 관리를 위한 커스텀 훅 사용
   const { 
     viewMode, setViewMode,
     resourceType, setResourceType,
@@ -23,9 +29,10 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
     gradientOffset
   } = useGrowthStats(data, loading);
 
-  const Text = T.history.CHART; // 언어팩
+  const Text = T.history.CHART;
   const isCoin = resourceType === 'coin';
 
+  // 차트 색상 테마 정의
   const COLORS = {
     coinBar: '#fbbf24',
     cellBar: '#22d3ee',
@@ -38,6 +45,7 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
 
   const currentBarColor = isCoin ? COLORS.coinBar : COLORS.cellBar;
   
+  // 현재 성과에 따른 추세선 색상 결정
   const currentTrendColor = useMemo(() => {
     if (summary.avgGrowth >= 1.0) return COLORS.trendUp;
     if (summary.avgGrowth <= -1.0) return COLORS.trendDown;
@@ -52,6 +60,10 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
     );
   }
 
+  /** 
+   * 차트 하단 범례(Legend) 커스텀 렌더링
+   * - 총합, 평균, 성장률 등의 요약 정보를 함께 표시
+   */
   const renderCustomLegend = () => {
     const isPositive = summary.avgGrowth >= 0;
     const TrendIcon = isPositive ? TrendingUp : TrendingDown;
@@ -120,6 +132,7 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 md:p-6 mb-8 animate-fade-in shadow-xl text-slate-300 relative">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         
+        {/* 타이틀 및 서브텍스트 */}
         <div className="flex flex-col w-full md:w-auto">
             <div className="flex justify-between items-center w-full md:w-auto">
                 <h3 className="text-slate-300 text-lg font-bold flex items-center gap-2">
@@ -133,6 +146,7 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
             </div>
         </div>
         
+        {/* 컨트롤러: 리소스 전환 및 기간 전환 */}
         <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
            <div className="absolute top-4 right-4 md:static md:inset-auto flex items-center gap-1 bg-slate-950 px-2 py-1.5 rounded-lg border border-slate-800 flex-shrink-0">
               <button onClick={() => setResourceType('coin')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isCoin ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
@@ -144,19 +158,20 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
            </div>
 
            <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit flex-shrink-0">
-             <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
+             <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarDays size={14} /> {Text.TAB_DAILY}
              </button>
-             <button onClick={() => setViewMode('weekly')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
+             <button onClick={() => setViewMode('weekly')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <CalendarRange size={14} /> {Text.TAB_WEEKLY}
              </button>
-             <button onClick={() => setViewMode('monthly')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-bold transition-all ${viewMode === 'monthly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
+             <button onClick={() => setViewMode('monthly')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'monthly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
                <Calendar size={14} /> {Text.TAB_MONTHLY}
              </button>
           </div>
         </div>
       </div>
 
+      {/* 차트 렌더링 영역 */}
       <div className="h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ top: 20, right: 0, bottom: 0, left: 0 }}>
@@ -186,7 +201,7 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
               contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
               itemStyle={{ fontSize: '12px', fontWeight: 600, color: '#e2e8f0' }} 
               labelStyle={{ color: '#94a3b8', marginBottom: '8px', fontSize: '12px' }}
-              itemSorter={(item) => (item.name === 'Growth %' ? 1 : -1)} // 순서 고정: 금액 먼저, 성장률 나중
+              itemSorter={(item) => (item.name === 'Growth %' ? 1 : -1)} 
               formatter={(value: any, name: string, props: any) => {
                 if (viewMode === 'monthly' && props.payload.isCurrent) {
                     return [
@@ -210,6 +225,7 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
             
             <Legend content={renderCustomLegend} />
             
+            {/* 막대 차트 (자원량) */}
             <Bar yAxisId="left" dataKey="amount" name={isCoin ? Text.LEGEND_COIN : Text.LEGEND_CELL} barSize={viewMode === 'daily' ? 24 : 36} radius={[6, 6, 0, 0]}>
                 {chartData.map((entry, index) => (
                     <Cell 
@@ -223,13 +239,15 @@ export default function WeeklyStatsChart({ data, loading }: Props) {
                 ))}
             </Bar>
             
+            {/* 선 차트 (선형 추세선) */}
             <Line 
               yAxisId="left" type="linear" dataKey="trendValue" name="Trend" 
               stroke={currentTrendColor} strokeDasharray="5 5" strokeOpacity={0.8} strokeWidth={2}
               dot={false} activeDot={false} isAnimationActive={false} connectNulls={false}
-              tooltipType="none" // 툴팁에서 추세 정보 제외
+              tooltipType="none" 
             />
 
+            {/* 선 차트 (성장률) */}
             <ReferenceLine y={0} yAxisId="right" stroke="#475569" strokeDasharray="3 3" />
             <Line 
                 yAxisId="right" type="monotone" dataKey="currentGrowth" name="Growth %" 

@@ -1,13 +1,25 @@
+/**
+ * 파일명: thetower/front/src/components/Modal/SummaryWeapons.tsx
+ * 용도: 요약 모달 내에서 활성화된 궁극 무기(UW) 및 UW+의 스탯 현황 표시
+ * 기능: 진행도 데이터 분석, 연구(Lab) 효과 적용된 최종 수치 계산, 해금된 무기별 스탯 카드 렌더링
+ */
 import { Trophy } from 'lucide-react';
 import baseStats from '../../data/uw_base_stats.json';
 import plusStats from '../../data/uw_plus_stats.json';
 import labConfig from '../../data/uw_lab_config.json';
-import { T } from '../../locales'; // 언어팩 추가
+import { T } from '../../locales'; 
 
 interface Props {
-  progress: Record<string, any>;
+  progress: Record<string, any>; // 사용자의 게임 진행도 데이터
 }
 
+/** 
+ * 연구(Lab) 효과를 적용하여 최종 스탯 수치를 계산합니다.
+ * @param uwKey 무기 키 (예: 'death_wave')
+ * @param statKey 스탯 키 (예: 'duration')
+ * @param currentValue 기본 스탯 값
+ * @param progress 현재 진행도 데이터
+ */
 const applyLabEffect = (uwKey: string, statKey: string, currentValue: number, progress: Record<string, any>) => {
     const labStats = (labConfig as any)[uwKey];
     let addedValue = 0;
@@ -15,6 +27,7 @@ const applyLabEffect = (uwKey: string, statKey: string, currentValue: number, pr
     
     if (!labStats) return { finalValue: currentValue, isLabActive };
 
+    // 지속시간(Duration) 연구 적용
     if (statKey === 'duration') {
         const labDurationKey = `${uwKey}_lab_duration_on`;
         const labDurationInfo = labStats['lab_duration'];
@@ -25,6 +38,7 @@ const applyLabEffect = (uwKey: string, statKey: string, currentValue: number, pr
         }
     }
     
+    // 보너스(Bonus) 연구 적용
     if (statKey === 'bonus') {
         const labBonusKey = `${uwKey}_lab_bonus_on`;
         const labBonusInfo = labStats['lab_bonus'];
@@ -43,9 +57,13 @@ const formatValue = (num: number) => parseFloat(num.toFixed(2));
 export function SummaryWeapons({ progress }: Props) {
   const allUwKeys = Array.from(new Set([...Object.keys(baseStats), ...Object.keys(plusStats)]));
   
+  /** 
+   * 사용자가 현재 레벨을 1 이상 올린 활성화된 무기들만 필터링하고 데이터를 구성합니다.
+   */
   const activeUws = allUwKeys.map(uwKey => {
     const baseData = (baseStats as any)[uwKey] || {};
     
+    // 1. 기본 스탯(Base Stats) 처리
     const activeBaseStats = Object.entries(baseData).map(([statName, detail]: [string, any]) => {
       const progressKey = `base_${uwKey}_${statName}`;
       const currentLevel = progress[progressKey] || 0;
@@ -56,12 +74,14 @@ export function SummaryWeapons({ progress }: Props) {
       const displayMax = detail.values.length - 1;
       let currentValue = detail.values[displayLevel];
 
+      // 연구 효과 적용
       const { finalValue, isLabActive } = applyLabEffect(uwKey, statName, currentValue, progress);
       currentValue = finalValue; 
       
       return { statName, detail, displayLevel, displayMax, currentValue, isLabActive };
     }).filter(item => item !== null);
 
+    // 2. 플러스 스탯(UW+ Stats) 처리
     const plusData = (plusStats as any)[uwKey] || {};
     const activePlusStats = Object.entries(plusData).map(([statName, detail]: [string, any]) => {
         const progressKey = `plus_${uwKey}_${statName}`;
@@ -88,6 +108,7 @@ export function SummaryWeapons({ progress }: Props) {
 
   return (
     <div className="w-full">
+      {/* 섹션 헤더 */}
       <div className="flex items-center gap-2 mb-3">
         <Trophy size={18} className="text-yellow-400" />
         <h3 className="text-base font-bold text-white">{T.summary.WEAPONS.TITLE}</h3>
@@ -102,7 +123,7 @@ export function SummaryWeapons({ progress }: Props) {
               </h4>
 
               <div className="flex flex-wrap gap-2.5">
-                {/* Base Stats */}
+                {/* 기본 스탯(Base) 카드 리스트 */}
                 {uw!.base.map((stat: any) => {
                   const { statName, detail, displayLevel, displayMax, currentValue} = stat;
                   const isMaxed = displayLevel >= displayMax;
@@ -131,7 +152,7 @@ export function SummaryWeapons({ progress }: Props) {
                   );
                 })}
 
-                {/* Plus Stats */}
+                {/* 플러스 스탯(Plus) 카드 리스트 */}
                 {uw!.plus.map((stat: any) => {
                   const { statName, detail, displayLevel, displayMax, currentValue } = stat;
                   const isMaxed = displayLevel >= displayMax;
