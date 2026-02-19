@@ -71,4 +71,4 @@
 * **UX 최적화**: Lazy Loading, 코드 스플리팅, 다국어(KR/EN) 언어팩 시스템 및 모바일 우선 반응형 디자인
 
 ---
-*상세한 기술 설계와 API 명세는 [TECHNICAL_DETAIL.md](./TECHNICAL_DETAIL.md)에서 확인하실 수 있습니다.*
+*상세한 기술 설계와 API 명세는 [TECHNICAL_DETAIL.md](./TECHNICAL_DETAIL.md)에서, 프로젝트의 주요 업데이트 이력은 [CHANGELOG.md](./CHANGELOG.md)에서 확인하실 수 있습니다.*
