@@ -23,7 +23,7 @@ from slowapi.errors import RateLimitExceeded
 # Rate Limit 설정: IP당 분당 300회 제한
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["300/minute"]
+    default_limits=["600/minute"]
 )
 
 # 테이블 생성 (Main DB에서 실행)
