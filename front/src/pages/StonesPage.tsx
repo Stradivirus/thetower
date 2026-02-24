@@ -92,12 +92,54 @@ export default function StonesPage({ onBack, token }: Props) {
 
         {/* 탭 네비게이션 및 액션 버튼 */}
         <div className="flex items-center gap-3 self-stretch md:self-auto">
-          <div className="flex flex-wrap gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-1 justify-center md:justify-start">
+          {/* 모바일 탭 레이아웃 (3행) */}
+          <div className="md:hidden flex flex-col gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-1">
+            {/* 1행: Unlock */}
+            <button 
+              onClick={() => setActiveTab('unlock')} 
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'unlock' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+            >
+              <Lock size={14}/> Unlock
+            </button>
+            {/* 2행: Base Stats, UW+ Stats */}
+            <div className="flex gap-1">
+              <button 
+                onClick={() => setActiveTab('base')} 
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'base' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+              >
+                <Zap size={14}/> Base Stats
+              </button>
+              <button 
+                onClick={() => setActiveTab('plus')} 
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'plus' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+              >
+                <PlusCircle size={14}/> UW+ Stats
+              </button>
+            </div>
+            {/* 3행: Cards, Modules */}
+            <div className="flex gap-1">
+              <button 
+                onClick={() => setActiveTab('card')} 
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'card' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+              >
+                <Layers size={14}/> Cards
+              </button>
+              <button 
+                onClick={() => setActiveTab('module')} 
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'module' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+              >
+                <Box size={14}/> Modules
+              </button>
+            </div>
+          </div>
+
+          {/* 데스크톱 탭 레이아웃 (1행) */}
+          <div className="hidden md:flex flex-wrap gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-1 justify-start">
             {tabs.map(tab => (
               <button 
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as TabType)} 
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 flex-1 md:flex-none ${activeTab === tab.id ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 flex-none ${activeTab === tab.id ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
               >
                 <tab.icon size={14}/> {tab.label}
               </button>

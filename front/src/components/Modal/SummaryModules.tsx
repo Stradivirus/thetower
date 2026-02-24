@@ -54,6 +54,12 @@ export default function SummaryModules() {
     return effData ? effData.value : 1; 
   };
 
+  /** 모듈 이름을 현재 언어에 맞게 변환합니다. (데이터 키는 KR 기준) */
+  const getLocalizedModuleName = (typeId: string, rawName: string) => {
+    const localized = (T.data as any)?.MODULES?.[typeId]?.[rawName];
+    return localized?.name || rawName;
+  };
+
   /** 
    * 개별 모듈 아이템을 렌더링합니다.
    * - 어시스트 슬롯의 경우 연구 해금 등급에 따라 시각적 등급이 제한될 수 있습니다.
@@ -82,16 +88,29 @@ export default function SummaryModules() {
     return (
       <div className={`relative ${slotType === 'ASSIST' ? 'mt-4 pt-4 border-t-2 border-slate-700/50' : ''}`}>
         {/* 모듈 이름 및 태그 */}
-        <div className="flex justify-between items-center mb-1 gap-2">
-          <h4 className="font-bold text-slate-100 text-sm truncate flex-1 min-w-0" title={moduleData.name}>
-            {moduleData.name}
+          <div className="flex justify-between items-center mb-1 gap-2">
+          <h4
+            className="font-bold text-slate-100 text-sm truncate flex-1 min-w-0"
+            title={getLocalizedModuleName(typeId, moduleData.name)}
+          >
+            {getLocalizedModuleName(typeId, moduleData.name)}
           </h4>
           <div className="flex items-center gap-1 shrink-0">
-            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${rarityInfo.color} ${rarityInfo.border} ${rarityInfo.bg}`}>
-              {rarityInfo.label}
+            <span
+              className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${rarityInfo.color} ${rarityInfo.border} ${rarityInfo.bg}`}
+              title={rarityInfo.label}
+            >
+              {rarityInfo.short}
             </span>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${slotType === 'MAIN' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/50' : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/50'}`}>
-              {slotType}
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                slotType === 'MAIN'
+                  ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/50'
+                  : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/50'
+              }`}
+              title={slotType}
+            >
+              {slotType[0]}
             </span>
           </div>
         </div>

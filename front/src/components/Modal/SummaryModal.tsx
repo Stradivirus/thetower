@@ -6,6 +6,7 @@
 import SummaryModules from './SummaryModules';
 import { SummaryCards } from './SummaryCards';
 import { SummaryWeapons } from './SummaryWeapons';
+import SummaryModalMobile from './SummaryModalMobile';
 import useEscKey from '../../hooks/useEscKey';
 
 interface Props {
@@ -14,8 +15,25 @@ interface Props {
   progress: Record<string, any>;    // 사용자의 진행도 데이터
 }
 
+// 간단한 뷰포트 기반 모바일 판별
+const isMobileViewport = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+};
+
 export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
-  // ESC 키 입력 시 모달 닫기 훅 사용
+  // 모바일이면 전용 풀스크린 모달로 연결
+  if (isMobileViewport()) {
+    return (
+      <SummaryModalMobile
+        isOpen={isOpen}
+        onClose={onClose}
+        progress={progress}
+      />
+    );
+  }
+
+  // ESC 키 입력 시 모달 닫기 훅 사용 (데스크톱 전용)
   useEscKey(onClose, isOpen);
 
   if (!isOpen) return null;

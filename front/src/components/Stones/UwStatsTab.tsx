@@ -116,8 +116,25 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
   return (
     <div className="animate-fade-in">
       {/* 1. 상단 무기 선택 탭 버튼 영역 (Sticky) */}
-      <div className="mb-6 overflow-x-auto pb-2 scrollbar-hide sticky top-16 bg-slate-950/95 z-10 pt-2">
-        <div className="flex gap-2">
+      <div className="mb-6 pb-2 scrollbar-hide sticky top-16 bg-slate-950/95 z-10 pt-2">
+        {/* 모바일: 줄바꿈 적용 */}
+        <div className="md:hidden flex flex-wrap gap-2">
+          {availableUwKeys.map((uwKey) => (
+            <button
+              key={uwKey}
+              onClick={() => onSelectUw(uwKey)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
+                selectedUw === uwKey 
+                  ? 'bg-slate-800 text-white border-green-500 shadow-sm' 
+                  : 'bg-slate-900 text-white border-slate-700 hover:border-slate-500 hover:bg-slate-800'
+              }`}
+            >
+              {getUwDisplayName(uwKey)}
+            </button>
+          ))}
+        </div>
+        {/* 데스크톱: 기존대로 스크롤 적용 */}
+        <div className="hidden md:flex gap-2 overflow-x-auto">
           {availableUwKeys.map((uwKey) => (
             <button
               key={uwKey}
