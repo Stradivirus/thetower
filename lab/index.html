@@ -1,0 +1,2912 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Tower Research Viewer</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #121212; color: #e0e0e0; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #4fc3f7; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .upload-section { margin-bottom: 30px; padding: 20px; border: 2px dashed #4fc3f7; border-radius: 10px; background-color: #1e1e1e; }
+        .upload-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+        .upload-top-left { grid-column: 1; justify-self: start; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; color: #b0bec5; font-size: 0.92em; }
+        .upload-toggle { display: flex; align-items: center; gap: 8px; }
+        .upload-stats { color: #90a4ae; line-height: 1.3; }
+        .calc-controls { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+        .calc-row { display: flex; align-items: center; gap: 8px; color: #b0bec5; font-size: 0.9em; }
+        .calc-summary { color: #b3e5fc; font-size: 0.88em; line-height: 1.35; }
+        .calc-inline-box { display: inline-flex; align-items: flex-start; margin-right: 6px; }
+        .calc-inline-box .calc-item-checkbox { margin: 2px 0 0 0; }
+        .level-edit-select { background:#152233; color:#d6ebff; border:1px solid #3b6a91; border-radius:5px; padding:1px 3px; font-size:0.70em; height:20px; max-width:72px; margin-left:8px; }
+        .select-modified { border-color:#ffca28 !important; color:#fff3cd !important; background:#3a3112 !important; }
+        .research-eta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .eta-left { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .calc-target-select { background:#152233; color:#d6ebff; border:1px solid #3b6a91; border-radius:5px; padding:1px 3px; font-size:0.70em; height:20px; max-width:84px; }
+        .timeline-slot { margin: 10px 0; padding: 8px; border: 1px solid #2d4763; border-radius: 8px; background: #0f1623; }
+        .timeline-slot-title { color: #b3e5fc; font-weight: bold; margin-bottom: 6px; }
+        .timeline-item { color: #d0e8ff; font-size: 0.9em; padding: 2px 0; border-bottom: 1px solid #23364d; }
+        .timeline-item:last-child { border-bottom: none; }
+        .timeline-gantt { margin-top: 8px; border: 1px solid #2d4763; border-radius: 8px; background: #0f1623; padding: 8px; }
+        .timeline-axis { display: grid; grid-template-columns: 70px 1fr; gap: 8px; margin-bottom: 8px; }
+        .timeline-axis-right { position: relative; height: 22px; border-bottom: 1px solid #355; overflow: hidden; }
+        .timeline-axis-tick { position: absolute; bottom: -1px; width: 1px; height: 7px; background: #4f6b86; }
+        .timeline-axis-label { position: absolute; top: 2px; transform: translateX(-50%); font-size: 0.72em; color: #90a4ae; white-space: nowrap; }
+        .timeline-axis-label-start { transform: none; }
+        .timeline-axis-label-end { transform: translateX(-100%); }
+        .timeline-row { display: grid; grid-template-columns: 70px 1fr; gap: 8px; align-items: center; margin: 6px 0; }
+        .timeline-row-name { color: #b3e5fc; font-weight: 700; font-size: 0.82em; }
+        .timeline-row-track { position: relative; height: 30px; border: 1px solid #27435c; border-radius: 6px; background: #122033; overflow: hidden; display: flex; }
+        .timeline-bar { height: 100%; border-right: 1px solid rgba(15, 23, 42, 0.45); background: linear-gradient(180deg, #1e88e5 0%, #1565c0 100%); color: #e3f2fd; font-size: 0.72em; padding: 2px 4px; display: flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 2px; }
+        .timeline-bar:nth-child(odd) { background: linear-gradient(180deg, #26a69a 0%, #00897b 100%); }
+        .timeline-bar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .timeline-bar-time { color: #e0f7fa; white-space: nowrap; }
+        .upload-left { grid-column: 2; display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; justify-self: center; }
+        .upload-right { grid-column: 3; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; justify-self: end; }
+        .control-row { display: flex; align-items: center; gap: 8px; }
+        .resettable-label { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 2px; }
+        input[type="file"] { display: none; }
+        .custom-file-upload { border: 1px solid #4fc3f7; display: inline-block; padding: 10px 20px; cursor: pointer; border-radius: 5px; background-color: #0277bd; color: white; font-weight: bold; transition: background-color 0.3s; }
+        .custom-file-upload:hover { background-color: #01579b; }
+        .secondary-btn { border: 1px solid #4fc3f7; display: inline-block; padding: 10px 14px; cursor: pointer; border-radius: 5px; background-color: #163046; color: #cbeeff; font-weight: bold; transition: background-color 0.3s; }
+        .secondary-btn:hover { background-color: #1a3f5d; }
+        .secondary-btn:disabled { opacity: 0.55; cursor: default; }
+        #file-name { margin-left: 10px; font-style: italic; color: #aaa; }
+        .research-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+        .research-column { display: flex; flex-direction: column; gap: 20px; }
+        .research-card { background-color: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .research-card h2 { margin-top: 0; border-bottom: 2px solid #4fc3f7; padding-bottom: 10px; font-size: 1.2em; color: #4fc3f7; text-transform: uppercase; letter-spacing: 1px; }
+        .research-list { list-style: none; padding: 0; margin: 0; }
+        .research-item { padding: 6px 0; border-bottom: 1px solid #333; font-size: 0.9em; }
+        .research-item.clickable { cursor: pointer; transition: background-color 0.2s; }
+        .research-item.clickable:hover { background-color: #242424; }
+        .research-item:last-child { border-bottom: none; }
+        .research-main-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline; }
+        .research-name { color: #bdbdbd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .research-name.maxed { color: #ffeb3b; font-weight: bold; }
+        .research-name-en { font-size: 0.78em; color: #9fb0be; margin-left: 6px; }
+        .rank-strip { display: inline-flex; gap: 3px; margin-right: 4px; vertical-align: baseline; }
+        .rank-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; padding: 0 4px; border-radius: 999px; font-size: 0.56em; font-weight: 700; line-height: 1.15; border: 1px solid transparent; opacity: 0.9; }
+        .rank-badge-tier { color: #ffe082; border-color: #8d6e63; background: rgba(97, 72, 45, 0.45); }
+        .rank-badge-rank { color: #e3f2fd; border-color: #37474f; background: rgba(38, 50, 56, 0.55); }
+        .rank-val-splus, .rank-val-s { color: #fff8e1; border-color: #ffca28; background: rgba(255, 193, 7, 0.32); }
+        .rank-val-a { color: #f1f8e9; border-color: #8bc34a; background: rgba(139, 195, 74, 0.28); }
+        .rank-val-b { color: #e8f5e9; border-color: #66bb6a; background: rgba(102, 187, 106, 0.22); }
+        .rank-val-c { color: #e3f2fd; border-color: #4fc3f7; background: rgba(79, 195, 247, 0.18); }
+        .rank-val-d { color: #e1f5fe; border-color: #29b6f6; background: rgba(41, 182, 246, 0.14); }
+        .rank-val-f { color: #ffebee; border-color: #ef5350; background: rgba(239, 83, 80, 0.22); }
+        .rank-val-qol { color: #ede7f6; border-color: #9575cd; background: rgba(149, 117, 205, 0.24); }
+        .rank-val-tbd { color: #eceff1; border-color: #90a4ae; background: rgba(144, 164, 174, 0.22); }
+        .research-value-box { text-align: right; white-space: nowrap; }
+        .calc-select-wrap { margin-top: 3px; display: flex; align-items: center; gap: 6px; color: #9fb0be; font-size: 0.78em; }
+        .section-calc-toggle { margin-right: 8px; font-size: 0.72em; color: #9fb0be; }
+        .section-calc-toggle .calc-group-checkbox { margin: 2px 0 0 0; }
+        .research-value { font-weight: bold; color: #ffeb3b; white-space: nowrap; }
+        .research-value.value-unknown { color: #9e9e9e; }
+        .research-value.value-none { color: #ef9a9a; }
+        .research-value.value-low { color: #ffcc80; }
+        .research-value.value-mid { color: #fff176; }
+        .research-value.value-high { color: #a5d6a7; }
+        .research-value.value-max { color: #ffeb3b; }
+        .research-eta { font-size: 0.78em; color: #90caf9; margin-top: 2px; }
+        .research-eta-base { font-size: 0.92em; color: #90a4ae; }
+        .footer { text-align: center; margin-top: 40px; color: #666; font-size: 0.8em; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-overlay.open { display: flex; }
+        .modal { width: min(960px, 94vw); max-height: 88vh; overflow: auto; background: #111; border: 1px solid #2e2e2e; border-radius: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-bottom: 1px solid #2e2e2e; position: sticky; top: 0; background: #111; }
+        .modal-title { margin: 0; color: #4fc3f7; font-size: 1.1rem; }
+        .modal-close { border: 1px solid #4fc3f7; background: #01579b; color: #fff; border-radius: 6px; cursor: pointer; padding: 4px 10px; }
+        .modal-content { padding: 14px 16px; line-height: 1.5; color: #ddd; }
+        .modal-meta { color: #b0bec5; margin-bottom: 10px; }
+        .modal-link { color: #4fc3f7; text-decoration: none; }
+        .modal-link:hover { text-decoration: underline; }
+        .wiki-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.88rem; }
+        .wiki-table th, .wiki-table td { border: 1px solid #2e2e2e; padding: 6px; vertical-align: top; }
+        .wiki-table th { background: #1c1c1c; color: #b3e5fc; position: sticky; top: 0; }
+        .relic-wiki-table { table-layout: fixed; }
+        .relic-wiki-table th:nth-child(1), .relic-wiki-table td:nth-child(1) { width: 4%; }
+        .relic-wiki-table th:nth-child(2), .relic-wiki-table td:nth-child(2) { width: 20%; }
+        .relic-wiki-table th:nth-child(3), .relic-wiki-table td:nth-child(3) { width: 5%; }
+        .relic-wiki-table th:nth-child(4), .relic-wiki-table td:nth-child(4) { width: 40%; }
+        .relic-wiki-table th:nth-child(5), .relic-wiki-table td:nth-child(5) { width: 27%; }
+        .relic-wiki-table th:nth-child(6), .relic-wiki-table td:nth-child(6) { width: 4%; }
+        .wiki-row-complete td { background: rgba(46, 125, 50, 0.26); }
+        .wiki-row-current td { background: rgba(255, 193, 7, 0.20); }
+        .relic-summary { color: #9ec8dd; margin-bottom: 10px; }
+        .relic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+        .relic-card { position: relative; border: 1px solid #2a5673; border-radius: 8px; background: linear-gradient(180deg, #12223a 0%, #0e1730 100%); padding: 8px; transition: box-shadow .16s ease, transform .16s ease, border-color .16s ease, filter .16s ease; }
+        .relic-card.state-0 { border-color: #455a64; background: linear-gradient(180deg, #1a2530 0%, #121a24 100%); }
+        .relic-card.state-1 { border-color: #f9a825; background: linear-gradient(180deg, #3a2a12 0%, #23180d 100%); }
+        .relic-card.state-2 { border-color: #ffd54f; background: linear-gradient(180deg, #3a3211 0%, #2b240f 100%); box-shadow: 0 0 0 1px rgba(255, 213, 79, 0.35), 0 0 16px rgba(255, 213, 79, 0.30), inset 0 0 12px rgba(255, 213, 79, 0.10); transform: translateY(-1px); }
+        .relic-card:hover { filter: brightness(1.06); }
+        .relic-card.state-other { border-color: #ef5350; background: linear-gradient(180deg, #351919 0%, #241111 100%); }
+        .relic-name { color: #cde7ff; font-size: 0.9em; }
+        .relic-name.rarity-rare { color: #35d3ff; }
+        .relic-name.rarity-epic { color: #d17bff; }
+        .relic-name.rarity-legendary { color: #ffcf66; }
+        .relic-name.rarity-common { color: #cfd8dc; }
+        .relic-name.rarity-mythic { color: #ff8a65; }
+        .relic-name.rarity-ancestral { color: #ffe082; }
+        .relic-value { margin-top: 4px; font-size: 0.86em; color: #9bd1ff; }
+        .relic-bonus-list { margin: 10px 0 12px 0; padding: 0; list-style: none; }
+        .relic-bonus-item { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; border-bottom: 1px solid #263247; font-size: 0.95em; }
+        .relic-bonus-item span:first-child { color: #e3eef9; }
+        .relic-bonus-item span:last-child { color: #35d3ff; font-weight: bold; }
+        .relic-value.state-0 { color: #90a4ae; }
+        .relic-value.state-1 { color: #ffd54f; }
+        .relic-value.state-2 { color: #80cbc4; }
+        .relic-value.state-other { color: #ffab91; }
+        .seq-wrap { display: flex; flex-wrap: wrap; gap: 6px; background:#0f1623; color:#bfe8ff; border:1px solid #2d4763; border-radius:8px; padding:8px; margin:4px 0 10px 0; font-family: monospace; }
+        .seq-chunk { white-space: nowrap; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>The Tower Research Viewer</h1>
+    <div class="upload-section">
+        <div class="upload-row">
+            <div class="upload-top-left">
+                <label class="upload-toggle" for="sort-by-rank">
+                    <input id="sort-by-rank" type="checkbox" style="accent-color:#4fc3f7;" />
+                    랭킹 높은순 정렬
+                </label>
+                <label class="upload-toggle" for="sort-by-remaining-time">
+                    <input id="sort-by-remaining-time" type="checkbox" style="accent-color:#4fc3f7;" />
+                    남은시간순 정렬
+                </label>
+                <label class="upload-toggle" for="hide-rank-badge">
+                    <input id="hide-rank-badge" type="checkbox" style="accent-color:#4fc3f7;" />
+                    랭킹 배지 숨기기
+                </label>
+                <label class="upload-toggle" for="hide-completed">
+                    <input id="hide-completed" type="checkbox" style="accent-color:#4fc3f7;" />
+                    완료된 항목 숨기기
+                </label>
+                <div class="upload-stats">
+                    <div id="completed-count">완료된 항목 : 00개</div>
+                    <div id="rush-efficiency">보석 러시 효율 : 1.000x</div>
+                </div>
+                <div class="calc-controls">
+                    <label class="calc-row" for="remain-calc-enabled">
+                        <input id="remain-calc-enabled" type="checkbox" style="accent-color:#4fc3f7;" />
+                        남은시간 계산기
+                    </label>
+                    <div class="calc-row" id="calc-slots-row" style="display:none;">
+                        <label for="remain-calc-slots">연구 슬롯</label>
+                        <select id="remain-calc-slots" style="background:#1c1c1c; color:#e0e0e0; border:1px solid #4fc3f7; border-radius:6px; padding:4px 6px; min-width:72px;">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                        <button id="calc-timeline-button" class="secondary-btn" type="button" style="padding:4px 8px;">타임라인</button>
+                        <button id="calc-reset-button" class="secondary-btn" type="button" style="display:none; padding:4px 8px;">초기화</button>
+                    </div>
+                    <div id="calc-summary" class="calc-summary">선택된 연구 없음</div>
+                    <div class="calc-row">
+                        <label class="upload-toggle" for="level-edit-enabled">
+                            <input id="level-edit-enabled" type="checkbox" style="accent-color:#4fc3f7;" />
+                            현재 레벨 변경하기
+                        </label>
+                        <button id="level-edit-reset" class="secondary-btn" type="button" style="display:none; padding:4px 8px;">초기화</button>
+                    </div>
+                </div>
+            </div>
+            <div class="upload-left">
+                <label for="file-upload" class="custom-file-upload">Upload playerInfo.dat</label>
+                <input id="file-upload" type="file" />
+                <span id="file-name">No file selected</span>
+                <button id="clear-file-button" class="secondary-btn" type="button">삭제</button>
+            </div>
+            <div class="upload-right">
+                <div class="control-row">
+                    <label for="speed-multiplier" style="color:#b0bec5;">속도 증가</label>
+                    <select id="speed-multiplier" style="background:#1c1c1c; color:#e0e0e0; border:1px solid #4fc3f7; border-radius:6px; padding:6px 8px;">
+                        <option value="1">1x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="2">2x</option>
+                        <option value="3" selected>3x</option>
+                        <option value="4">4x</option>
+                        <option value="5">5x</option>
+                    </select>
+                </div>
+                <div class="control-row">
+                    <label id="lab-speed-reset" class="resettable-label" for="lab-speed-level" style="color:#b0bec5;" title="클릭하면 현재 연구 값으로 초기화">실험실 속도</label>
+                    <select id="lab-speed-level" style="background:#1c1c1c; color:#e0e0e0; border:1px solid #4fc3f7; border-radius:6px; padding:6px 8px; min-width:130px;"></select>
+                </div>
+                <div class="control-row">
+                    <label id="relic-lab-speed-reset" class="resettable-label" for="relic-lab-speed-bonus" style="color:#b0bec5;" title="클릭하면 유물 설정 값으로 적용">유물 실험실 속도 보너스</label>
+                    <select id="relic-lab-speed-bonus" style="background:#1c1c1c; color:#e0e0e0; border:1px solid #4fc3f7; border-radius:6px; padding:6px 8px; min-width:68px;"></select>
+                </div>
+                <div class="control-row">
+                    <button id="relics-button" class="secondary-btn" type="button">유물</button>
+                </div>
+                <div class="control-row">
+                    <label id="lab-coin-discount-reset" class="resettable-label" for="lab-coin-discount-level" style="color:#b0bec5;" title="클릭하면 현재 연구 값으로 초기화">실험실 코인 할인</label>
+                    <select id="lab-coin-discount-level" style="background:#1c1c1c; color:#e0e0e0; border:1px solid #4fc3f7; border-radius:6px; padding:6px 8px; min-width:130px;"></select>
+                </div>
+                <div class="control-row">
+                    <input id="research-search" type="text" placeholder="검색" style="background:#1c1c1c; color:#e0e0e0; border:1px solid #4fc3f7; border-radius:6px; padding:6px 8px; min-width:130px;" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="results" class="research-grid"></div>
+    <div class="footer">
+        <div>The Tower Research Viewer</div>
+        <div style="margin-top:8px;">
+            <div style="margin-bottom:6px; color:#b0bec5;">참조 사이트</div>
+            <a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://tower-lab-calculator.netlify.app/">https://tower-lab-calculator.netlify.app/</a><br>
+            <a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://the-tower-idle-tower-defense.fandom.com/wiki/Lab_Upgrades">https://the-tower-idle-tower-defense.fandom.com/wiki/Lab_Upgrades</a><br>
+            <a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://docs.google.com/spreadsheets/d/1M5WPXN3RCquT3peDUNjCqTVRPk313n9HbMe-hihzLvg/edit?gid=706476074#gid=706476074">https://docs.google.com/spreadsheets/d/1M5WPXN3RCquT3peDUNjCqTVRPk313n9HbMe-hihzLvg/edit?gid=706476074#gid=706476074</a>
+        </div>
+    </div>
+</div>
+<div id="research-modal-overlay" class="modal-overlay">
+    <div id="research-modal" class="modal">
+        <div class="modal-header">
+            <h3 id="modal-title" class="modal-title">연구 상세 정보</h3>
+            <button id="modal-close" class="modal-close" type="button">닫기</button>
+        </div>
+        <div id="modal-content" class="modal-content"></div>
+    </div>
+</div>
+<div id="relic-modal-overlay" class="modal-overlay">
+    <div id="relic-modal" class="modal">
+        <div class="modal-header">
+            <h3 id="relic-modal-title" class="modal-title">유물 보너스</h3>
+            <button id="relic-modal-close" class="modal-close" type="button">닫기</button>
+        </div>
+        <div id="relic-modal-content" class="modal-content"></div>
+    </div>
+</div>
+<div id="calc-timeline-modal-overlay" class="modal-overlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="calc-timeline-title" class="modal-title">연구 타임라인</h3>
+            <button id="calc-timeline-close" class="modal-close" type="button">닫기</button>
+        </div>
+        <div id="calc-timeline-content" class="modal-content"></div>
+    </div>
+</div>
+<script src="research_data.js"></script>
+<script src="research_rank_data.js"></script>
+<script src="relic_data.js"></script>
+<script>
+    const MAX_LEVELS = {
+        "Game Speed": 7, "Starting Cash": 99, "Workshop Attack Discount": 99, "Workshop Defense Discount": 99, "Workshop Utility Discount": 99,
+        "Labs Coin Discount": 99, "Lab Speed": 99, "Buy Multiplier": 4, "More Round Stats": 1, "Target Priority": 2,
+        "Card Presets": 1, "Workshop Respec": 1, "Reroll Daily Mission": 1, "Workshop Enhancements": 1,
+        "Enhancement Attack - Coin Discount": 100, "Enhancement Defense - Coin Discount": 100, "Enhancement Utility - Coin Discount": 100,
+        "Damage": 100, "Attack Speed": 99, "Critical Factor": 99, "Range": 80, "Damage / Meter": 99, "Super Crit Chance": 50, "Super Crit Mult": 40, "Max Rend Armor Multiplier": 30, "Light Speed Shots": 1,
+        "Health": 100, "Health Regen": 100, "Defense Absolute": 100, "Defense %": 50, "Orbs Speed": 20, "Land Mine Damage": 20, "Land Mine Decay": 35, "Shockwave Size": 20, "Orb Boss Hit": 10,
+        "Wall Health": 50, "Wall Rebuild": 20, "Wall Regen": 30, "Wall Thorns": 20, "Wall Invincibility": 10, "Wall Fortification": 60, "Garlic Thorns": 10,
+        "Cash Bonus": 99, "Cash / Wave": 99, "Coins / Kill Bonus": 99, "Coins / Wave": 99, "Interest": 99, "Max Interest": 15,
+        "Package After Boss": 1, "Recovery Package Amount": 20, "Recovery Package Max": 20, "Recovery Package Chance": 20, "Enemy Attack Level Skip": 20, "Enemy Health Level Skip": 20,
+        "Missile Despawn Time": 20, "Missiles Explosion": 1, "Missile Radius": 20, "Chrono Field Duration": 30, "Chrono Field Damage Reduction": 1, "Chrono Field Reduction %": 30,
+        "Swamp Radius": 30, "Swamp Stun": 1, "Swamp Stun Chance": 30, "Swamp Stun Time": 30, "Golden Tower Bonus": 25, "Golden Tower Duration": 20,
+        "Black Hole Damage": 10, "Extra Black Hole": 1, "Black Hole Coin Bonus": 20, "Spotlight Coin Bonus": 20,
+        "Second Wind Blast": 4, "Double Death Ray": 30, "Extra Orb Adjuster": 1, "Extra Inner Orbs": 2,
+        "Energy Shield Extra Hit": 2, "Super Tower Bonus": 30, "Recharge Second Wind": 7, "Recharge Demon Mode": 7, "Recharge Nuke": 7,
+        "Damage Mastery": 9, "Attack Speed Mastery": 9, "Health Mastery": 9, "Health Regen Mastery": 9, "Range Mastery": 9, "Cash Mastery": 9, "Coins Mastery": 9,
+        "Slow Aura Mastery": 9, "Critical Chance Mastery": 9, "Enemy Balance Mastery": 9, "Extra Defense Mastery": 9, "Fortress Mastery": 9, "Free Upgrades Mastery": 9,
+        "Extra Orb Mastery": 9, "Plasma Cannon Mastery": 9, "Critical Coin Mastery": 9, "Wave Skip Mastery": 9, "Intro Sprint Mastery": 9, "Land Mine Stun Mastery": 9,
+        "Recovery Package Chance Mastery": 9, "Death Ray Mastery": 9, "Energy Net Mastery": 9, "Super Tower Mastery": 9, "Second Wind Mastery": 9, "Demon Mode Mastery": 9,
+        "Energy Shield Mastery": 9, "Wave Accelerator Mastery": 9, "Berserker Mastery": 9, "Ultimate Crit Mastery": 9, "Nuke Mastery": 9, "Area Of Effect Mastery": 9,
+        "Unlock Perks": 1, "Waves Required": 100, "Auto Pick Perks": 1, "Standard Perks Bonus": 25, "Perk Option Quantity": 2, "First Perk Choice": 1, "Ban Perks": 8, "Improve Trade-off Perks": 10, "Auto Pick Ranking": 32,
+        "Amplify Bot - Cooldown": 25, "Flame Bot - Cooldown": 25, "Golden Bot - Cooldown": 25, "Thunder Bot - Cooldown": 25, "Amplify Bot - Duration": 20, "Golden Bot - Duration": 20, "Flame Bot - Burn Stack": 5, "Thunder Bot - Linger Time": 20,
+        "Common Drop Chance": 10, "Reroll Shards": 100, "Daily Mission Shards": 50, "Module Shard Cost": 30, "Module Coin Cost": 30, "Rare Drop Chance": 10, "Unmerge Module": 1, "Shatter Shards": 5,
+        "Cannon Effect Bans": 4, "Armor Effect Bans": 4, "Generator Effect Bans": 3, "Core Effect Bans": 7, "Assist Module Substats - Cannon": 30, "Assist Module Substats - Armor": 30, "Assist Module Substats - Generator": 30, "Assist Module Substats - Core": 30,
+        "Assist Module Bonus - Cannon": 30, "Assist Module Bonus - Armor": 30, "Assist Module Bonus - Generator": 30, "Assist Module Bonus - Core": 30,
+        "Battle Condition Reduction": 10, "Knockback Resistance": 20, "Thorns Resistance": 20, "Orb Resistance": 20, "Plasma Cannon Resistance": 20, "Death Ray Resistance": 20,
+        "Ultimate Weapon Durations": 10, "Death Defy Down": 10, "Energy Shields Down": 10, "Enemy Level Skip Reduction": 10, "Fast's Ultimate": 10, "Ranged Ultimate": 10,
+        "Boss's Ultimate": 10, "Basic's Ultimate": 10, "Tank's Ultimate": 10, "Protector's Ultimate": 10, "Armored Enemies": 20, "Enemy Speed": 20, "More Enemies": 20, "Enemy Attack Speed": 20,
+        "Chain Lightning Shock": 1, "Shock Chance": 30, "Shock Multiplier": 14, "Death Wave Health": 30, "Death Wave Coin Bonus": 20,
+        "Inner Mine Blast Radius": 20, "Inner Mine Rotation Speed": 20, "Chrono Field Range": 20, "Missile Amplifier": 25, "Missile Barrage": 1,
+        "Missile Barrage Quantity": 6, "Inner Mine Stun": 1, "Spotlight Missiles": 18, "Black Hole disable Ranged Enemies": 1, "Recharge Missile Barrage": 7,
+        "Swamp Rend - Basic Enemies": 30, "Swamp Rend - Additional Enemies": 6, "Chain Thunder": 30, "Lightning Amplifier - Scatter": 30, "Death Wave Cells Bonus": 20,
+        "Death Wave Damage Amplifier": 30, "Death Wave Armor Stripping": 10, "Inner Land Mine - Chrono Jump": 10,
+        "Common Enemy Health": 30, "Common Enemy Attack": 30, "Fast Enemy Health": 30, "Fast Enemy Attack": 30, "Fast Enemy Speed": 30,
+        "Tank Enemy Health": 30, "Tank Enemy Attack": 30, "Ranged Enemy Health": 30, "Ranged Enemy Attack": 30, "Boss Health": 30,
+        "Boss Attack": 30, "Protector Health": 30, "Protector Radius": 30, "Protector Damage Reduction": 20, "Ray Enemy Attack": 30,
+        "Ray Enemy Health": 30, "Vampire Enemy Attack": 30, "Vampire Enemy Health": 30, "Scatter Enemy Attack": 30, "Scatter Enemy Health": 30, "Ranged Enemy Range": 30
+    };
+
+    const SECTION_LAYOUT = [
+        {
+            title: "Main Research",
+            items: [
+                { name: "Game Speed", idx: 0 }, { name: "Starting Cash", idx: 1 }, { name: "Workshop Attack Discount", idx: 2 }, { name: "Workshop Defense Discount", idx: 3 },
+                { name: "Workshop Utility Discount", idx: 4 }, { name: "Labs Coin Discount", idx: 5 }, { name: "Lab Speed", idx: 6 },
+                { name: "Buy Multiplier", idx: 7 }, { name: "More Round Stats", idx: 8 }, { name: "Target Priority", idx: 9 }, { name: "Card Presets", idx: 10 }, { name: "Workshop Respec", idx: 11 },
+                { name: "Reroll Daily Mission", idx: 27 }, { name: "Workshop Enhancements", idx: 28 },
+                { name: "Enhancement Attack - Coin Discount", idx: 32 }, { name: "Enhancement Defense - Coin Discount", idx: 33 }, { name: "Enhancement Utility - Coin Discount", idx: 34 }
+            ]
+        },
+        {
+            title: "Attack Research",
+            items: [
+                { name: "Damage", idx: -30 }, { name: "Attack Speed", idx: -29 }, { name: "Critical Factor", idx: -28 }, { name: "Range", idx: -27 },
+                { name: "Damage / Meter", idx: -26 }, { name: "Super Crit Chance", idx: -25 }, { name: "Super Crit Mult", idx: -24 }, { name: "Max Rend Armor Multiplier", idx: -23 }, { name: "Light Speed Shots", idx: -22 }
+            ]
+        },
+        {
+            title: "Defense Research",
+            items: [
+                { name: "Health", idx: -20 }, { name: "Health Regen", idx: -19 }, { name: "Defense Absolute", idx: -18 }, { name: "Defense %", idx: -17 },
+                { name: "Orbs Speed", idx: -16 }, { name: "Land Mine Damage", idx: -15 }, { name: "Land Mine Decay", idx: -14 }, { name: "Shockwave Size", idx: -13 }, { name: "Orb Boss Hit", idx: -12 },
+                { name: "Wall Health", idx: 96 }, { name: "Wall Rebuild", idx: 97 }, { name: "Wall Regen", idx: 98 }, { name: "Wall Thorns", idx: 99 }, { name: "Wall Invincibility", idx: 100 }, { name: "Wall Fortification", idx: 114 }, { name: "Garlic Thorns", idx: 163 }
+            ]
+        },
+        {
+            title: "Utility Research",
+            items: [
+                { name: "Cash Bonus", idx: -10 }, { name: "Cash / Wave", idx: -9 }, { name: "Coins / Kill Bonus", idx: -8 }, { name: "Coins / Wave", idx: -7 },
+                { name: "Interest", idx: -6 }, { name: "Max Interest", idx: -5 }, { name: "Package After Boss", idx: -4 }, { name: "Recovery Package Amount", idx: -3 }, { name: "Recovery Package Max", idx: -2 }, { name: "Recovery Package Chance", idx: -1 },
+                { name: "Enemy Attack Level Skip", idx: 38 }, { name: "Enemy Health Level Skip", idx: 39 }
+            ]
+        },
+        {
+            title: "Ultimate Weapon Research",
+            items: [
+                { name: "Missile Despawn Time", idx: 60 }, { name: "Missiles Explosion", idx: 61 }, { name: "Missile Radius", idx: 62 }, { name: "Chrono Field Duration", idx: 63 },
+                { name: "Chrono Field Damage Reduction", idx: 68 }, { name: "Chrono Field Reduction %", idx: 69 }, { name: "Swamp Radius", idx: 70 }, { name: "Swamp Stun", idx: 74 },
+                { name: "Swamp Stun Chance", idx: 71 }, { name: "Swamp Stun Time", idx: 72 }, { name: "Golden Tower Bonus", idx: 30 }, { name: "Golden Tower Duration", idx: 31 },
+                { name: "Chain Lightning Shock", idx: 75 }, { name: "Shock Chance", idx: 76 }, { name: "Shock Multiplier", idx: 77 }, { name: "Death Wave Health", idx: 35 },
+                { name: "Death Wave Coin Bonus", idx: 36 }, { name: "Inner Mine Blast Radius", idx: 80 }, { name: "Inner Mine Rotation Speed", idx: 81 }, { name: "Chrono Field Range", idx: 82 },
+                { name: "Missile Amplifier", idx: 83 }, { name: "Missile Barrage", idx: 84 }, { name: "Missile Barrage Quantity", idx: 85 }, { name: "Inner Mine Stun", idx: 86 },
+                { name: "Black Hole Damage", idx: 64 }, { name: "Extra Black Hole", idx: 65 }, { name: "Black Hole Coin Bonus", idx: 66 }, { name: "Spotlight Coin Bonus", idx: 67 },
+                { name: "Spotlight Missiles", idx: 87 }, { name: "Black Hole disable Ranged Enemies", idx: 88 }, { name: "Recharge Missile Barrage", idx: 89 }, { name: "Swamp Rend - Basic Enemies", idx: 90 },
+                { name: "Swamp Rend - Additional Enemies", idx: 91 }, { name: "Chain Thunder", idx: 92 }, { name: "Lightning Amplifier - Scatter", idx: 93 }, { name: "Death Wave Cells Bonus", idx: 160 },
+                { name: "Death Wave Damage Amplifier", idx: 161 }, { name: "Death Wave Armor Stripping", idx: 162 }, { name: "Inner Land Mine - Chrono Jump", idx: 102 }
+            ]
+        },
+        {
+            title: "Cards Research",
+            items: [
+                { name: "Second Wind Blast", idx: 40 }, { name: "Double Death Ray", idx: 41 }, { name: "Extra Orb Adjuster", idx: 42 }, { name: "Extra Inner Orbs", idx: 43 },
+                { name: "Energy Shield Extra Hit", idx: 44 }, { name: "Super Tower Bonus", idx: 45 }, { name: "Recharge Second Wind", idx: 46 }, { name: "Recharge Demon Mode", idx: 47 },
+                { name: "Recharge Nuke", idx: 48 }, { name: "Damage Mastery", idx: null }, { name: "Attack Speed Mastery", idx: null }, { name: "Health Mastery", idx: null },
+                { name: "Health Regen Mastery", idx: null }, { name: "Range Mastery", idx: null }, { name: "Cash Mastery", idx: null }, { name: "Coins Mastery", idx: null },
+                { name: "Slow Aura Mastery", idx: null }, { name: "Critical Chance Mastery", idx: null }, { name: "Enemy Balance Mastery", idx: null }, { name: "Extra Defense Mastery", idx: null },
+                { name: "Fortress Mastery", idx: null }, { name: "Free Upgrades Mastery", idx: null }, { name: "Extra Orb Mastery", idx: null }, { name: "Plasma Cannon Mastery", idx: null },
+                { name: "Critical Coin Mastery", idx: null }, { name: "Wave Skip Mastery", idx: null }, { name: "Intro Sprint Mastery", idx: null }, { name: "Land Mine Stun Mastery", idx: null },
+                { name: "Recovery Package Chance Mastery", idx: null }, { name: "Death Ray Mastery", idx: null }, { name: "Energy Net Mastery", idx: null }, { name: "Super Tower Mastery", idx: null },
+                { name: "Second Wind Mastery", idx: null }, { name: "Demon Mode Mastery", idx: null }, { name: "Energy Shield Mastery", idx: null }, { name: "Wave Accelerator Mastery", idx: null },
+                { name: "Berserker Mastery", idx: null }, { name: "Ultimate Crit Mastery", idx: null }, { name: "Nuke Mastery", idx: null }, { name: "Area Of Effect Mastery", idx: null }
+            ]
+        },
+        {
+            title: "Perks Research",
+            items: [
+                { name: "Unlock Perks", idx: 50 }, { name: "Waves Required", idx: 51 }, { name: "Auto Pick Perks", idx: 52 }, { name: "Standard Perks Bonus", idx: 53 },
+                { name: "Perk Option Quantity", idx: 54 }, { name: "First Perk Choice", idx: 55 }, { name: "Ban Perks", idx: 57 }, { name: "Improve Trade-off Perks", idx: 58 }, { name: "Auto Pick Ranking", idx: 123 }
+            ]
+        },
+        {
+            title: "Bots",
+            items: [
+                { name: "Amplify Bot - Cooldown", idx: 124 }, { name: "Flame Bot - Cooldown", idx: 125 }, { name: "Golden Bot - Cooldown", idx: 121 }, { name: "Thunder Bot - Cooldown", idx: 122 },
+                { name: "Amplify Bot - Duration", idx: 126 }, { name: "Golden Bot - Duration", idx: 127 }, { name: "Flame Bot - Burn Stack", idx: 128 }, { name: "Thunder Bot - Linger Time", idx: 129 }
+            ]
+        },
+        {
+            title: "Enemies",
+            items: [
+                { name: "Common Enemy Health", idx: 130 }, { name: "Common Enemy Attack", idx: 131 }, { name: "Fast Enemy Health", idx: 132 }, { name: "Fast Enemy Attack", idx: 133 },
+                { name: "Fast Enemy Speed", idx: 134 }, { name: "Tank Enemy Health", idx: 135 }, { name: "Tank Enemy Attack", idx: 136 }, { name: "Ranged Enemy Health", idx: 137 },
+                { name: "Ranged Enemy Attack", idx: 138 }, { name: "Boss Health", idx: 139 }, { name: "Boss Attack", idx: 140 }, { name: "Protector Health", idx: 141 },
+                { name: "Protector Radius", idx: 142 }, { name: "Protector Damage Reduction", idx: 143 }, { name: "Ray Enemy Attack", idx: 144 }, { name: "Ray Enemy Health", idx: 145 },
+                { name: "Vampire Enemy Attack", idx: 146 }, { name: "Vampire Enemy Health", idx: 147 }, { name: "Scatter Enemy Attack", idx: 148 }, { name: "Scatter Enemy Health", idx: 149 },
+                { name: "Ranged Enemy Range", idx: 150 }
+            ]
+        },
+        {
+            title: "Modules",
+            items: [
+                { name: "Common Drop Chance", idx: 104 }, { name: "Reroll Shards", idx: 109 }, { name: "Daily Mission Shards", idx: 110 }, { name: "Module Shard Cost", idx: 111 },
+                { name: "Module Coin Cost", idx: 112 }, { name: "Rare Drop Chance", idx: 113 }, { name: "Unmerge Module", idx: 118 }, { name: "Shatter Shards", idx: 119 },
+                { name: "Cannon Effect Bans", idx: 151 }, { name: "Armor Effect Bans", idx: 152 }, { name: "Generator Effect Bans", idx: 153 }, { name: "Core Effect Bans", idx: 154 },
+                { name: "Assist Module Substats - Cannon", idx: 155 }, { name: "Assist Module Substats - Armor", idx: 156 }, { name: "Assist Module Substats - Generator", idx: 157 }, { name: "Assist Module Substats - Core", idx: 158 },
+                { name: "Assist Module Bonus - Cannon", idx: 164 }, { name: "Assist Module Bonus - Armor", idx: 165 }, { name: "Assist Module Bonus - Generator", idx: 166 }, { name: "Assist Module Bonus - Core", idx: 167 }
+            ]
+        },
+        {
+            title: "Battle Conditions",
+            items: [
+                { name: "Battle Condition Reduction", idx: null }, { name: "Knockback Resistance", idx: null }, { name: "Thorns Resistance", idx: null }, { name: "Orb Resistance", idx: null },
+                { name: "Plasma Cannon Resistance", idx: null }, { name: "Death Ray Resistance", idx: null }, { name: "Ultimate Weapon Durations", idx: null }, { name: "Death Defy Down", idx: null },
+                { name: "Energy Shields Down", idx: null }, { name: "Enemy Level Skip Reduction", idx: null }, { name: "Fast's Ultimate", idx: null }, { name: "Ranged Ultimate", idx: null },
+                { name: "Boss's Ultimate", idx: null }, { name: "Basic's Ultimate", idx: null }, { name: "Tank's Ultimate", idx: null }, { name: "Protector's Ultimate", idx: null },
+                { name: "Armored Enemies", idx: null }, { name: "Enemy Speed", idx: null }, { name: "More Enemies", idx: null }, { name: "Enemy Attack Speed", idx: null }
+            ]
+        }
+    ];
+
+    const EXTERNAL_RESEARCH_DATA = window.RESEARCH_DATA || { version: 1, labs: {} };
+    const EXTERNAL_RESEARCH_RANK_DATA = window.RESEARCH_RANK_DATA || { version: 1, labs: {} };
+    const EXTERNAL_RELIC_DATA = window.RELIC_DATA || { rows: [], statMeta: {} };
+    const RELIC_DISPLAY_TOTAL = (() => {
+        const rows = EXTERNAL_RELIC_DATA && Array.isArray(EXTERNAL_RELIC_DATA.rows) ? EXTERNAL_RELIC_DATA.rows : [];
+        let maxOrder = 0;
+        for (const r of rows) {
+            const o = Number(r?.order);
+            if (Number.isFinite(o) && o > maxOrder) maxOrder = o;
+        }
+        return Math.max(213, maxOrder);
+    })();
+    const LS_KEY_RELIC_USER_MASK = "td_relic_user_mask_232";
+    const LS_KEY_RELIC_FILTER_KEY = "td_relic_filter_key";
+    let LAST_BUFFER = null;
+    let LAST_RELIC_STATES = [];
+    let USER_RELIC_MASK = Array.from({ length: RELIC_DISPLAY_TOTAL + 1 }, () => false);
+    let RELIC_FILTER_KEY = "all";
+    let SHOULD_SYNC_LAB_SPEED_SELECT = false;
+    let SHOULD_SYNC_LAB_COIN_DISCOUNT_SELECT = false;
+    let CURRENT_LAB_SPEED_LEVEL_FROM_FILE = 0;
+    let CURRENT_LAB_COIN_DISCOUNT_LEVEL_FROM_FILE = 0;
+    const LS_KEY_SPEED_MULTIPLIER = "td_speed_multiplier";
+    const LS_KEY_LAST_FILE_B64 = "td_last_file_b64";
+    const LS_KEY_LAST_FILE_NAME = "td_last_file_name";
+    const LS_KEY_HIDE_COMPLETED = "td_hide_completed";
+    const LS_KEY_HIDE_RANK_BADGE = "td_hide_rank_badge";
+    const LS_KEY_SORT_BY_REMAINING = "td_sort_by_remaining";
+    const LS_KEY_SORT_BY_RANK = "td_sort_by_rank";
+    const LS_KEY_REMAIN_CALC_ENABLED = "td_remain_calc_enabled";
+    const LS_KEY_REMAIN_CALC_SLOTS = "td_remain_calc_slots";
+    const LS_KEY_REMAIN_CALC_SELECTED = "td_remain_calc_selected";
+    const LS_KEY_REMAIN_CALC_TARGET_LEVELS = "td_remain_calc_target_levels";
+    const LS_KEY_LEVEL_EDIT_ENABLED = "td_level_edit_enabled";
+    const LS_KEY_LEVEL_EDIT_OVERRIDES = "td_level_edit_overrides";
+    const LS_KEY_LEVEL_EDIT_MODIFIED = "td_level_edit_modified";
+    const LS_KEY_LAB_SPEED_LEVEL = "td_lab_speed_level";
+    const LS_KEY_LAB_COIN_DISCOUNT_LEVEL = "td_lab_coin_discount_level";
+    const LS_KEY_RELIC_LAB_SPEED_BONUS = "td_relic_lab_speed_bonus";
+    let REMAIN_CALC_ENABLED = false;
+    let REMAIN_CALC_SLOTS = 1;
+    let REMAIN_CALC_SELECTED = {};
+    let REMAIN_CALC_TARGET_LEVELS = {};
+    let REMAIN_CALC_SECTION_ITEMS = {};
+    let REMAIN_CALC_LAST_PLAN = null;
+    let REMAIN_CALC_LEVEL_INFO = {};
+    let CURRENT_BASE_LEVELS = {};
+    let LEVEL_EDIT_ENABLED = false;
+    let LEVEL_EDIT_OVERRIDES = {};
+    let LEVEL_EDIT_MODIFIED = {};
+    const LEVEL_FIXUPS = {
+        "Light Speed Shots": 1,
+        "Black Hole disable Ranged Enemies": 1
+    };
+    const LEVEL_FORCE_OVERRIDES = {
+        "Inner Land Mine - Chrono Jump": 0
+    };
+    const LEVEL_UNKNOWN_IF_ZERO = new Set([
+        "Shatter Shards",
+        "Assist Module Substats - Cannon",
+        "Assist Module Substats - Armor",
+        "Assist Module Substats - Generator",
+        "Assist Module Substats - Core",
+        "Assist Module Bonus - Cannon",
+        "Assist Module Bonus - Armor",
+        "Assist Module Bonus - Generator",
+        "Assist Module Bonus - Core"
+    ]);
+    const SECTION_KO_MAP = {
+        "Main Research": "주요 연구",
+        "Attack Research": "공격 연구",
+        "Defense Research": "방어 연구",
+        "Utility Research": "유틸리티 연구",
+        "Ultimate Weapon Research": "궁극 무기 연구",
+        "Cards Research": "카드 연구",
+        "Perks Research": "특전 연구",
+        "Bots": "봇",
+        "Enemies": "적",
+        "Modules": "모듈",
+        "Battle Conditions": "전장"
+    };
+    const NAME_KO_MAP = {
+        "Game Speed": "게임 속도",
+        "Starting Cash": "시작 캐시",
+        "Workshop Attack Discount": "작업장 공격 할인",
+        "Workshop Defense Discount": "작업장 방어 할인",
+        "Workshop Utility Discount": "작업장 유틸리티 할인",
+        "Labs Coin Discount": "실험실 코인 할인",
+        "Lab Speed": "실험실 속도",
+        "Buy Multiplier": "구매 승수",
+        "More Round Stats": "라운드 통계 더 보기",
+        "Target Priority": "대상 우선순위",
+        "Card Presets": "카드 프리셋",
+        "Workshop Respec": "작업장 초기화",
+        "Reroll Daily Mission": "일일 임무 다시 뽑기",
+        "Workshop Enhancements": "작업장 강화",
+        "Damage": "대미지",
+        "Attack Speed": "공격 속도",
+        "Critical Factor": "치명타 계수",
+        "Range": "범위",
+        "Damage / Meter": "데미지/미터",
+        "Super Crit Chance": "슈퍼 치명타 확률",
+        "Super Crit Mult": "슈퍼 치명타 승수",
+        "Max Rend Armor Multiplier": "최대 방어구 가르기 승수",
+        "Light Speed Shots": "광속 샷",
+        "Health": "체력",
+        "Health Regen": "체력 재생",
+        "Defense Absolute": "절대 방어",
+        "Defense %": "방어 %",
+        "Orbs Speed": "오브 속도",
+        "Land Mine Damage": "지뢰 대미지",
+        "Land Mine Decay": "지뢰 쇠진",
+        "Shockwave Size": "충격파 크기",
+        "Orb Boss Hit": "오브 보스 타격",
+        "Wall Health": "장벽 체력",
+        "Wall Rebuild": "장벽 재건",
+        "Wall Regen": "장벽 재생성",
+        "Wall Thorns": "장벽 가시",
+        "Wall Invincibility": "장벽 무적",
+        "Wall Fortification": "장벽 강화",
+        "Garlic Thorns": "마늘 가시",
+        "Cash Bonus": "캐시 보너스",
+        "Cash / Wave": "캐시/웨이브",
+        "Coins / Kill Bonus": "코인/처치 보너스",
+        "Coins / Wave": "코인/웨이브",
+        "Interest": "이익",
+        "Max Interest": "최대 이익",
+        "Package After Boss": "보스 처치 후 패키지",
+        "Recovery Package Amount": "회복 패키지 수량",
+        "Recovery Package Max": "회복 패키지 최대",
+        "Recovery Package Chance": "회복 패키지 확률",
+        "Enemy Attack Level Skip": "적 공격력 레벨 건너뛰기",
+        "Enemy Health Level Skip": "적 체력 레벨 건너뛰기",
+        "Missile Despawn Time": "미사일 디스폰 시간",
+        "Missiles Explosion": "미사일 폭발",
+        "Chrono Field Duration": "크로노 필드 지속 시간",
+        "Chrono Field Damage Reduction": "크로노 필드 대미지 감소",
+        "Swamp Radius": "늪 반경",
+        "Swamp Stun": "늪 기절",
+        "Swamp Stun Chance": "늪 기절 확률",
+        "Swamp Stun Time": "늪 기절 시간",
+        "Golden Tower Bonus": "황금 타워 보너스",
+        "Golden Tower Duration": "황금 타워 지속 시간",
+        "Chain Lightning Shock": "연쇄 번개 충격",
+        "Death Wave Health": "죽음의 파동 체력",
+        "Death Wave Coin Bonus": "죽음의 파동 코인 보너스",
+        "Inner Mine Blast Radius": "내부 지뢰 폭발 반경",
+        "Inner Mine Rotation Speed": "내부 지뢰 회전 속도",
+        "Chrono Field Range": "크로노 필드 범위",
+        "Missile Amplifier": "미사일 증폭기",
+        "Missile Barrage": "미사일 탄막",
+        "Inner Mine Stun": "내부 지뢰 기절",
+        "Black Hole Damage": "블랙홀 대미지",
+        "Extra Black Hole": "추가 블랙홀",
+        "Black Hole Coin Bonus": "블랙홀 코인 보너스",
+        "Spotlight Coin Bonus": "스포트라이트 코인 보너스",
+        "Spotlight Missiles": "스포트라이트 미사일",
+        "Black Hole disable Ranged Enemies": "블랙홀 원거리 적 비활성화",
+        "Recharge Missile Barrage": "미사일 탄막 충전",
+        "Death Wave Cells Bonus": "죽음의 파동 셀 보너스",
+        "Death Wave Damage Amplifier": "죽음의 파동 대미지 증폭기",
+        "Death Wave Armor Stripping": "죽음의 파동 방어구 해체",
+        "Inner Land Mine - Chrono Jump": "내부 지뢰 - 크로노 점프",
+        "Second Wind Blast": "세컨드 윈드 폭발",
+        "Double Death Ray": "이중 죽음의 광선",
+        "Extra Orb Adjuster": "추가 오브 조정기",
+        "Extra Inner Orbs": "한번 더 추가 오브",
+        "Energy Shield Extra Hit": "에너지 보호막 추가 타격",
+        "Super Tower Bonus": "슈퍼 타워 보너스",
+        "Recharge Second Wind": "세컨드 윈드 충전",
+        "Recharge Demon Mode": "데몬 모드 충전",
+        "Recharge Nuke": "핵무기 충전",
+        "Unlock Perks": "특전 잠금 해제",
+        "Waves Required": "필요 웨이브",
+        "Auto Pick Perks": "특전 자동 선택",
+        "Standard Perks Bonus": "일반 특전 보너스",
+        "Perk Option Quantity": "특전 옵션 수",
+        "First Perk Choice": "첫 번째 특전 선택",
+        "Ban Perks": "금지 특전",
+        "Improve Trade-off Perks": "트레이드오프 특전 개선",
+        "Auto Pick Ranking": "자동 선택 랭킹",
+        "Flame Bot - Cooldown": "화염 봇 - 쿨다운",
+        "Thunder Bot - Cooldown": "천둥 봇 - 쿨다운",
+        "Golden Bot - Cooldown": "황금 봇 - 쿨다운",
+        "Amplify Bot - Cooldown": "증폭 봇 - 쿨다운",
+        "Flame Bot - Burn Stack": "화염 봇 - 화상 중첩",
+        "Thunder Bot - Linger Time": "천둥 봇 - 잔류시간",
+        "Golden Bot - Duration": "황금 봇 - 지속시간",
+        "Amplify Bot - Duration": "증폭 봇 - 지속시간",
+        "Common Enemy Health": "일반 적 체력",
+        "Common Enemy Attack": "일반 적 공격력",
+        "Fast Enemy Health": "신속 적 체력",
+        "Fast Enemy Attack": "신속 적 공격력",
+        "Fast Enemy Speed": "신속 적 속도",
+        "Tank Enemy Health": "탱킹 적 체력",
+        "Tank Enemy Attack": "탱킹 적 공격력",
+        "Ranged Enemy Health": "원거리 적 체력",
+        "Ranged Enemy Attack": "원거리 적 공격력",
+        "Boss Health": "보스 체력",
+        "Boss Attack": "보스 공격력",
+        "Protector Health": "수호자 체력",
+        "Protector Radius": "수호자 반경",
+        "Protector Damage Reduction": "수호자 대미지 감소",
+        "Ranged Enemy Range": "원거리 적 사거리",
+        "Common Drop Chance": "일반 드롭 확률",
+        "Reroll Shards": "다시 뽑기 파편",
+        "Daily Mission Shards": "일일 임무 파편",
+        "Module Shard Cost": "모듈 샤드 비용",
+        "Module Coin Cost": "모듈 코인 비용",
+        "Rare Drop Chance": "희귀 드롭 확률",
+        "Unmerge Module": "모듈 결합 해제",
+        "Cannon Effect Bans": "대포 효과 금지",
+        "Armor Effect Bans": "방어구 효과 금지",
+        "Generator Effect Bans": "발전기 효과 금지",
+        "Core Effect Bans": "코어 효과 금지"
+    };
+
+    function getSelectedSpeedMultiplier() {
+        const el = document.getElementById("speed-multiplier");
+        if (!el) return 1;
+        const parsed = Number(el.value);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+    }
+
+    function initSpeedMultiplierControl() {
+        const el = document.getElementById("speed-multiplier");
+        if (!el) return;
+        let saved = null;
+        try {
+            saved = localStorage.getItem(LS_KEY_SPEED_MULTIPLIER);
+        } catch (_) {}
+        const fallback = "3";
+        const target = (saved && Array.from(el.options).some(o => o.value === saved)) ? saved : fallback;
+        el.value = target;
+    }
+
+    function initRelicLabSpeedBonusControl() {
+        const el = document.getElementById("relic-lab-speed-bonus");
+        if (!el) return;
+        const options = [];
+        for (let pct = 0; pct <= 71.0001; pct += 0.5) {
+            const fixed = Math.round(pct * 10) / 10;
+            const value = fixed.toFixed(1);
+            options.push(`<option value="${value}">${value}%</option>`);
+        }
+        el.innerHTML = options.join("");
+        let saved = null;
+        try {
+            saved = localStorage.getItem(LS_KEY_RELIC_LAB_SPEED_BONUS);
+        } catch (_) {}
+        const fallback = "5.0";
+        const target = (saved && Array.from(el.options).some(o => o.value === saved)) ? saved : fallback;
+        el.value = target;
+        try {
+            localStorage.setItem(LS_KEY_RELIC_LAB_SPEED_BONUS, el.value || fallback);
+        } catch (_) {}
+    }
+
+    function getSelectedRelicLabSpeedMultiplier() {
+        const el = document.getElementById("relic-lab-speed-bonus");
+        if (!el) return 1.05;
+        const pct = Number(el.value);
+        if (!Number.isFinite(pct) || pct < 0) return 1.05;
+        return 1 + (pct / 100);
+    }
+
+    function resetRelicLabSpeedBonusFromRelics() {
+        const el = document.getElementById("relic-lab-speed-bonus");
+        if (!el) return;
+        const bonusTotals = computeRelicBonuses();
+        const rawPct = Number(bonusTotals?.totals?.get("labSpeed") || 0);
+        const clamped = Math.max(0, Math.min(71, rawPct));
+        const snapped = Math.round(clamped * 2) / 2; // 0.5% step
+        const target = snapped.toFixed(1);
+        if (Array.from(el.options).some(o => o.value === target)) el.value = target;
+        else el.value = "0.0";
+        try {
+            localStorage.setItem(LS_KEY_RELIC_LAB_SPEED_BONUS, el.value || "0.0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    }
+
+    function initOptionControls() {
+        const hideCompletedEl = document.getElementById("hide-completed");
+        const hideRankBadgeEl = document.getElementById("hide-rank-badge");
+        const sortByRemainingEl = document.getElementById("sort-by-remaining-time");
+        const sortByRankEl = document.getElementById("sort-by-rank");
+        if (!hideCompletedEl || !hideRankBadgeEl || !sortByRemainingEl || !sortByRankEl) return;
+        try {
+            const savedHideCompleted = localStorage.getItem(LS_KEY_HIDE_COMPLETED);
+            const savedHideRankBadge = localStorage.getItem(LS_KEY_HIDE_RANK_BADGE);
+            const savedSortByRemaining = localStorage.getItem(LS_KEY_SORT_BY_REMAINING);
+            const savedSortByRank = localStorage.getItem(LS_KEY_SORT_BY_RANK);
+            hideCompletedEl.checked = savedHideCompleted === "1";
+            hideRankBadgeEl.checked = savedHideRankBadge === "1";
+            sortByRemainingEl.checked = savedSortByRemaining === "1";
+            sortByRankEl.checked = savedSortByRank === "1";
+        } catch (_) {}
+    }
+
+    function persistRemainCalcState() {
+        try {
+            localStorage.setItem(LS_KEY_REMAIN_CALC_ENABLED, REMAIN_CALC_ENABLED ? "1" : "0");
+            localStorage.setItem(LS_KEY_REMAIN_CALC_SLOTS, String(REMAIN_CALC_SLOTS));
+            localStorage.setItem(LS_KEY_REMAIN_CALC_SELECTED, JSON.stringify(REMAIN_CALC_SELECTED || {}));
+            localStorage.setItem(LS_KEY_REMAIN_CALC_TARGET_LEVELS, JSON.stringify(REMAIN_CALC_TARGET_LEVELS || {}));
+        } catch (_) {}
+    }
+
+    function initRemainCalcControls() {
+        const enabledEl = document.getElementById("remain-calc-enabled");
+        const slotsEl = document.getElementById("remain-calc-slots");
+        const slotsRow = document.getElementById("calc-slots-row");
+        if (!enabledEl || !slotsEl || !slotsRow) return;
+        let savedEnabled = null, savedSlots = null, savedSelected = null, savedTargets = null;
+        try {
+            savedEnabled = localStorage.getItem(LS_KEY_REMAIN_CALC_ENABLED);
+            savedSlots = localStorage.getItem(LS_KEY_REMAIN_CALC_SLOTS);
+            savedSelected = localStorage.getItem(LS_KEY_REMAIN_CALC_SELECTED);
+            savedTargets = localStorage.getItem(LS_KEY_REMAIN_CALC_TARGET_LEVELS);
+        } catch (_) {}
+        REMAIN_CALC_ENABLED = savedEnabled === "1";
+        const slotsN = Number(savedSlots);
+        REMAIN_CALC_SLOTS = (Number.isFinite(slotsN) && slotsN >= 1 && slotsN <= 5) ? Math.floor(slotsN) : 1;
+        if (savedSelected) {
+            try {
+                const parsed = JSON.parse(savedSelected);
+                if (parsed && typeof parsed === "object") REMAIN_CALC_SELECTED = parsed;
+            } catch (_) {}
+        }
+        if (savedTargets) {
+            try {
+                const parsed = JSON.parse(savedTargets);
+                if (parsed && typeof parsed === "object") REMAIN_CALC_TARGET_LEVELS = parsed;
+            } catch (_) {}
+        }
+        enabledEl.checked = REMAIN_CALC_ENABLED;
+        slotsEl.value = String(REMAIN_CALC_SLOTS);
+        slotsRow.style.display = REMAIN_CALC_ENABLED ? "" : "none";
+    }
+
+    function persistLevelEditState() {
+        try {
+            localStorage.setItem(LS_KEY_LEVEL_EDIT_ENABLED, LEVEL_EDIT_ENABLED ? "1" : "0");
+            localStorage.setItem(LS_KEY_LEVEL_EDIT_OVERRIDES, JSON.stringify(LEVEL_EDIT_OVERRIDES || {}));
+            localStorage.setItem(LS_KEY_LEVEL_EDIT_MODIFIED, JSON.stringify(LEVEL_EDIT_MODIFIED || {}));
+        } catch (_) {}
+    }
+
+    function initLevelEditControls() {
+        const enabledEl = document.getElementById("level-edit-enabled");
+        const resetEl = document.getElementById("level-edit-reset");
+        if (!enabledEl || !resetEl) return;
+        let savedEnabled = null, savedOverrides = null, savedModified = null;
+        try {
+            savedEnabled = localStorage.getItem(LS_KEY_LEVEL_EDIT_ENABLED);
+            savedOverrides = localStorage.getItem(LS_KEY_LEVEL_EDIT_OVERRIDES);
+            savedModified = localStorage.getItem(LS_KEY_LEVEL_EDIT_MODIFIED);
+        } catch (_) {}
+        LEVEL_EDIT_ENABLED = savedEnabled === "1";
+        if (savedOverrides) {
+            try {
+                const parsed = JSON.parse(savedOverrides);
+                if (parsed && typeof parsed === "object") LEVEL_EDIT_OVERRIDES = parsed;
+            } catch (_) {}
+        }
+        if (savedModified) {
+            try {
+                const parsed = JSON.parse(savedModified);
+                if (parsed && typeof parsed === "object") LEVEL_EDIT_MODIFIED = parsed;
+            } catch (_) {}
+        }
+        enabledEl.checked = LEVEL_EDIT_ENABLED;
+        resetEl.style.display = "none";
+    }
+
+    function hasCalcStateChanges() {
+        const anySelected = Object.values(REMAIN_CALC_SELECTED || {}).some(v => !!v);
+        let anyTargetChanged = false;
+        const targets = REMAIN_CALC_TARGET_LEVELS || {};
+        for (const [name, lvRaw] of Object.entries(targets)) {
+            const maxLv = Number(MAX_LEVELS[name]);
+            const lv = Number(lvRaw);
+            if (!Number.isFinite(maxLv) || !Number.isFinite(lv)) continue;
+            if (Math.floor(lv) !== Math.floor(maxLv)) {
+                anyTargetChanged = true;
+                break;
+            }
+        }
+        return anySelected || anyTargetChanged;
+    }
+
+    function hasLevelEditChanges() {
+        const ovMap = LEVEL_EDIT_OVERRIDES || {};
+        const modMap = LEVEL_EDIT_MODIFIED || {};
+        for (const [name, lvRaw] of Object.entries(ovMap)) {
+            if (!modMap[name]) continue;
+            const maxLv = Number(MAX_LEVELS[name]);
+            if (!Number.isFinite(maxLv)) continue;
+            const ov = Number(lvRaw);
+            if (!Number.isFinite(ov)) continue;
+            const baseStored = CURRENT_BASE_LEVELS[name];
+            if (baseStored === null) return true;
+            if (baseStored === undefined) continue;
+            const baseRaw = Number(baseStored);
+            const base = Number.isFinite(baseRaw) ? Math.floor(baseRaw) : 0;
+            const clamped = Math.max(0, Math.min(Math.floor(maxLv), Math.floor(ov)));
+            if (clamped !== base) return true;
+        }
+        return false;
+    }
+
+    function updateResetButtonsVisibility() {
+        const calcBtn = document.getElementById("calc-reset-button");
+        const levelBtn = document.getElementById("level-edit-reset");
+        if (calcBtn) {
+            const showCalc = REMAIN_CALC_ENABLED && hasCalcStateChanges();
+            calcBtn.style.display = showCalc ? "" : "none";
+        }
+        if (levelBtn) {
+            const showLevel = LEVEL_EDIT_ENABLED && hasLevelEditChanges();
+            levelBtn.style.display = showLevel ? "" : "none";
+        }
+    }
+
+    function getEffectiveTimeSpeedMultiplier() {
+        return getSelectedSpeedMultiplier() * getSelectedLabSpeedMultiplier() * getSelectedRelicLabSpeedMultiplier();
+    }
+
+    function calcSlotScheduleTotalSeconds(secondsList, slots) {
+        const list = (secondsList || []).filter(v => Number.isFinite(v) && v > 0);
+        const nSlots = Math.max(1, Math.min(5, Number(slots) || 1));
+        if (!list.length) return 0;
+        if (nSlots === 1) return list.reduce((a, b) => a + b, 0);
+        const loads = Array.from({ length: nSlots }, () => 0);
+        list.sort((a, b) => b - a);
+        for (const task of list) {
+            let idx = 0;
+            for (let i = 1; i < loads.length; i++) {
+                if (loads[i] < loads[idx]) idx = i;
+            }
+            loads[idx] += task;
+        }
+        return Math.max(...loads);
+    }
+
+    function calculateRawRemainingSecondsToTarget(name, currentLevel, maxLevel, progressPercent, targetLevel) {
+        if (!Number.isFinite(currentLevel) || !Number.isFinite(maxLevel)) return null;
+        const target = Math.max(0, Math.min(Number(maxLevel), Number(targetLevel)));
+        if (!Number.isFinite(target) || currentLevel >= target) return 0;
+        const p = Math.min(100, Math.max(0, Number(progressPercent) || 0)) / 100;
+        let total = 0;
+        for (let lv = currentLevel + 1; lv <= target; lv++) {
+            const levelTime = getLevelTimeSeconds(name, lv);
+            if (!Number.isFinite(levelTime)) return null;
+            total += (lv === currentLevel + 1) ? levelTime * (1 - p) : levelTime;
+        }
+        return total;
+    }
+
+    function buildRemainCalcPlan(selectedNames, calcRemainingByName, slots) {
+        const nSlots = Math.max(1, Math.min(5, Number(slots) || 1));
+        const valid = [];
+        const unknown = [];
+        for (const name of selectedNames) {
+            const sec = calcRemainingByName.has(name) ? calcRemainingByName.get(name) : null;
+            if (!Number.isFinite(sec) || sec <= 0) unknown.push(name);
+            else valid.push({ name, seconds: sec });
+        }
+        valid.sort((a, b) => b.seconds - a.seconds);
+        const slotArr = Array.from({ length: nSlots }, (_, i) => ({ slot: i + 1, total: 0, items: [] }));
+        for (const task of valid) {
+            let idx = 0;
+            for (let i = 1; i < slotArr.length; i++) if (slotArr[i].total < slotArr[idx].total) idx = i;
+            slotArr[idx].items.push(task);
+            slotArr[idx].total += task.seconds;
+        }
+        const total = slotArr.length ? Math.max(...slotArr.map(s => s.total)) : 0;
+        return { slots: nSlots, slotArr, unknown, total, selectedCount: selectedNames.length };
+    }
+
+    function openCalcTimelineModal() {
+        const overlay = document.getElementById("calc-timeline-modal-overlay");
+        const content = document.getElementById("calc-timeline-content");
+        const title = document.getElementById("calc-timeline-title");
+        if (!overlay || !content || !title) return;
+        const plan = REMAIN_CALC_LAST_PLAN;
+        title.textContent = `연구 타임라인 (슬롯 ${REMAIN_CALC_SLOTS}개)`;
+        if (!plan || !plan.selectedCount) {
+            content.innerHTML = `<div class="modal-meta">선택된 연구가 없습니다.</div>`;
+            overlay.classList.add("open");
+            return;
+        }
+        const totalSpan = Math.max(1, Number(plan.total) || 1);
+        const axisList = [0, 0.25, 0.5, 0.75, 1];
+        const axisTicks = axisList.map((r, idx) => {
+            const left = (r * 100).toFixed(2);
+            const sec = totalSpan * r;
+            const labelClass = idx === 0 ? "timeline-axis-label timeline-axis-label-start"
+                : (idx === axisList.length - 1 ? "timeline-axis-label timeline-axis-label-end" : "timeline-axis-label");
+            return `<span class="timeline-axis-tick" style="left:${left}%;"></span><span class="${labelClass}" style="left:${left}%;">${escapeHtml(formatDuration(sec))}</span>`;
+        }).join("");
+        const rowsHtml = plan.slotArr.map(s => {
+            const barsHtml = s.items.length
+                ? s.items.map(it => {
+                    const width = Math.max(0.2, (it.seconds / totalSpan) * 100);
+                    const lvInfo = REMAIN_CALC_LEVEL_INFO[it.name] || {};
+                    const curLv = Number(lvInfo.current);
+                    const tgtLv = Number(lvInfo.target);
+                    const maxLv = Number(MAX_LEVELS[it.name]);
+                    const levelRangeText = (Number.isFinite(curLv) && Number.isFinite(tgtLv) && tgtLv > 0)
+                        ? `Lv${curLv} -> Lv${tgtLv}`
+                        : "";
+                    const isNotMaxTarget = Number.isFinite(maxLv) && Number.isFinite(tgtLv) && tgtLv > 0 && tgtLv < maxLv;
+                    const maxText = isNotMaxTarget ? ` (Max Lv${maxLv})` : "";
+                    const suffix = levelRangeText ? ` (${levelRangeText})${maxText}` : maxText;
+                    const tip = `${formatNameForDetail(it.name)}${suffix} - ${formatDuration(it.seconds)}`;
+                    return `<div class="timeline-bar" title="${escapeAttr(tip)}" style="width:${width.toFixed(3)}%;"><span class="timeline-bar-name">${escapeHtml(formatNameForDetail(it.name))}${isNotMaxTarget ? ` <span style="color:#90a4ae;">${escapeHtml(maxText)}</span>` : ""}</span><span class="timeline-bar-time">${escapeHtml(formatDuration(it.seconds))}</span></div>`;
+                }).join("")
+                : `<div class="timeline-bar" style="width:0.2%;"><span class="timeline-bar-name">-</span><span class="timeline-bar-time">0s</span></div>`;
+            return `
+                <div class="timeline-row">
+                    <div class="timeline-row-name">슬롯 ${s.slot}</div>
+                    <div class="timeline-row-track">${barsHtml}</div>
+                </div>
+            `;
+        }).join("");
+        const unknownHtml = plan.unknown.length
+            ? `<div class="modal-meta">시간 미확인: ${plan.unknown.length}개 (${escapeHtml(plan.unknown.slice(0, 12).join(", "))}${plan.unknown.length > 12 ? "..." : ""})</div>`
+            : "";
+        content.innerHTML = `
+            <div class="modal-meta">선택 연구: ${plan.selectedCount}개</div>
+            <div class="modal-meta">전체 완료 예상 시간: <b>${escapeHtml(formatDuration(plan.total))}</b></div>
+            ${unknownHtml}
+            <div class="timeline-gantt">
+                <div class="timeline-axis">
+                    <div></div>
+                    <div class="timeline-axis-right">${axisTicks}</div>
+                </div>
+                ${rowsHtml}
+            </div>
+        `;
+        overlay.classList.add("open");
+    }
+
+    function closeCalcTimelineModal() {
+        const overlay = document.getElementById("calc-timeline-modal-overlay");
+        if (overlay) overlay.classList.remove("open");
+    }
+
+    function arrayBufferToBase64(buffer) {
+        let binary = "";
+        const bytes = new Uint8Array(buffer);
+        const chunk = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunk) {
+            const part = bytes.subarray(i, i + chunk);
+            binary += String.fromCharCode.apply(null, part);
+        }
+        return btoa(binary);
+    }
+
+    function base64ToArrayBuffer(base64) {
+        const binary = atob(base64);
+        const len = binary.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes.buffer;
+    }
+
+    function persistLastLoadedBuffer(buffer, fileName) {
+        try {
+            localStorage.setItem(LS_KEY_LAST_FILE_B64, arrayBufferToBase64(buffer));
+            localStorage.setItem(LS_KEY_LAST_FILE_NAME, fileName || "saved.dat");
+        } catch (_) {}
+    }
+
+    function tryAutoLoadFromStorage() {
+        try {
+            const b64 = localStorage.getItem(LS_KEY_LAST_FILE_B64);
+            if (!b64) return;
+            const name = localStorage.getItem(LS_KEY_LAST_FILE_NAME) || "saved.dat";
+            const restored = base64ToArrayBuffer(b64);
+            LAST_BUFFER = restored;
+            document.getElementById('file-name').textContent = `${name} (자동 불러옴)`;
+            // Auto-restore should keep user-selected overrides from localStorage.
+            SHOULD_SYNC_LAB_SPEED_SELECT = false;
+            SHOULD_SYNC_LAB_COIN_DISCOUNT_SELECT = false;
+            processFile(new DataView(restored));
+        } catch (_) {
+            try {
+                localStorage.removeItem(LS_KEY_LAST_FILE_B64);
+                localStorage.removeItem(LS_KEY_LAST_FILE_NAME);
+            } catch (_) {}
+        }
+    }
+
+    function rerenderFromCurrentData() {
+        if (LAST_BUFFER) processFile(new DataView(LAST_BUFFER));
+        else processFile(null);
+    }
+
+    function clearLoadedDataToInitialState() {
+        LAST_BUFFER = null;
+        LAST_RELIC_STATES = [];
+        CURRENT_LAB_SPEED_LEVEL_FROM_FILE = 0;
+        CURRENT_LAB_COIN_DISCOUNT_LEVEL_FROM_FILE = 0;
+        SHOULD_SYNC_LAB_SPEED_SELECT = true;
+        SHOULD_SYNC_LAB_COIN_DISCOUNT_SELECT = true;
+        try {
+            localStorage.removeItem(LS_KEY_LAST_FILE_B64);
+            localStorage.removeItem(LS_KEY_LAST_FILE_NAME);
+        } catch (_) {}
+        const fileInput = document.getElementById("file-upload");
+        if (fileInput) fileInput.value = "";
+        const fileNameEl = document.getElementById("file-name");
+        if (fileNameEl) fileNameEl.textContent = "No file selected";
+        syncLabSpeedSelect(0);
+        syncLabCoinDiscountSelect(0);
+        updateRelicsButton();
+        processFile(null);
+    }
+
+    function getLabSpeedRows() {
+        return Array.isArray(EXTERNAL_RESEARCH_DATA?.labs?.["Lab Speed"]?.rows)
+            ? EXTERNAL_RESEARCH_DATA.labs["Lab Speed"].rows
+            : [];
+    }
+
+    function getLabCoinDiscountRows() {
+        return Array.isArray(EXTERNAL_RESEARCH_DATA?.labs?.["Labs Coin Discount"]?.rows)
+            ? EXTERNAL_RESEARCH_DATA.labs["Labs Coin Discount"].rows
+            : [];
+    }
+
+    function parseNumericText(v) {
+        const n = Number(String(v ?? "").replace(/[%xX,\s]/g, ""));
+        return Number.isFinite(n) ? n : null;
+    }
+
+    function getLabSpeedMultiplierByLevel(level) {
+        const rows = getLabSpeedRows();
+        const lv = Number(level);
+        for (const r of rows) {
+            if (Number(r?.level) === lv) {
+                const v = Number(r?.value);
+                if (Number.isFinite(v) && v > 0) return v;
+            }
+        }
+        return 1;
+    }
+
+    function getSelectedLabSpeedMultiplier() {
+        const el = document.getElementById("lab-speed-level");
+        if (!el) return 1;
+        return getLabSpeedMultiplierByLevel(el.value);
+    }
+
+    function getLabCoinDiscountPercentByLevel(level) {
+        const rows = getLabCoinDiscountRows();
+        const lv = Number(level);
+        for (const r of rows) {
+            if (Number(r?.level) === lv) {
+                const n = parseNumericText(r?.value);
+                if (Number.isFinite(n) && n >= 0) return n;
+            }
+        }
+        return 0;
+    }
+
+    function getSelectedLabCoinDiscountMultiplier() {
+        const el = document.getElementById("lab-coin-discount-level");
+        if (!el) return 1;
+        const pct = getLabCoinDiscountPercentByLevel(el.value);
+        const m = 1 - (pct / 100);
+        return Math.max(0, Math.min(1, m));
+    }
+
+    function resetLabSpeedToCurrentFileLevel() {
+        const el = document.getElementById("lab-speed-level");
+        if (!el) return;
+        const target = String(Number.isFinite(CURRENT_LAB_SPEED_LEVEL_FROM_FILE) ? CURRENT_LAB_SPEED_LEVEL_FROM_FILE : 0);
+        el.value = Array.from(el.options).some(o => o.value === target) ? target : "0";
+        try {
+            localStorage.setItem(LS_KEY_LAB_SPEED_LEVEL, el.value || "0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    }
+
+    function resetLabCoinDiscountToCurrentFileLevel() {
+        const el = document.getElementById("lab-coin-discount-level");
+        if (!el) return;
+        const target = String(Number.isFinite(CURRENT_LAB_COIN_DISCOUNT_LEVEL_FROM_FILE) ? CURRENT_LAB_COIN_DISCOUNT_LEVEL_FROM_FILE : 0);
+        el.value = Array.from(el.options).some(o => o.value === target) ? target : "0";
+        try {
+            localStorage.setItem(LS_KEY_LAB_COIN_DISCOUNT_LEVEL, el.value || "0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    }
+
+    function syncLabSpeedSelect(currentLabSpeedLevel) {
+        const el = document.getElementById("lab-speed-level");
+        if (!el) return;
+        const prevValue = el.value;
+        let savedValue = null;
+        try {
+            savedValue = localStorage.getItem(LS_KEY_LAB_SPEED_LEVEL);
+        } catch (_) {}
+        const rows = getLabSpeedRows();
+        if (!rows.length) {
+            el.innerHTML = `<option value="0">0 (1.00)</option>`;
+            return;
+        }
+        const options = [];
+        options.push(`<option value="0">0 (1.00x)</option>`);
+        for (const r of rows) {
+            const lv = Number(r?.level);
+            const vv = Number(r?.value);
+            if (!Number.isFinite(lv)) continue;
+            const labelVal = Number.isFinite(vv) ? vv.toFixed(2) : "?";
+            options.push(`<option value="${lv}">${lv} (${labelVal}x)</option>`);
+        }
+        el.innerHTML = options.join("");
+        const current = Number(currentLabSpeedLevel);
+        const target = Number.isFinite(current) && current >= 0 ? String(current) : "0";
+        if (SHOULD_SYNC_LAB_SPEED_SELECT) {
+            el.value = target;
+            if (el.value !== target) el.value = "0";
+            SHOULD_SYNC_LAB_SPEED_SELECT = false;
+        } else {
+            const preferred = prevValue || savedValue || target;
+            if (Array.from(el.options).some(o => o.value === preferred)) {
+                el.value = preferred;
+            } else {
+                el.value = target;
+                if (el.value !== target) el.value = "0";
+            }
+        }
+        try {
+            localStorage.setItem(LS_KEY_LAB_SPEED_LEVEL, el.value || "0");
+        } catch (_) {}
+    }
+
+    function syncLabCoinDiscountSelect(currentLabCoinDiscountLevel) {
+        const el = document.getElementById("lab-coin-discount-level");
+        if (!el) return;
+        const prevValue = el.value;
+        let savedValue = null;
+        try {
+            savedValue = localStorage.getItem(LS_KEY_LAB_COIN_DISCOUNT_LEVEL);
+        } catch (_) {}
+        const rows = getLabCoinDiscountRows();
+        if (!rows.length) {
+            el.innerHTML = `<option value="0">0 (0.00%)</option>`;
+            return;
+        }
+        const options = [];
+        options.push(`<option value="0">0 (0.00%)</option>`);
+        for (const r of rows) {
+            const lv = Number(r?.level);
+            if (!Number.isFinite(lv)) continue;
+            const pct = parseNumericText(r?.value);
+            const labelPct = Number.isFinite(pct) ? pct.toFixed(2) : "?";
+            options.push(`<option value="${lv}">${lv} (${labelPct}%)</option>`);
+        }
+        el.innerHTML = options.join("");
+        const current = Number(currentLabCoinDiscountLevel);
+        const target = Number.isFinite(current) && current >= 0 ? String(current) : "0";
+        if (SHOULD_SYNC_LAB_COIN_DISCOUNT_SELECT) {
+            el.value = target;
+            if (el.value !== target) el.value = "0";
+            SHOULD_SYNC_LAB_COIN_DISCOUNT_SELECT = false;
+        } else {
+            const preferred = prevValue || savedValue || target;
+            if (Array.from(el.options).some(o => o.value === preferred)) {
+                el.value = preferred;
+            } else {
+                el.value = target;
+                if (el.value !== target) el.value = "0";
+            }
+        }
+        try {
+            localStorage.setItem(LS_KEY_LAB_COIN_DISCOUNT_LEVEL, el.value || "0");
+        } catch (_) {}
+    }
+
+    function formatDuration(totalSeconds) {
+        if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return "?";
+        const rounded = Math.ceil(totalSeconds);
+        const days = Math.floor(rounded / 86400);
+        const hours = Math.floor((rounded % 86400) / 3600);
+        const minutes = Math.floor((rounded % 3600) / 60);
+        const seconds = rounded % 60;
+        const parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0 || days > 0) parts.push(`${hours}h`);
+        if (minutes > 0 || hours > 0 || days > 0) parts.push(`${minutes}m`);
+        parts.push(`${seconds}s`);
+        return parts.join(" ");
+    }
+
+    function parseResearchTimeToSeconds(timeText) {
+        const text = String(timeText || "").trim();
+        if (!text) return null;
+        let total = 0;
+        const re = /(\d+)\s*(y|years?|days?|d|h|m|s)/gi;
+        let found = false;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+            found = true;
+            const n = Number(m[1]);
+            const unit = String(m[2] || "").toLowerCase();
+            if (!Number.isFinite(n)) continue;
+            if (unit === "y" || unit.startsWith("year")) total += n * 365 * 86400;
+            else if (unit === "d" || unit.startsWith("day")) total += n * 86400;
+            else if (unit === "h") total += n * 3600;
+            else if (unit === "m") total += n * 60;
+            else if (unit === "s") total += n;
+        }
+        return found ? total : null;
+    }
+
+    function getLevelTimeSeconds(name, targetLevel) {
+        const entry = EXTERNAL_RESEARCH_DATA?.labs?.[name];
+        if (!entry) return null;
+        const levelKey = String(targetLevel);
+        const direct = entry.levelTimes?.[levelKey];
+        if (Number.isFinite(Number(direct))) return Number(direct);
+        const row = Array.isArray(entry.rows)
+            ? entry.rows.find(r => String(r?.level) === levelKey)
+            : null;
+        const rowSeconds = Number(row?.timeSeconds);
+        if (Number.isFinite(rowSeconds) && rowSeconds > 0) return rowSeconds;
+        const parsed = parseResearchTimeToSeconds(row?.time);
+        if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+        return null;
+    }
+
+    function calculateRawRemainingSeconds(name, currentLevel, maxLevel, progressPercent) {
+        if (!Number.isFinite(currentLevel) || !Number.isFinite(maxLevel)) return null;
+        if (currentLevel >= maxLevel) return 0;
+        const p = Math.min(100, Math.max(0, Number(progressPercent) || 0)) / 100;
+        let total = 0;
+        for (let target = currentLevel + 1; target <= maxLevel; target++) {
+            const levelTime = getLevelTimeSeconds(name, target);
+            if (!Number.isFinite(levelTime)) return null;
+            total += (target === currentLevel + 1) ? levelTime * (1 - p) : levelTime;
+        }
+        return total;
+    }
+    function getValueClass(item, isMaxed) {
+        if (item.value === "?") return "value-unknown";
+        if (isMaxed) return "value-max";
+        const p = Number(item.progress) || 0;
+        if (p <= 0.001) return "value-none";
+        if (p < 25) return "value-low";
+        if (p < 70) return "value-mid";
+        return "value-high";
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function escapeAttr(value) {
+        return escapeHtml(value);
+    }
+
+    function isCorruptedKoText(text) {
+        const s = String(text || "").trim();
+        if (!s) return true;
+        // Mojibake patterns observed in broken wikiDescriptionKo payloads.
+        if (/[�]|占|�/.test(s)) return true;
+        return false;
+    }
+
+    function getDisplayNameKO(enName) {
+        return NAME_KO_MAP[enName] || null;
+    }
+
+    function formatNameForList(enName) {
+        const ko = getDisplayNameKO(enName);
+        if (!ko) return escapeHtml(enName);
+        return `${escapeHtml(ko)} <span class="research-name-en">(${escapeHtml(enName)})</span>`;
+    }
+
+    function formatNameForDetail(enName) {
+        const ko = getDisplayNameKO(enName);
+        if (!ko) return enName;
+        return `${ko} (${enName})`;
+    }
+
+    function getResearchRankInfo(name) {
+        const item = EXTERNAL_RESEARCH_RANK_DATA?.labs?.[name];
+        if (!item || typeof item !== "object") {
+            return { tier: "", tierKo: "", rank: "", rankAlt: "", note: "", noteKo: "" };
+        }
+        return {
+            tier: String(item.tier || "").trim(),
+            tierKo: String(item.tierKo || "").trim(),
+            rank: String(item.rank || "").trim(),
+            rankAlt: String(item.rankAlt || "").trim(),
+            note: String(item.note || "").trim(),
+            noteKo: String(item.noteKo || "").trim()
+        };
+    }
+
+    function getRankNoteDisplay(rankInfo) {
+        const ko = String(rankInfo?.noteKo || "").trim();
+        const en = String(rankInfo?.note || "").trim();
+        let text = ko || en || "";
+        if (!text) return "세부 메모 없음";
+        const replacements = [
+            [/실습/g, "연구"],
+            [/손상/g, "피해"],
+            [/현금\/웨이브/g, "캐시/웨이브"],
+            [/devo/gi, "Devo"],
+            [/블렌더/g, "Blender"],
+            [/관련 사항에 대해 소급 적용/g, "리스펙 시 소급 적용"],
+            [/최대한 활용하기 위한 첫 번째 연구/g, "가장 먼저 최대로 올릴 추천 연구"],
+            [/아주 오래 후에\./g, "고레벨 구간부터 소요 시간이 매우 길어집니다."],
+            [/사용하려면 보석 5개가 필요합니다\./g, "사용 시 보석 5개가 필요합니다."]
+        ];
+        replacements.forEach(([from, to]) => { text = text.replace(from, to); });
+        return text.replace(/\s{2,}/g, " ").trim();
+    }
+
+    function getRankClass(rankText) {
+        const r = String(rankText || "").trim().toUpperCase();
+        if (r === "S+" || r === "SPLUS") return "rank-val-splus";
+        if (r === "S") return "rank-val-s";
+        if (r === "A") return "rank-val-a";
+        if (r === "B") return "rank-val-b";
+        if (r === "C") return "rank-val-c";
+        if (r === "D") return "rank-val-d";
+        if (r === "F") return "rank-val-f";
+        if (r === "QOL") return "rank-val-qol";
+        if (r === "TBD") return "rank-val-tbd";
+        return "";
+    }
+
+    function buildRankStripHtml(name) {
+        const hide = !!document.getElementById("hide-rank-badge")?.checked;
+        if (hide) return "";
+        const r = getResearchRankInfo(name);
+        if (!r.rank) return "";
+        const noteTip = getRankNoteDisplay(r);
+        const rankText = r.rankAlt ? `${r.rank}/${r.rankAlt}` : r.rank;
+        const rankHtml = rankText
+            ? `<span class="rank-badge rank-badge-rank ${getRankClass(r.rank)}" title="${escapeAttr(noteTip)}">${escapeHtml(rankText)}</span>`
+            : "";
+        return `<span class="rank-strip">${rankHtml}</span>`;
+    }
+
+    function getRankSortKey(rankInfo) {
+        const table = {
+            "S+": 0,
+            "S": 1,
+            "A": 2,
+            "B": 3,
+            "C": 4,
+            "D": 5,
+            "F": 6,
+            "QOL": 7,
+            "TBD": 8
+        };
+        const r1 = String(rankInfo?.rank || "").trim().toUpperCase();
+        const r2 = String(rankInfo?.rankAlt || "").trim().toUpperCase();
+        const k1 = Object.prototype.hasOwnProperty.call(table, r1) ? table[r1] : 999;
+        const k2 = Object.prototype.hasOwnProperty.call(table, r2) ? table[r2] : 999;
+        return Math.min(k1, k2);
+    }
+
+    function getSearchQuery() {
+        const el = document.getElementById("research-search");
+        return String(el?.value || "").trim().toLowerCase();
+    }
+
+    function isResearchMatchedBySearch(name) {
+        const q = getSearchQuery();
+        if (!q) return true;
+        const en = String(name || "").toLowerCase();
+        const ko = String(getDisplayNameKO(name) || "").toLowerCase();
+        return en.includes(q) || ko.includes(q);
+    }
+
+    function openModal() {
+        document.getElementById("research-modal-overlay").classList.add("open");
+    }
+
+    function closeModal() {
+        document.getElementById("research-modal-overlay").classList.remove("open");
+    }
+
+    function openRelicModal() {
+        const overlay = document.getElementById("relic-modal-overlay");
+        if (!overlay) return;
+        if ((!Array.isArray(LAST_RELIC_STATES) || LAST_RELIC_STATES.length === 0) && LAST_BUFFER) {
+            LAST_RELIC_STATES = extractRelicStates(new DataView(LAST_BUFFER));
+            updateRelicsButton();
+        }
+        renderRelicModal();
+        overlay.classList.add("open");
+    }
+
+    function closeRelicModal() {
+        const overlay = document.getElementById("relic-modal-overlay");
+        if (!overlay) return;
+        overlay.classList.remove("open");
+    }
+
+    function relicStateClass(v) {
+        if (v === 0) return "state-0";
+        if (v === 1) return "state-1";
+        if (v === 2) return "state-2";
+        return "state-other";
+    }
+
+    function relicStateText(v) {
+        if (v === 0) return "잠김";
+        if (v === 1) return "해금(추정)";
+        if (v === 2) return "획득/활성(추정)";
+        return `상태값 ${v}`;
+    }
+
+    function saveRelicUserMask() {
+        try {
+            localStorage.setItem(LS_KEY_RELIC_USER_MASK, JSON.stringify(USER_RELIC_MASK));
+        } catch (_) {}
+    }
+
+    function getRelicStateByOrder(order) {
+        const ord = Number(order);
+        if (!Number.isFinite(ord) || ord < 1 || ord > RELIC_DISPLAY_TOTAL) return 0;
+        return USER_RELIC_MASK[ord] ? 2 : 0;
+    }
+
+    function getUserCheckedCount() {
+        let count = 0;
+        for (let i = 1; i <= RELIC_DISPLAY_TOTAL; i++) if (USER_RELIC_MASK[i]) count++;
+        return count;
+    }
+
+    function getRawRelicSequence(states) {
+        const arr = Array.isArray(states) ? states : [];
+        return arr.map(v => String(Number(v) || 0)).join("");
+    }
+
+    function getUserRelicSequence() {
+        let out = "";
+        for (let i = 1; i <= RELIC_DISPLAY_TOTAL; i++) out += USER_RELIC_MASK[i] ? "2" : "0";
+        return out;
+    }
+
+    function formatSequenceByWidth(seq, width = 20) {
+        const s = String(seq || "");
+        const lines = [];
+        for (let i = 0; i < s.length; i += width) lines.push(s.slice(i, i + width));
+        return lines.join(" ");
+    }
+
+    function formatSequenceChunksHtml(seq, width = 20) {
+        const s = String(seq || "");
+        const parts = [];
+        for (let i = 0; i < s.length; i += width) {
+            const chunk = s.slice(i, i + width);
+            parts.push(`<span class="seq-chunk">${escapeHtml(chunk)}</span>`);
+        }
+        return parts.join(" ");
+    }
+
+    function initRelicUserMaskFromStorage() {
+        try {
+            const raw = localStorage.getItem(LS_KEY_RELIC_USER_MASK);
+            if (!raw) {
+                USER_RELIC_MASK = Array.from({ length: RELIC_DISPLAY_TOTAL + 1 }, () => false);
+                return;
+            }
+            const parsed = JSON.parse(raw);
+            const next = Array.from({ length: RELIC_DISPLAY_TOTAL + 1 }, () => false);
+            if (Array.isArray(parsed)) {
+                for (let i = 1; i <= RELIC_DISPLAY_TOTAL; i++) next[i] = !!parsed[i];
+            } else if (parsed && typeof parsed === "object") {
+                for (let i = 1; i <= RELIC_DISPLAY_TOTAL; i++) next[i] = !!parsed[String(i)];
+            }
+            USER_RELIC_MASK = next;
+        } catch (_) {
+            USER_RELIC_MASK = Array.from({ length: RELIC_DISPLAY_TOTAL + 1 }, () => false);
+        }
+    }
+
+    function initRelicFilterFromStorage() {
+        try {
+            const raw = localStorage.getItem(LS_KEY_RELIC_FILTER_KEY);
+            RELIC_FILTER_KEY = raw ? String(raw) : "all";
+        } catch (_) {
+            RELIC_FILTER_KEY = "all";
+        }
+    }
+
+    function rarityKo(rarity) {
+        const r = String(rarity || "").trim().toLowerCase();
+        if (r === "common") return "일반";
+        if (r === "rare") return "희귀";
+        if (r === "epic") return "영웅";
+        if (r === "legendary") return "전설";
+        if (r === "mythic") return "신화";
+        if (r === "ancestral") return "고대";
+        return rarity || "?";
+    }
+
+    function rarityClass(rarity) {
+        const r = String(rarity || "").trim().toLowerCase();
+        if (r === "rare") return "rarity-rare";
+        if (r === "epic") return "rarity-epic";
+        if (r === "legendary") return "rarity-legendary";
+        if (r === "common") return "rarity-common";
+        if (r === "mythic") return "rarity-mythic";
+        if (r === "ancestral") return "rarity-ancestral";
+        return "";
+    }
+
+    function translateRelicTextKo(text) {
+        const src = String(text || "").trim();
+        if (!src) return "";
+        let s = src;
+        s = s.replace(/Increase/gi, "증가");
+        s = s.replace(/Decreases?/gi, "감소");
+        s = s.replace(/by/gi, "");
+        s = s.replace(/earned/gi, "획득");
+        s = s.replace(/coins/gi, "코인");
+        s = s.replace(/cash/gi, "캐시");
+        s = s.replace(/damage per meter/gi, "데미지/미터");
+        s = s.replace(/damage/gi, "대미지");
+        s = s.replace(/health regen/gi, "체력 재생");
+        s = s.replace(/health/gi, "체력");
+        s = s.replace(/crit factor/gi, "치명타 계수");
+        s = s.replace(/crit chance/gi, "치명타 확률");
+        s = s.replace(/attack speed/gi, "공격 속도");
+        s = s.replace(/lab speed/gi, "실험실 속도");
+        s = s.replace(/bot range/gi, "봇 범위");
+        s = s.replace(/unlock(?:ed)?/gi, "해금");
+        s = s.replace(/tier/gi, "티어");
+        s = s.replace(/wave/gi, "웨이브");
+        s = s.replace(/\s+/g, " ").trim();
+        return s || src;
+    }
+
+    function renderRelicModal() {
+        const titleEl = document.getElementById("relic-modal-title");
+        const contentEl = document.getElementById("relic-modal-content");
+        if (!titleEl || !contentEl) return;
+        const arr = Array.isArray(LAST_RELIC_STATES) ? LAST_RELIC_STATES : [];
+        const hasRaw = arr.length > 0;
+        const counts = new Map();
+        for (const v of arr) counts.set(v, (counts.get(v) || 0) + 1);
+        const countParts = [...counts.entries()]
+            .sort((a, b) => a[0] - b[0])
+            .map(([k, c]) => `${relicStateText(k)}: ${c}개`)
+            .join(" | ");
+        const computed = computeRelicBonuses();
+        const unlockedCountRaw = Math.min(RELIC_DISPLAY_TOTAL, arr.filter(v => Number(v) > 0).length);
+        const unlockedCountUser = getUserCheckedCount();
+        const rawSeq = getRawRelicSequence(arr);
+        const userSeq = getUserRelicSequence();
+        titleEl.textContent = `유물 보너스 (${unlockedCountUser}/${RELIC_DISPLAY_TOTAL})`;
+        const bonusListHtml = computed.lines.map(line => (
+            `<li class="relic-bonus-item"><span>${escapeHtml(line.name)}</span><span>${escapeHtml(line.value)}</span></li>`
+        )).join("");
+        const rows = EXTERNAL_RELIC_DATA && Array.isArray(EXTERNAL_RELIC_DATA.rows) ? EXTERNAL_RELIC_DATA.rows : [];
+        const statMeta = EXTERNAL_RELIC_DATA && EXTERNAL_RELIC_DATA.statMeta ? EXTERNAL_RELIC_DATA.statMeta : {};
+        const filterKeys = Array.from(new Set(rows.map(r => String(r?.effect?.key || "").trim()).filter(Boolean)));
+        if (RELIC_FILTER_KEY !== "all" && !filterKeys.includes(RELIC_FILTER_KEY)) RELIC_FILTER_KEY = "all";
+        const filterOptions = [`<option value="all"${RELIC_FILTER_KEY === "all" ? " selected" : ""}>전체</option>`]
+            .concat(filterKeys.map(k => {
+                const label = statMeta[k]?.ko || k;
+                return `<option value="${escapeAttr(k)}"${RELIC_FILTER_KEY === k ? " selected" : ""}>${escapeHtml(label)}</option>`;
+            }))
+            .join("");
+        const visibleRows = rows.filter(r => RELIC_FILTER_KEY === "all" ? true : String(r?.effect?.key || "") === RELIC_FILTER_KEY);
+        const cards = visibleRows.map((r) => {
+            const order = Number(r.order) || 0;
+            const stRaw = order > 0 ? getRelicStateByOrder(order) : 0;
+            const name = `${order}. ${getRelicDisplayNameByRow(r, stRaw > 0)}`;
+            const note = r && r.effectKo ? r.effectKo : (r && r.effect ? String(r.effect.key || "효과 데이터 없음") : "효과 데이터 없음");
+            const unlockTip = String(r?.unlockKo || r?.unlock || "해금 조건 정보 없음");
+            return `<div class="relic-card ${relicStateClass(stRaw)}" data-order="${order}" title="${escapeAttr(unlockTip)}" style="cursor:pointer;"><div class="relic-name ${rarityClass(r.rarity)}">${escapeHtml(name)}</div><div class="research-eta">${escapeHtml(note)}</div></div>`;
+        }).join("");
+        const fullRows = visibleRows.map((r) => {
+            const order = Number(r.order) || 0;
+            const stRaw = order > 0 ? getRelicStateByOrder(order) : 0;
+            const effectTxt = r && r.effectKo ? escapeHtml(r.effectKo) : "-";
+            return `<tr>
+                <td>${escapeHtml(String(order || "?"))}</td>
+                <td>${escapeHtml(getRelicDisplayNameByRow(r, stRaw > 0))}</td>
+                <td>${escapeHtml(String(r.rarityKo || rarityKo(r.rarity || "?")))}</td>
+                <td>${escapeHtml(String(r.unlockKo || r.unlock || "?"))}</td>
+                <td>${effectTxt}</td>
+                <td><input type="checkbox" class="relic-state-checkbox" data-order="${order}" ${stRaw > 0 ? "checked" : ""} style="accent-color:#4fc3f7;" /></td>
+            </tr>`;
+        }).join("");
+        contentEl.innerHTML = `
+            <div class="relic-summary">${hasRaw ? countParts : "파일에서 유물 raw 배열을 찾지 못했습니다. (사용자 체크 데이터 표시 중)"}</div>
+            <div class="relic-summary">파일 raw 활성 수: ${hasRaw ? `${unlockedCountRaw}/${arr.length}` : "?"}</div>
+            <div class="relic-summary">사용자 체크 수: ${unlockedCountUser}/${RELIC_DISPLAY_TOTAL}</div>
+            <div class="relic-summary">파일 raw 배열값</div>
+            <div class="seq-wrap">${hasRaw ? formatSequenceChunksHtml(rawSeq, 20) : "-"}</div>
+            <div class="relic-summary">사용자 체크 배열값 (위키 1~${RELIC_DISPLAY_TOTAL})</div>
+            <div class="seq-wrap">${formatSequenceChunksHtml(userSeq, 20)}</div>
+            <ul class="relic-bonus-list">${bonusListHtml}</ul>
+            <div class="relic-summary">카드 필터:
+                <select id="relic-filter-key" style="margin-left:6px; background:#0f1623; color:#dff2ff; border:1px solid #355; border-radius:4px; padding:2px 4px;">
+                    ${filterOptions}
+                </select>
+            </div>
+            <div class="relic-grid">${cards}</div>
+            <div style="height:10px;"></div>
+            <table class="wiki-table relic-wiki-table">
+                <thead><tr><th>순서</th><th>이름</th><th>등급</th><th>해금 조건</th><th>효과</th><th>상태</th></tr></thead>
+                <tbody>${fullRows}</tbody>
+            </table>
+        `;
+        document.querySelectorAll(".relic-state-checkbox").forEach(el => {
+            el.addEventListener("change", () => {
+                const order = Number(el.getAttribute("data-order") || 0);
+                if (!Number.isFinite(order) || order < 1 || order > RELIC_DISPLAY_TOTAL) return;
+                USER_RELIC_MASK[order] = !!el.checked;
+                saveRelicUserMask();
+                updateRelicsButton();
+                renderRelicModal();
+            });
+        });
+        const filterSelect = document.getElementById("relic-filter-key");
+        if (filterSelect) {
+            filterSelect.addEventListener("change", () => {
+                RELIC_FILTER_KEY = String(filterSelect.value || "all");
+                try { localStorage.setItem(LS_KEY_RELIC_FILTER_KEY, RELIC_FILTER_KEY); } catch (_) {}
+                renderRelicModal();
+            });
+        }
+        document.querySelectorAll(".relic-card[data-order]").forEach(el => {
+            el.addEventListener("click", () => {
+                const order = Number(el.getAttribute("data-order") || 0);
+                if (!Number.isFinite(order) || order < 1 || order > RELIC_DISPLAY_TOTAL) return;
+                USER_RELIC_MASK[order] = !USER_RELIC_MASK[order];
+                saveRelicUserMask();
+                updateRelicsButton();
+                renderRelicModal();
+            });
+        });
+    }
+
+    function updateRelicsButton() {
+        const btn = document.getElementById("relics-button");
+        if (!btn) return;
+        const raw = Array.isArray(LAST_RELIC_STATES) ? LAST_RELIC_STATES : [];
+        const hasRaw = raw.length > 0;
+        const unlockedCount = hasRaw ? raw.filter(v => Number(v) > 0).length : getUserCheckedCount();
+        const totalCount = hasRaw ? raw.length : RELIC_DISPLAY_TOTAL;
+        btn.disabled = false;
+        btn.textContent = `유물 (${unlockedCount}/${totalCount})`;
+    }
+
+    function getRelicDisplayName(index, owned) {
+        const r = getRelicMetaByOrder(index + 1);
+        if (r) return `${r.order}. ${getRelicDisplayNameByRow(r, !!owned)}`;
+        return `Relic #${index + 1}`;
+    }
+
+    function getRelicDisplayNameByRow(row, owned) {
+        const ko = String(row?.nameKo || "").trim();
+        const en = String(row?.name || "").trim();
+        // Default: English only. Add Korean only for owned relics.
+        if (!owned) return en || "?";
+        if (!ko || /^유물\s*\d+번$/.test(ko)) return en || "?";
+        return `${ko} (${en || "?"})`;
+    }
+
+    function getRelicMetaByOrder(order) {
+        const rows = EXTERNAL_RELIC_DATA && Array.isArray(EXTERNAL_RELIC_DATA.rows) ? EXTERNAL_RELIC_DATA.rows : [];
+        return rows.find(r => Number(r.order) === order) || null;
+    }
+
+    function formatRelicValue(v, unit) {
+        const num = Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : v.toFixed(1);
+        if (unit === "s") return `${v >= 0 ? "+" : "-"}${num}s`;
+        if (unit === "m") return `${v >= 0 ? "+" : "-"}${num}m`;
+        return `${num}%`;
+    }
+
+    function computeRelicBonuses() {
+        const rows = EXTERNAL_RELIC_DATA && Array.isArray(EXTERNAL_RELIC_DATA.rows) ? EXTERNAL_RELIC_DATA.rows : [];
+        const statMeta = EXTERNAL_RELIC_DATA && EXTERNAL_RELIC_DATA.statMeta ? EXTERNAL_RELIC_DATA.statMeta : {};
+        const totals = new Map();
+        for (const r of rows) {
+            const order = Number(r.order);
+            if (!Number.isFinite(order) || order < 1) continue;
+            const st = getRelicStateByOrder(order);
+            if (!(st > 0)) continue;
+            const eff = r.effect || {};
+            if (!eff.key || !Number.isFinite(Number(eff.amount)) || !eff.unit) continue;
+            const delta = (Number(eff.op) || 1) * Number(eff.amount);
+            totals.set(eff.key, (totals.get(eff.key) || 0) + delta);
+        }
+        const displayOrder = [
+            "damage", "critFactor", "damagePerMeter", "health", "healthRegen", "defensePercent", "defenseAbsolute", "thorns", "knockbackForce",
+            "cash", "coins", "freeAttackUpgrade", "freeDefenseUpgrade", "freeUtilityUpgrade", "recoveryAmount", "enemyAttackLevelSkip", "enemyHealthLevelSkip",
+            "labSpeed", "botRange", "ultimateDamage", "attackSpeed", "critChance", "superCritChance", "superCritMult", "rendArmorMult", "orbSpeed", "wallRebuildTime"
+        ];
+        const lines = [];
+        for (const key of displayOrder) {
+            if (!totals.has(key)) continue;
+            const meta = statMeta[key];
+            if (!meta) continue;
+            const raw = totals.get(key);
+            lines.push({
+                key,
+                name: meta.ko || key,
+                value: formatRelicValue(raw, meta.unit || "%")
+            });
+        }
+        return { totals, lines };
+    }
+
+    function extractRelicStates(dataView) {
+        if (!dataView || !dataView.buffer) return [];
+        const u8 = new Uint8Array(dataView.buffer, dataView.byteOffset, dataView.byteLength);
+        function readI32LE(off) {
+            if (off < 0 || off + 4 > dataView.byteLength) return null;
+            return dataView.getInt32(off, true);
+        }
+        const recordRun = extractRelicStatesByRecordRun(dataView, u8, readI32LE);
+        if (isPlausibleRelicArray(recordRun)) return recordRun;
+
+        const fallbackInt32 = extractRelicStatesHeuristicInt32(dataView, u8);
+        if (isPlausibleRelicArray(fallbackInt32)) return fallbackInt32;
+        const fallbackBytes = extractRelicStatesHeuristicBytes(u8);
+        if (isPlausibleRelicArray(fallbackBytes)) return fallbackBytes;
+        return [];
+    }
+
+    function extractRelicStatesByRecordRun(dataView, u8, readI32LE) {
+        const anchors = findAsciiPositions(u8, "RelicState").concat(findAsciiPositions(u8, "Relics"));
+        const candidates = [];
+        function nearestAnchorDist(pos) {
+            if (!anchors.length) return 999999;
+            let d = 999999;
+            for (const a of anchors) {
+                const k = Math.abs(a - pos);
+                if (k < d) d = k;
+            }
+            return d;
+        }
+        function scoreRun(len, c0, c1, c2, start, type) {
+            let score = (len * 5) + (Math.min(c2, 100) * 8) + (Math.min(c0, 260) * 2) + (Math.min(c1, 20) * 2);
+            if (c0 >= c2) score += 120;
+            const near253 = Math.max(0, 400 - Math.abs(253 - len) * 2);
+            const near232 = Math.max(0, 320 - Math.abs(RELIC_DISPLAY_TOTAL - len) * 2);
+            score += near253 + near232;
+            const dist = nearestAnchorDist(start);
+            score += Math.max(0, 220 - Math.floor(dist / 1200));
+            if (type <= -200 && type >= -300) score += 40;
+            return score;
+        }
+        for (let start = 0; start <= u8.length - 13; start++) {
+            if (u8[start] !== 0x01) continue;
+            const type0 = readI32LE(start + 5);
+            if (type0 === null) continue;
+            let p = start;
+            let len = 0;
+            let c0 = 0, c1 = 0, c2 = 0;
+            while (p + 13 <= u8.length) {
+                if (u8[p] !== 0x01) break;
+                const id = readI32LE(p + 1);
+                const type = readI32LE(p + 5);
+                const value = readI32LE(p + 9);
+                if (id === null || type === null || value === null) break;
+                if (id < -1000000 || id > 1000000) break;
+                if (type !== type0) break;
+                if (value < 0 || value > 2) break;
+                if (value === 0) c0++;
+                else if (value === 1) c1++;
+                else c2++;
+                len++;
+                p += 13;
+                if (len > 600) break;
+            }
+            if (len >= 150 && len <= 400 && c0 > 0 && c2 > 0 && c0 >= c2) {
+                candidates.push({
+                    start, len, c0, c1, c2, type: type0,
+                    score: scoreRun(len, c0, c1, c2, start, type0)
+                });
+            }
+        }
+        if (!candidates.length) return [];
+        candidates.sort((a, b) => b.score - a.score || b.len - a.len);
+        const best = candidates[0];
+        const out = [];
+        for (let i = 0; i < best.len; i++) {
+            const v = readI32LE(best.start + (i * 13) + 9);
+            if (v === null) break;
+            out.push(v);
+        }
+        return out;
+    }
+
+    function isPlausibleRelicArray(arr) {
+        if (!Array.isArray(arr) || arr.length < 150 || arr.length > 400) return false;
+        let c0 = 0, c1 = 0, c2 = 0;
+        for (const raw of arr) {
+            const v = Number(raw);
+            if (!Number.isFinite(v) || v < 0 || v > 2) return false;
+            if (v === 0) c0++;
+            else if (v === 1) c1++;
+            else c2++;
+        }
+        // Typical save has mostly 0, some 2, and optional few 1.
+        if (c0 === 0 || c2 === 0) return false;
+        if (c0 < c2) return false;
+        if ((c1 + c2) > arr.length) return false;
+        return true;
+    }
+
+    function findAsciiPositions(u8, text) {
+        const out = [];
+        if (!u8 || !u8.length || !text) return out;
+        const pat = new TextEncoder().encode(text);
+        if (!pat.length || u8.length < pat.length) return out;
+        outer: for (let i = 0; i <= u8.length - pat.length; i++) {
+            for (let j = 0; j < pat.length; j++) {
+                if (u8[i + j] !== pat[j]) continue outer;
+            }
+            out.push(i);
+        }
+        return out;
+    }
+
+    function extractRelicStatesHeuristicInt32(dataView, u8) {
+        if (!dataView || !u8) return [];
+        const candidates = [];
+        const anchors = findAsciiPositions(u8, "RelicState")
+            .concat(findAsciiPositions(u8, "Relics"));
+        if (!anchors.length) {
+            anchors.push(Math.floor(u8.length * 0.45));
+            anchors.push(Math.floor(u8.length * 0.60));
+        }
+        function scoreRun(len, c0, c1, c2) {
+            const near253 = Math.max(0, 260 - Math.abs(253 - len));
+            const near232 = Math.max(0, 240 - Math.abs(RELIC_DISPLAY_TOTAL - len));
+            return (len * 2) + near253 + near232 + Math.min(c2, 80) * 4 + Math.min(c1, 30) * 2 + Math.min(c0, 260);
+        }
+        for (const a of anchors) {
+            const start = Math.max(0, a - 120000);
+            const end = Math.min(dataView.byteLength, a + 120000);
+            for (let align = 0; align < 4; align++) {
+                let runStart = -1;
+                let c0 = 0, c1 = 0, c2 = 0;
+                const flush = (pos) => {
+                    if (runStart < 0) return;
+                    const len = ((pos - runStart) / 4) | 0;
+                    if (len >= 150 && len <= 400 && c2 <= 180 && c0 > 0 && c2 > 0 && c0 >= c2) {
+                        candidates.push({ runStart, len, c0, c1, c2, score: scoreRun(len, c0, c1, c2) });
+                    }
+                    runStart = -1; c0 = 0; c1 = 0; c2 = 0;
+                };
+                for (let off = start + ((4 - ((start - align) & 3)) & 3); off + 4 <= end; off += 4) {
+                    const v = dataView.getInt32(off, true);
+                    if (v >= 0 && v <= 2) {
+                        if (runStart < 0) runStart = off;
+                        if (v === 0) c0++;
+                        else if (v === 1) c1++;
+                        else c2++;
+                    } else {
+                        flush(off);
+                    }
+                }
+                flush(end);
+            }
+        }
+        if (!candidates.length) return [];
+        candidates.sort((a, b) => b.score - a.score || b.len - a.len);
+        const best = candidates[0];
+        const out = [];
+        for (let i = 0; i < best.len; i++) out.push(dataView.getInt32(best.runStart + (i * 4), true));
+        return out;
+    }
+
+    function extractRelicStatesHeuristicBytes(u8) {
+        if (!u8 || !u8.length) return [];
+        let bestStart = -1;
+        let bestLen = 0;
+        let runStart = -1;
+        let c0 = 0;
+        let c1 = 0;
+        let c2 = 0;
+        const flush = (i) => {
+            if (runStart < 0) return;
+            const len = i - runStart;
+            if (len >= 150 && len <= 400 && c2 <= 180 && c0 > 0 && c2 > 0 && c0 >= c2) {
+                const score = (len * 2) + Math.max(0, 260 - Math.abs(253 - len)) + Math.max(0, 240 - Math.abs(RELIC_DISPLAY_TOTAL - len)) + Math.min(c2, 80) * 4;
+                const bestScore = bestLen > 0 ? ((bestLen * 2) + Math.max(0, 260 - Math.abs(253 - bestLen)) + Math.max(0, 240 - Math.abs(RELIC_DISPLAY_TOTAL - bestLen))) : -1;
+                if (score > bestScore) {
+                    bestStart = runStart;
+                    bestLen = len;
+                }
+            }
+            runStart = -1;
+            c0 = 0;
+            c1 = 0;
+            c2 = 0;
+        };
+        for (let i = 0; i < u8.length; i++) {
+            const v = u8[i];
+            if (v <= 2) {
+                if (runStart < 0) runStart = i;
+                if (v === 0) c0++;
+                else if (v === 1) c1++;
+                else c2++;
+            } else {
+                flush(i);
+            }
+        }
+        flush(u8.length);
+        if (bestStart < 0 || bestLen < 10) return [];
+        const out = [];
+        for (let i = 0; i < bestLen; i++) out.push(Number(u8[bestStart + i]) || 0);
+        return out;
+    }
+
+    function updateCompletedStats(completedCount) {
+        const count = Number.isFinite(completedCount) && completedCount > 0 ? Math.floor(completedCount) : 0;
+        const efficiency = 1 + (count * 0.015);
+        const countEl = document.getElementById("completed-count");
+        const effEl = document.getElementById("rush-efficiency");
+        if (countEl) countEl.textContent = `완료된 항목 : ${String(count).padStart(2, "0")}개`;
+        if (effEl) effEl.textContent = `보석 러시 효율 : ${efficiency.toFixed(3)}x`;
+    }
+
+    const COST_SUFFIX_EXP = {
+        K: 3, M: 6, B: 9, T: 12, q: 15, Q: 18, s: 21, S: 24, O: 27, N: 30, d: 33
+    };
+    const SHORT_SUFFIXES = ["", "K", "M", "B", "T", "q", "Q", "s", "S", "O", "N", "d"];
+
+    function pow10BigInt(exp) {
+        if (exp <= 0) return 1n;
+        return 10n ** BigInt(exp);
+    }
+
+    function parseCostToBigInt(costText) {
+        const raw = String(costText || "").trim();
+        if (!raw || raw === "?") return null;
+        const cleaned = raw.replace(/,/g, "").replace(/\s+/g, "");
+        const m = cleaned.match(/^([0-9]+(?:\.[0-9]+)?)([A-Za-z]?)$/);
+        if (!m) return null;
+        const numPart = m[1];
+        const suffix = m[2] || "";
+        const exp = COST_SUFFIX_EXP[suffix] ?? 0;
+        const pieces = numPart.split(".");
+        const intPart = pieces[0] || "0";
+        const fracPart = pieces[1] || "";
+        const digits = BigInt(intPart + fracPart);
+        const scaleExp = exp - fracPart.length;
+        if (scaleExp >= 0) return digits * pow10BigInt(scaleExp);
+        return digits / pow10BigInt(-scaleExp);
+    }
+
+    function formatBigIntWithCommas(value) {
+        if (typeof value !== "bigint") return "?";
+        const sign = value < 0n ? "-" : "";
+        let s = (value < 0n ? -value : value).toString();
+        s = s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return sign + s;
+    }
+
+    function formatBigIntShort(value) {
+        if (typeof value !== "bigint") return "?";
+        const neg = value < 0n;
+        let abs = neg ? -value : value;
+        if (abs < 1000n) return `${neg ? "-" : ""}${abs.toString()}`;
+        let tier = 0;
+        while (abs >= 1000n && tier < SHORT_SUFFIXES.length - 1) {
+            abs /= 1000n;
+            tier++;
+        }
+        const divisor = 1000n ** BigInt(tier);
+        const intPart = (neg ? -value : value) / divisor;
+        const rem = (neg ? -value : value) % divisor;
+        const frac2 = (rem * 100n) / divisor;
+        const fracText = frac2.toString().padStart(2, "0");
+        return `${neg ? "-" : ""}${intPart.toString()}.${fracText}${SHORT_SUFFIXES[tier]}`;
+    }
+
+    function formatCostDisplay(costText) {
+        const v = parseCostToBigInt(costText);
+        if (v === null) return escapeHtml(costText || "?");
+        return `${formatBigIntShort(v)} (${formatBigIntWithCommas(v)})`;
+    }
+
+    function mulBigIntByRatio(value, ratio01) {
+        if (typeof value !== "bigint") return null;
+        const clamped = Math.max(0, Math.min(1, Number(ratio01) || 0));
+        const scale = 1000000n;
+        const n = BigInt(Math.round(clamped * 1000000));
+        return (value * n) / scale;
+    }
+
+    function formatCostDisplayAdjusted(costText, discountMultiplier) {
+        const raw = parseCostToBigInt(costText);
+        if (raw === null) return escapeHtml(costText || "?");
+        const adj = mulBigIntByRatio(raw, discountMultiplier);
+        return `${formatBigIntShort(adj)} (${formatBigIntWithCommas(adj)}) <span class="research-eta-base">(${formatBigIntShort(raw)} / ${formatBigIntWithCommas(raw)})</span>`;
+    }
+
+    function parseDisplayLevel(displayValue) {
+        const m = String(displayValue || "").match(/^(\d+)/);
+        return m ? Number(m[1]) : null;
+    }
+
+    function parseDisplayProgress(displayValue) {
+        const m = String(displayValue || "").match(/\(([\d.]+)%\)/);
+        return m ? Math.max(0, Math.min(100, Number(m[1]) || 0)) : 0;
+    }
+
+    function computeResearchTotals(name, currentLevel, progressPercent, maxLevel) {
+        const entry = EXTERNAL_RESEARCH_DATA?.labs?.[name];
+        const rows = Array.isArray(entry?.rows) ? entry.rows : [];
+        if (!Number.isFinite(Number(currentLevel)) || !Number.isFinite(Number(maxLevel))) {
+            return {
+                spentSeconds: null,
+                remainingSeconds: null,
+                spentCost: null,
+                remainingCost: null
+            };
+        }
+        const rowMap = new Map();
+        for (const r of rows) {
+            const lv = Number(r?.level);
+            if (Number.isFinite(lv)) rowMap.set(lv, r);
+        }
+
+        let spentSeconds = 0;
+        let remainingSeconds = 0;
+        let hasAllTimes = true;
+        let spentCost = 0n;
+        let remainingCost = 0n;
+        let hasAllCosts = true;
+
+        const p = Math.max(0, Math.min(100, Number(progressPercent) || 0)) / 100;
+        const cappedLevel = Math.max(0, Math.min(Number(maxLevel) || 0, Number(currentLevel) || 0));
+
+        for (let lv = 1; lv <= (Number(maxLevel) || 0); lv++) {
+            const row = rowMap.get(lv);
+            const timeSec = row && Number.isFinite(Number(row.timeSeconds)) ? Number(row.timeSeconds) : null;
+            const costVal = row ? parseCostToBigInt(row.cost) : null;
+
+            let spentRatio = 0;
+            if (lv <= cappedLevel) spentRatio = 1;
+            else if (lv === cappedLevel + 1 && cappedLevel < (Number(maxLevel) || 0)) spentRatio = p;
+            else spentRatio = 0;
+            const remainRatio = 1 - spentRatio;
+
+            if (timeSec === null) hasAllTimes = false;
+            else {
+                spentSeconds += timeSec * spentRatio;
+                remainingSeconds += timeSec * remainRatio;
+            }
+
+            if (costVal === null) hasAllCosts = false;
+            else {
+                const spentPart = mulBigIntByRatio(costVal, spentRatio);
+                const remainPart = costVal - spentPart;
+                spentCost += spentPart;
+                remainingCost += remainPart;
+            }
+        }
+
+        return {
+            spentSeconds: hasAllTimes ? spentSeconds : null,
+            remainingSeconds: hasAllTimes ? remainingSeconds : null,
+            spentCost: hasAllCosts ? spentCost : null,
+            remainingCost: hasAllCosts ? remainingCost : null
+        };
+    }
+
+    function sanitizeWikiDescriptionKo(text) {
+        const s = String(text || "").replace(/\s+/g, " ").trim();
+        if (!s) return "";
+        const qCount = (s.match(/\?/g) || []).length;
+        const looksBroken = /\?\?\?|�/.test(s) || (qCount / Math.max(1, s.length)) > 0.08;
+        return looksBroken ? "" : s;
+    }
+
+    function formatAdjustedTime(rawSeconds, totalSpeedMultiplier) {
+        if (rawSeconds === null) return "?";
+        const mul = Number(totalSpeedMultiplier);
+        if (!Number.isFinite(mul) || mul <= 0) return formatDuration(rawSeconds);
+        const adjusted = rawSeconds / mul;
+        return `${formatDuration(adjusted)} (${formatDuration(rawSeconds)})`;
+    }
+
+    async function openResearchDetail(name, displayValue) {
+        const modalTitle = document.getElementById("modal-title");
+        const modalContent = document.getElementById("modal-content");
+        const data = EXTERNAL_RESEARCH_DATA?.labs?.[name] || null;
+        modalContent.innerHTML = `<div class="modal-meta">불러오는 중...</div>`;
+        openModal();
+
+        const wikiUrl = data?.wikiUrl || "https://the-tower-idle-tower-defense.fandom.com/wiki/Lab_Upgrades";
+        const rows = Array.isArray(data?.rows) ? data.rows : [];
+        const validRows = rows.filter(r => r && r.level !== "?");
+        const currentLevel = parseDisplayLevel(displayValue);
+        const currentProgressPercent = parseDisplayProgress(displayValue);
+        const maxLevel = Number(data?.maxLevel) || null;
+        const koName = getDisplayNameKO(name);
+        const detailNameWithEn = koName ? `${koName} (${name})` : name;
+        modalTitle.textContent = detailNameWithEn;
+
+        function buildKoreanSummary() {
+            const sectionEn = data?.section || "Unknown";
+            const section = SECTION_KO_MAP[sectionEn] ? `${SECTION_KO_MAP[sectionEn]} (${sectionEn})` : sectionEn;
+            const first = validRows.length > 0 ? validRows[0] : null;
+            const last = validRows.length > 0 ? validRows[validRows.length - 1] : null;
+            const parts = [];
+            parts.push(`이 연구는 ${section} 분류에 속합니다.`);
+            if (maxLevel) parts.push(`최대 레벨은 ${maxLevel}입니다.`);
+            if (Number.isFinite(currentLevel)) parts.push(`현재 레벨은 ${currentLevel}입니다.`);
+            if (first && last) {
+                parts.push(`효과 값은 대체로 레벨 ${first.level}의 ${first.value || "정보 없음"}에서 레벨 ${last.level}의 ${last.value || "정보 없음"} 방향으로 증가/변화합니다.`);
+                if (first.time && last.time) {
+                    parts.push(`연구 시간은 초반 ${first.time || "정보 없음"}, 후반 ${last.time || "정보 없음"} 수준입니다.`);
+                }
+                if (first.cost && last.cost) {
+                    parts.push(`연구 비용은 초반 ${first.cost || "정보 없음"}, 후반 ${last.cost || "정보 없음"}로 커지는 경향이 있습니다.`);
+                }
+            } else {
+                parts.push("상세 레벨 데이터가 부족해 대략 설명만 제공합니다.");
+            }
+            return parts.join(" ");
+        }
+        const localSummaryText = buildKoreanSummary();
+        const wikiDescriptionKo = String(data?.wikiDescriptionKo || "").trim();
+        const wikiDescriptionEn = String(data?.wikiDescription || "").trim();
+        const wikiDescDisplay = (!isCorruptedKoText(wikiDescriptionKo) ? wikiDescriptionKo : wikiDescriptionEn);
+        const totals = computeResearchTotals(name, currentLevel, currentProgressPercent, maxLevel);
+        const totalSpeedMultiplier = getEffectiveTimeSpeedMultiplier();
+        const coinDiscountMultiplier = getSelectedLabCoinDiscountMultiplier();
+        const rankInfo = getResearchRankInfo(name);
+        const tierText = rankInfo.tierKo || rankInfo.tier || "-";
+        const rankText = rankInfo.rank ? (rankInfo.rankAlt ? `${rankInfo.rank}/${rankInfo.rankAlt}` : rankInfo.rank) : "-";
+        const rankNoteText = getRankNoteDisplay(rankInfo);
+        const rankNoteOriginal = String(rankInfo.note || "").trim();
+        const isUnknownStage = String(displayValue || "").includes("?");
+        const stageReasonText = isUnknownStage
+            ? (LAST_BUFFER ? "파일 데이터 매핑 미확정" : "파일 미불러옴")
+            : "";
+
+        const spentTimeText = formatAdjustedTime(totals.spentSeconds, totalSpeedMultiplier);
+        const remainTimeText = formatAdjustedTime(totals.remainingSeconds, totalSpeedMultiplier);
+        const spentCostText = totals.spentCost === null ? "?" : `${formatBigIntShort(mulBigIntByRatio(totals.spentCost, coinDiscountMultiplier))} (${formatBigIntWithCommas(mulBigIntByRatio(totals.spentCost, coinDiscountMultiplier))}) (${formatBigIntShort(totals.spentCost)} / ${formatBigIntWithCommas(totals.spentCost)})`;
+        const remainCostText = totals.remainingCost === null ? "?" : `${formatBigIntShort(mulBigIntByRatio(totals.remainingCost, coinDiscountMultiplier))} (${formatBigIntWithCommas(mulBigIntByRatio(totals.remainingCost, coinDiscountMultiplier))}) (${formatBigIntShort(totals.remainingCost)} / ${formatBigIntWithCommas(totals.remainingCost)})`;
+        const hasTimeProgress = totals.spentSeconds !== null && totals.remainingSeconds !== null;
+        const totalTime = hasTimeProgress ? (totals.spentSeconds + totals.remainingSeconds) : 0;
+        const timeProgressPercent = hasTimeProgress && totalTime > 0
+            ? Math.max(0, Math.min(100, (totals.spentSeconds / totalTime) * 100))
+            : null;
+        const timeProgressText = timeProgressPercent === null ? "?" : `${timeProgressPercent.toFixed(2)}%`;
+        const timeProgressBarWidth = timeProgressPercent === null ? 0 : timeProgressPercent;
+
+        let tableHtml = "<div>표 데이터가 없습니다.</div>";
+        if (validRows.length > 0) {
+            const formatRowTime = (row) => {
+                const sec = Number(row?.timeSeconds);
+                if (!Number.isFinite(sec)) return escapeHtml(row?.time ?? "?");
+                return escapeHtml(formatAdjustedTime(sec, totalSpeedMultiplier));
+            };
+            tableHtml = `
+                <table class="wiki-table">
+                    <thead>
+                        <tr><th>Level</th><th>Time</th><th>Cost</th><th>Value</th></tr>
+                    </thead>
+                    <tbody>
+                        ${validRows.map(r => {
+                            const lv = Number(r.level);
+                            let rowClass = "";
+                            if (Number.isFinite(lv) && Number.isFinite(currentLevel)) {
+                                if (lv <= currentLevel) rowClass = "wiki-row-complete";
+                                else if (lv === (currentLevel + 1) && currentProgressPercent > 0) rowClass = "wiki-row-current";
+                            }
+                            return `<tr class="${rowClass}"><td>${escapeHtml(r.level ?? "?")}</td><td>${formatRowTime(r)}</td><td>${formatCostDisplayAdjusted(r.cost ?? "?", coinDiscountMultiplier)}</td><td>${escapeHtml(r.value ?? "?")}</td></tr>`;
+                        }).join("")}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        modalContent.innerHTML = `
+            <div class="modal-meta">현재 단계: <b>${escapeHtml(displayValue || "?")}</b>${stageReasonText ? ` <span style="color:#90a4ae;">(${escapeHtml(stageReasonText)})</span>` : ""}</div>
+            <div class="modal-meta">티어: <b>${escapeHtml(tierText)}</b> | 랭킹: <b>${escapeHtml(rankText)}</b></div>
+            <div class="modal-meta">랭킹 메모: ${escapeHtml(rankNoteText)}${rankNoteOriginal ? `<br><span style="color:#90a4ae; font-size:0.92em;">${escapeHtml(rankNoteOriginal)}</span>` : ""}</div>
+            <div style="margin-bottom:10px; color:#b0bec5;">${wikiDescDisplay ? escapeHtml(wikiDescDisplay) : ""}</div>
+            <div style="margin-bottom:8px; color:#cfd8dc;">${escapeHtml(localSummaryText)}</div>
+            <div style="margin-bottom:10px; background:#1a1a1a; border:1px solid #2e2e2e; border-radius:8px; padding:10px;">
+                <div>진행 연구시간: <b>${escapeHtml(spentTimeText)}</b></div>
+                <div>남은 연구시간: <b>${escapeHtml(remainTimeText)}</b></div>
+                <div>시간 기준 진행률: <b>${escapeHtml(timeProgressText)}</b></div>
+                <div style="margin-top:6px; height:10px; background:#263238; border:1px solid #355; border-radius:999px; overflow:hidden;">
+                    <div style="height:100%; width:${timeProgressBarWidth.toFixed(2)}%; background:linear-gradient(90deg,#00c853,#64dd17);"></div>
+                </div>
+                <div>사용한 비용: <b>${escapeHtml(spentCostText)}</b></div>
+                <div>남은 비용: <b>${escapeHtml(remainCostText)}</b></div>
+            </div>
+            <div><a class="modal-link" target="_blank" rel="noopener noreferrer" href="${escapeAttr(wikiUrl)}">위키 페이지 열기</a></div>
+            ${tableHtml}
+        `;
+    }
+    initSpeedMultiplierControl();
+    initRelicLabSpeedBonusControl();
+    initOptionControls();
+    initRemainCalcControls();
+    initLevelEditControls();
+    updateResetButtonsVisibility();
+    initRelicUserMaskFromStorage();
+    initRelicFilterFromStorage();
+    tryAutoLoadFromStorage();
+    if (!LAST_BUFFER) processFile(null);
+    updateRelicsButton();
+    document.getElementById("speed-multiplier").addEventListener("change", () => {
+        try {
+            localStorage.setItem(LS_KEY_SPEED_MULTIPLIER, document.getElementById("speed-multiplier").value);
+        } catch (_) {}
+        rerenderFromCurrentData();
+    });
+    document.getElementById("lab-speed-level").addEventListener("change", () => {
+        try {
+            localStorage.setItem(LS_KEY_LAB_SPEED_LEVEL, document.getElementById("lab-speed-level").value || "0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    });
+    document.getElementById("lab-coin-discount-level").addEventListener("change", () => {
+        try {
+            localStorage.setItem(LS_KEY_LAB_COIN_DISCOUNT_LEVEL, document.getElementById("lab-coin-discount-level").value || "0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    });
+    document.getElementById("relic-lab-speed-bonus").addEventListener("change", () => {
+        try {
+            localStorage.setItem(LS_KEY_RELIC_LAB_SPEED_BONUS, document.getElementById("relic-lab-speed-bonus").value || "5.0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    });
+    document.getElementById("hide-completed").addEventListener("change", () => {
+        try {
+            localStorage.setItem(LS_KEY_HIDE_COMPLETED, document.getElementById("hide-completed").checked ? "1" : "0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    });
+    document.getElementById("hide-rank-badge").addEventListener("change", () => {
+        try {
+            localStorage.setItem(LS_KEY_HIDE_RANK_BADGE, document.getElementById("hide-rank-badge").checked ? "1" : "0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    });
+    document.getElementById("sort-by-remaining-time").addEventListener("change", () => {
+        try {
+            localStorage.setItem(LS_KEY_SORT_BY_REMAINING, document.getElementById("sort-by-remaining-time").checked ? "1" : "0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    });
+    document.getElementById("sort-by-rank").addEventListener("change", () => {
+        try {
+            localStorage.setItem(LS_KEY_SORT_BY_RANK, document.getElementById("sort-by-rank").checked ? "1" : "0");
+        } catch (_) {}
+        rerenderFromCurrentData();
+    });
+    document.getElementById("research-search").addEventListener("input", () => {
+        rerenderFromCurrentData();
+    });
+    document.getElementById("remain-calc-enabled").addEventListener("change", () => {
+        REMAIN_CALC_ENABLED = !!document.getElementById("remain-calc-enabled")?.checked;
+        const row = document.getElementById("calc-slots-row");
+        if (row) row.style.display = REMAIN_CALC_ENABLED ? "" : "none";
+        persistRemainCalcState();
+        updateResetButtonsVisibility();
+        rerenderFromCurrentData();
+    });
+    document.getElementById("remain-calc-slots").addEventListener("change", () => {
+        const n = Number(document.getElementById("remain-calc-slots")?.value);
+        REMAIN_CALC_SLOTS = (Number.isFinite(n) && n >= 1 && n <= 5) ? Math.floor(n) : 1;
+        persistRemainCalcState();
+        updateResetButtonsVisibility();
+        rerenderFromCurrentData();
+    });
+    document.getElementById("level-edit-enabled").addEventListener("change", () => {
+        LEVEL_EDIT_ENABLED = !!document.getElementById("level-edit-enabled")?.checked;
+        persistLevelEditState();
+        updateResetButtonsVisibility();
+        rerenderFromCurrentData();
+    });
+    document.getElementById("level-edit-reset").addEventListener("click", () => {
+        const ok = window.confirm("현재 레벨 변경 설정(변경한 레벨)을 초기화할까요?");
+        if (!ok) return;
+        LEVEL_EDIT_OVERRIDES = {};
+        LEVEL_EDIT_MODIFIED = {};
+        persistLevelEditState();
+        updateResetButtonsVisibility();
+        rerenderFromCurrentData();
+    });
+    document.getElementById("clear-file-button").addEventListener("click", () => {
+        clearLoadedDataToInitialState();
+    });
+    document.getElementById("lab-speed-reset").addEventListener("click", (e) => {
+        e.preventDefault();
+        resetLabSpeedToCurrentFileLevel();
+    });
+    document.getElementById("lab-coin-discount-reset").addEventListener("click", (e) => {
+        e.preventDefault();
+        resetLabCoinDiscountToCurrentFileLevel();
+    });
+    document.getElementById("relic-lab-speed-reset").addEventListener("click", (e) => {
+        e.preventDefault();
+        resetRelicLabSpeedBonusFromRelics();
+    });
+    document.getElementById("modal-close").addEventListener("click", closeModal);
+    document.getElementById("research-modal-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "research-modal-overlay") closeModal();
+    });
+    document.getElementById("relics-button").addEventListener("click", openRelicModal);
+    document.getElementById("relic-modal-close").addEventListener("click", closeRelicModal);
+    document.getElementById("relic-modal-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "relic-modal-overlay") closeRelicModal();
+    });
+    document.getElementById("calc-timeline-button").addEventListener("click", openCalcTimelineModal);
+    document.getElementById("calc-reset-button").addEventListener("click", () => {
+        const ok = window.confirm("남은시간 계산기 설정(체크/목표레벨)을 초기화할까요?");
+        if (!ok) return;
+        REMAIN_CALC_SELECTED = {};
+        REMAIN_CALC_TARGET_LEVELS = {};
+        persistRemainCalcState();
+        updateResetButtonsVisibility();
+        rerenderFromCurrentData();
+    });
+    document.getElementById("calc-timeline-close").addEventListener("click", closeCalcTimelineModal);
+    document.getElementById("calc-timeline-modal-overlay").addEventListener("click", (e) => {
+        if (e.target.id === "calc-timeline-modal-overlay") closeCalcTimelineModal();
+    });
+    document.getElementById("results").addEventListener("click", (e) => {
+        if (e.target.closest(".calc-inline-box")) return;
+        if (e.target.closest(".calc-target-select")) return;
+        if (e.target.closest(".level-edit-select")) return;
+        const row = e.target.closest(".research-item.clickable");
+        if (!row) return;
+        void openResearchDetail(row.dataset.researchName || "", row.dataset.displayValue || "?");
+    });
+    document.getElementById("results").addEventListener("change", (e) => {
+        const lvSel = e.target.closest(".level-edit-select");
+        if (lvSel) {
+            const name = String(lvSel.getAttribute("data-research-name") || "");
+            const lv = Number(lvSel.value);
+            if (name && Number.isFinite(lv)) {
+                LEVEL_EDIT_OVERRIDES[name] = Math.max(0, Math.floor(lv));
+                LEVEL_EDIT_MODIFIED[name] = true;
+                persistLevelEditState();
+                updateResetButtonsVisibility();
+                rerenderFromCurrentData();
+            }
+            return;
+        }
+        const targetSel = e.target.closest(".calc-target-select");
+        if (targetSel) {
+            const name = String(targetSel.getAttribute("data-research-name") || "");
+            const lv = Number(targetSel.value);
+            if (name && Number.isFinite(lv)) {
+                REMAIN_CALC_TARGET_LEVELS[name] = lv;
+                persistRemainCalcState();
+                updateResetButtonsVisibility();
+                rerenderFromCurrentData();
+            }
+            return;
+        }
+        const itemCb = e.target.closest(".calc-item-checkbox");
+        if (itemCb) {
+            const name = String(itemCb.getAttribute("data-research-name") || "");
+            if (name) {
+                REMAIN_CALC_SELECTED[name] = !!itemCb.checked;
+                persistRemainCalcState();
+                updateResetButtonsVisibility();
+                rerenderFromCurrentData();
+            }
+            return;
+        }
+        const groupCb = e.target.closest(".calc-group-checkbox");
+        if (groupCb) {
+            const section = String(groupCb.getAttribute("data-section") || "");
+            const names = Array.isArray(REMAIN_CALC_SECTION_ITEMS[section]) ? REMAIN_CALC_SECTION_ITEMS[section] : [];
+            for (const n of names) REMAIN_CALC_SELECTED[n] = !!groupCb.checked;
+            persistRemainCalcState();
+            updateResetButtonsVisibility();
+            rerenderFromCurrentData();
+        }
+    });
+    document.getElementById('file-upload').addEventListener('change', async function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        document.getElementById('file-name').textContent = file.name;
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const normalizedBuffer = await normalizeInputBuffer(e.target.result);
+                LAST_BUFFER = normalizedBuffer;
+                SHOULD_SYNC_LAB_SPEED_SELECT = true;
+                SHOULD_SYNC_LAB_COIN_DISCOUNT_SELECT = true;
+                persistLastLoadedBuffer(normalizedBuffer, file.name);
+                processFile(new DataView(normalizedBuffer));
+            } catch (err) {
+                console.error(err);
+                document.getElementById('results').innerHTML = '<div style="color:red; text-align:center;">Error: Failed to read file. Try a raw save file or a browser with gzip support.</div>';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    async function normalizeInputBuffer(arrayBuffer) {
+        const u8 = new Uint8Array(arrayBuffer);
+        if (u8.length < 2) return arrayBuffer;
+        // Save files are often gzip-compressed .dat files.
+        if (u8[0] === 0x1f && u8[1] === 0x8b) {
+            if (typeof DecompressionStream === 'undefined') {
+                throw new Error('This browser does not support gzip decompression (DecompressionStream).');
+            }
+            const ds = new DecompressionStream('gzip');
+            const stream = new Blob([arrayBuffer]).stream().pipeThrough(ds);
+            return await new Response(stream).arrayBuffer();
+        }
+        return arrayBuffer;
+    }
+
+    function scanOffsets(dataView) {
+        const offsets = { main: null, progressBase: null };
+
+        // Anchors to try in order
+        const anchors = [
+            {
+                // Anchor A: Workshop Discounts [19, 19, 15]
+                // Common across both provided files (playerInfo and 260218)
+                // Maps to Main Research Index 2 (Workshop Attack Discount)
+                pattern: [19, 19, 15],
+                indexOffset: 2
+            },
+            {
+                // Anchor B: Buy Multiplier Area [4, 1, 2, 1, 1]
+                // Maps to Main Research Index 7
+                pattern: [4, 1, 2, 1, 1],
+                indexOffset: 7
+            },
+            {
+                // Anchor C: Game Speed & Cash [7, 41]
+                // Maps to Main Research Index 0
+                pattern: [7, 41],
+                indexOffset: 0
+            }
+        ];
+
+        let mainIndex = -1;
+
+        console.log("Starting Offset Scan...");
+
+        // Scan for anchors
+        for (const anchor of anchors) {
+            console.log("Trying anchor pattern:", anchor.pattern);
+            
+            for (let i = 0; i < dataView.byteLength - (anchor.pattern.length * 4); i++) {
+                let match = true;
+                for (let j = 0; j < anchor.pattern.length; j++) {
+                    const val = anchor.pattern[j];
+                    if (val !== null && dataView.getUint32(i + j * 4, true) !== val) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (!match) continue;
+                const candidate = i - (anchor.indexOffset * 4);
+                if (candidate < 0 || candidate + (12 * 4) > dataView.byteLength) continue;
+                if (dataView.getUint32(candidate, true) !== 7 || dataView.getUint32(candidate + 4, true) !== 41) continue;
+                mainIndex = candidate;
+                console.log(`Anchor found at ${i}! Main Start: ${mainIndex}`);
+                break;
+                }
+            if (mainIndex !== -1) break;
+        }
+
+        if (mainIndex !== -1) {
+            offsets.main = mainIndex;
+            // researchPercentComplete (float[240]) starts at main + 850 in both known formats.
+            offsets.progressBase = mainIndex + 850;
+        } else {
+            console.error("Main Research Anchor not found!");
+            alert("Error: Could not find any known research patterns in this file.\nEnsure the file is a valid save.");
+        }
+
+        return offsets;
+    }
+
+    function processFile(dataView) {
+        const resultsContainer = document.getElementById('results');
+        resultsContainer.innerHTML = '';
+        const hasDataView = !!(dataView && typeof dataView.getUint32 === "function");
+        LAST_RELIC_STATES = hasDataView ? extractRelicStates(dataView) : [];
+        updateRelicsButton();
+
+        let currentOffsets = { main: null, progressBase: null };
+        if (hasDataView) currentOffsets = scanOffsets(dataView);
+        const noFileMode = !hasDataView;
+
+        if (!noFileMode && currentOffsets.main === null) {
+            resultsContainer.innerHTML = '<div style="color:red; text-align:center;">Error: Could not detect save file format. (Anchor pattern not found)</div>';
+            return;
+        }
+
+        function readByRelativeIndex(relativeIdx) {
+            if (noFileMode) return 0;
+            if (relativeIdx === null || relativeIdx === undefined) return "?";
+            const off = currentOffsets.main + (relativeIdx * 4);
+            if (off < 0 || off + 4 > dataView.byteLength) return "?";
+            return dataView.getUint32(off, true);
+        }
+
+        function readProgressByResearchIndex(researchIdx) {
+            if (noFileMode) return 0;
+            if (researchIdx === null || researchIdx === undefined || currentOffsets.progressBase === null) return 0;
+            if (researchIdx < 0 || researchIdx >= 240) return 0;
+            const off = currentOffsets.progressBase + (researchIdx * 4);
+            if (off < 0 || off + 4 > dataView.byteLength) return 0;
+            const raw = dataView.getFloat32(off, true);
+            if (!isFinite(raw) || raw <= 0) return 0;
+            // Stored as 0..1 ratio in save data.
+            if (raw <= 1.1) {
+                // Some saves contain tiny float noise (e.g. 0.0001 => 0.01%).
+                if (raw < 0.001) return 0;
+                return raw * 100;
+            }
+            // Fallback for unexpected formats already using percent.
+            if (raw <= 100) {
+                if (raw < 0.1) return 0;
+                return raw;
+            }
+            return 0;
+        }
+
+        function readSectionFromMap(itemsDef) {
+            return itemsDef.map(item => ({
+                name: item.name,
+                value: (() => {
+                    if (item.idx === null || item.idx === undefined) return "?";
+                    const raw = noFileMode ? 0 : readByRelativeIndex(item.idx);
+                    if (!noFileMode && raw !== "?" && Number(raw) === 0 && LEVEL_UNKNOWN_IF_ZERO.has(item.name)) {
+                        return "?";
+                    }
+                    if (!noFileMode && Object.prototype.hasOwnProperty.call(LEVEL_FORCE_OVERRIDES, item.name)) {
+                        return LEVEL_FORCE_OVERRIDES[item.name];
+                    }
+                    const fixed = noFileMode ? undefined : LEVEL_FIXUPS[item.name];
+                    if (fixed !== undefined && raw !== "?" && Number(raw) === 0) return fixed;
+                    return raw;
+                })(),
+                progress: readProgressByResearchIndex(
+                    (item.progressIdx !== undefined && item.progressIdx !== null)
+                        ? item.progressIdx
+                        : (item.idx === null || item.idx === undefined ? null : (item.idx + 30))
+                )
+            }));
+        }
+
+        const currentLabSpeedLevel = Number(readByRelativeIndex(6));
+        CURRENT_LAB_SPEED_LEVEL_FROM_FILE = Number.isFinite(currentLabSpeedLevel) ? currentLabSpeedLevel : 0;
+        syncLabSpeedSelect(currentLabSpeedLevel);
+        const currentLabCoinDiscountLevel = Number(readByRelativeIndex(5));
+        CURRENT_LAB_COIN_DISCOUNT_LEVEL_FROM_FILE = Number.isFinite(currentLabCoinDiscountLevel) ? currentLabCoinDiscountLevel : 0;
+        syncLabCoinDiscountSelect(currentLabCoinDiscountLevel);
+
+        function isCompletedItem(item) {
+            const maxLevel = MAX_LEVELS[item.name];
+            if (maxLevel === undefined) return false;
+            const parsed = Number(item.value);
+            const isUnknown = !Number.isFinite(parsed) || item.value === "?";
+            let level = isUnknown ? 0 : Math.floor(parsed);
+            const ov = Number(LEVEL_EDIT_OVERRIDES[item.name]);
+            if (!!LEVEL_EDIT_MODIFIED[item.name] && Number.isFinite(ov)) level = Math.max(0, Math.min(Number(maxLevel) || 0, Math.floor(ov)));
+            return level >= maxLevel;
+        }
+
+        let completedCount = 0;
+        const sectionData = SECTION_LAYOUT.map(section => {
+            const items = readSectionFromMap(section.items);
+            for (const item of items) {
+                if (item.name.includes("(Reserved") || item.name.includes("(Unknown")) continue;
+                if (isCompletedItem(item)) completedCount += 1;
+            }
+            return { title: section.title, items };
+        });
+        updateCompletedStats(completedCount);
+        REMAIN_CALC_SECTION_ITEMS = {};
+        REMAIN_CALC_LEVEL_INFO = {};
+        CURRENT_BASE_LEVELS = {};
+        const calcRemainingByName = new Map();
+
+        function buildSectionHtml(title, items, extraItems = []) {
+            const speedMultiplier = getEffectiveTimeSpeedMultiplier();
+            const hideCompleted = !!document.getElementById("hide-completed")?.checked;
+            const sortByRemainTime = !!document.getElementById("sort-by-remaining-time")?.checked;
+            const sortByRank = !!document.getElementById("sort-by-rank")?.checked;
+            const titleText = SECTION_KO_MAP[title] ? `${SECTION_KO_MAP[title]} (${title})` : title;
+            const mergedItems = items.concat(extraItems);
+            const sortedItems = (sortByRemainTime || sortByRank)
+                ? [...mergedItems].sort((a, b) => {
+                    if (sortByRank) {
+                        const ka = getRankSortKey(getResearchRankInfo(a.name));
+                        const kb = getRankSortKey(getResearchRankInfo(b.name));
+                        if (ka !== kb) return ka - kb;
+                    }
+                    if (sortByRemainTime) {
+                        const maxA = MAX_LEVELS[a.name];
+                        const maxB = MAX_LEVELS[b.name];
+                        const baseA = Number(a.value);
+                        const baseB = Number(b.value);
+                        const isUnknownA = !Number.isFinite(baseA) || a.value === "?";
+                        const isUnknownB = !Number.isFinite(baseB) || b.value === "?";
+                        const ovA = Number(LEVEL_EDIT_OVERRIDES[a.name]);
+                        const ovB = Number(LEVEL_EDIT_OVERRIDES[b.name]);
+                        const hasOverrideA = (maxA !== undefined && !!LEVEL_EDIT_MODIFIED[a.name] && Number.isFinite(ovA));
+                        const hasOverrideB = (maxB !== undefined && !!LEVEL_EDIT_MODIFIED[b.name] && Number.isFinite(ovB));
+                        const levelA = (maxA !== undefined && hasOverrideA)
+                            ? (() => {
+                                const raw = Number.isFinite(ovA) ? ovA : (isUnknownA ? 0 : baseA);
+                                return Math.max(0, Math.min(Number(maxA) || 0, Math.floor(raw)));
+                            })()
+                            : (isUnknownA ? 0 : baseA);
+                        const levelB = (maxB !== undefined && hasOverrideB)
+                            ? (() => {
+                                const raw = Number.isFinite(ovB) ? ovB : (isUnknownB ? 0 : baseB);
+                                return Math.max(0, Math.min(Number(maxB) || 0, Math.floor(raw)));
+                            })()
+                            : (isUnknownB ? 0 : baseB);
+                        const progressA = hasOverrideA ? 0 : (Number(a.progress) || 0);
+                        const progressB = hasOverrideB ? 0 : (Number(b.progress) || 0);
+                        const ra = (maxA !== undefined && Number.isFinite(levelA))
+                            ? calculateRawRemainingSeconds(a.name, levelA, Number(maxA), progressA)
+                            : null;
+                        const rb = (maxB !== undefined && Number.isFinite(levelB))
+                            ? calculateRawRemainingSeconds(b.name, levelB, Number(maxB), progressB)
+                            : null;
+                        const sa = ra === null ? Number.POSITIVE_INFINITY : ra;
+                        const sb = rb === null ? Number.POSITIVE_INFINITY : rb;
+                        if (sa !== sb) return sa - sb;
+                    }
+                    return String(a.name).localeCompare(String(b.name));
+                })
+                : mergedItems;
+            const calcEligibleNames = [];
+            const renderedRows = [];
+            sortedItems.forEach(item => {
+                if (item.name.includes("(Reserved") || item.name.includes("(Unknown")) return;
+                if (!isResearchMatchedBySearch(item.name)) return;
+                const maxLevel = MAX_LEVELS[item.name];
+                const parsedLevel = Number(item.value);
+                const isUnknownLevel = !Number.isFinite(parsedLevel) || item.value === "?";
+                const baseLevel = isUnknownLevel ? 0 : parsedLevel;
+                CURRENT_BASE_LEVELS[item.name] = (hasDataView && isUnknownLevel) ? null : baseLevel;
+                let effectiveLevel = baseLevel;
+                const ovLevel = Number(LEVEL_EDIT_OVERRIDES[item.name]);
+                const hasLevelOverride = (maxLevel !== undefined && !!LEVEL_EDIT_MODIFIED[item.name] && Number.isFinite(ovLevel));
+                if (maxLevel !== undefined && hasLevelOverride) {
+                    const maxLv = Number(maxLevel) || 0;
+                    const raw = Number.isFinite(ovLevel) ? ovLevel : baseLevel;
+                    effectiveLevel = Math.max(0, Math.min(maxLv, Math.floor(raw)));
+                }
+                const effectiveProgress = hasLevelOverride ? 0 : (Number(item.progress) || 0);
+                let displayValue = item.value, progressText = "", isMaxed = false;
+                if (maxLevel !== undefined && Number.isFinite(effectiveLevel)) {
+                    if (effectiveLevel >= maxLevel) isMaxed = true;
+                }
+                if (hideCompleted && isMaxed) return;
+                if (!hasLevelOverride && !isUnknownLevel && !isMaxed && Number.isFinite(effectiveLevel) && !isNaN(item.progress) && item.progress > 0.001 && item.progress <= 100) {
+                    progressText = ` (${item.progress.toFixed(2)}%)`;
+                }
+                if (maxLevel !== undefined && isUnknownLevel && !hasLevelOverride) {
+                    displayValue = `? / ${maxLevel}`;
+                } else if (maxLevel !== undefined && Number.isFinite(effectiveLevel)) {
+                    displayValue = `${effectiveLevel}${progressText} / ${maxLevel}`;
+                } else if (progressText) {
+                    displayValue = `${item.value}${progressText}`;
+                }
+                const levelEditSelectHtml = (LEVEL_EDIT_ENABLED && maxLevel !== undefined)
+                    ? (() => {
+                        const modifiedClass = (effectiveLevel !== baseLevel) ? " select-modified" : "";
+                        const opts = [];
+                        for (let lv = 0; lv <= Number(maxLevel); lv++) {
+                            opts.push(`<option value="${lv}" ${lv === effectiveLevel ? "selected" : ""}>Lv ${lv}</option>`);
+                        }
+                        return `<select class="level-edit-select${modifiedClass}" data-research-name="${escapeAttr(item.name)}">${opts.join("")}</select>`;
+                    })()
+                    : "";
+                let etaHtml = "";
+                if (maxLevel !== undefined && isUnknownLevel) {
+                    const rawRemainingUnknown = calculateRawRemainingSeconds(
+                        item.name,
+                        effectiveLevel,
+                        Number(maxLevel),
+                        effectiveProgress
+                    );
+                    if (rawRemainingUnknown === null) {
+                        etaHtml = `<div class="research-eta"><span class="eta-left">남은시간: ?</span>${levelEditSelectHtml}</div>`;
+                    } else if (rawRemainingUnknown === 0) {
+                        etaHtml = LEVEL_EDIT_ENABLED ? `<div class="research-eta"><span class="eta-left">남은시간: 완료</span>${levelEditSelectHtml}</div>` : "";
+                    } else {
+                        const adjusted = rawRemainingUnknown / speedMultiplier;
+                        const adjustedText = formatDuration(adjusted);
+                        const baseText = formatDuration(rawRemainingUnknown);
+                        etaHtml = `<div class="research-eta"><span class="eta-left">남은시간: ${adjustedText} <span class="research-eta-base">(${baseText})</span></span>${levelEditSelectHtml}</div>`;
+                    }
+                    const adjustedSec = rawRemainingUnknown === null ? null : (rawRemainingUnknown / speedMultiplier);
+                    calcRemainingByName.set(item.name, adjustedSec);
+                } else if (maxLevel !== undefined && Number.isFinite(effectiveLevel)) {
+                    const rawRemaining = calculateRawRemainingSeconds(
+                        item.name,
+                        effectiveLevel,
+                        Number(maxLevel),
+                        effectiveProgress
+                    );
+                    if (rawRemaining === 0) {
+                        etaHtml = LEVEL_EDIT_ENABLED ? `<div class="research-eta"><span class="eta-left">남은시간: 완료</span>${levelEditSelectHtml}</div>` : "";
+                    } else if (rawRemaining === null) {
+                        etaHtml = `<div class="research-eta"><span class="eta-left">남은시간: ?</span>${levelEditSelectHtml}</div>`;
+                    } else {
+                        const adjusted = rawRemaining / speedMultiplier;
+                        const adjustedText = formatDuration(adjusted);
+                        const baseText = formatDuration(rawRemaining);
+                        etaHtml = `<div class="research-eta"><span class="eta-left">남은시간: ${adjustedText} <span class="research-eta-base">(${baseText})</span></span>${levelEditSelectHtml}</div>`;
+                    }
+                    const adjustedSec = rawRemaining === null ? null : (rawRemaining / speedMultiplier);
+                    calcRemainingByName.set(item.name, adjustedSec);
+                } else {
+                    calcRemainingByName.set(item.name, null);
+                }
+                const nameClass = isMaxed ? "research-name maxed" : "research-name";
+                const valueClass = getValueClass(item, isMaxed);
+                const rankStrip = buildRankStripHtml(item.name);
+                const unfinished = !!(maxLevel !== undefined && !isMaxed);
+                if (unfinished) calcEligibleNames.push(item.name);
+                const checked = !!REMAIN_CALC_SELECTED[item.name];
+                const nextLevelForCalc = unfinished
+                    ? Math.max(1, Math.min(Number(maxLevel) || 1, isUnknownLevel ? 1 : (effectiveLevel + 1)))
+                    : null;
+                let targetLevelForCalc = Number(REMAIN_CALC_TARGET_LEVELS[item.name]);
+                if (!Number.isFinite(targetLevelForCalc) || targetLevelForCalc < (nextLevelForCalc || 1) || targetLevelForCalc > (Number(maxLevel) || 0)) {
+                    targetLevelForCalc = Number(maxLevel) || 0;
+                }
+                if (unfinished && Number.isFinite(targetLevelForCalc) && targetLevelForCalc > 0) {
+                    REMAIN_CALC_TARGET_LEVELS[item.name] = targetLevelForCalc;
+                }
+                if (unfinished) {
+                    const currentLvForCalc = effectiveLevel;
+                    REMAIN_CALC_LEVEL_INFO[item.name] = {
+                        current: currentLvForCalc,
+                        target: targetLevelForCalc
+                    };
+                }
+                const calcRawTarget = unfinished
+                    ? calculateRawRemainingSecondsToTarget(
+                        item.name,
+                        effectiveLevel,
+                        Number(maxLevel),
+                        effectiveProgress,
+                        targetLevelForCalc
+                    )
+                    : null;
+                calcRemainingByName.set(item.name, Number.isFinite(calcRawTarget) ? (calcRawTarget / speedMultiplier) : null);
+                let etaWithCalc = etaHtml;
+                if (REMAIN_CALC_ENABLED && unfinished) {
+                    let targetSelectHtml = "";
+                    if (checked && Number.isFinite(nextLevelForCalc) && Number(maxLevel) >= nextLevelForCalc) {
+                        const targetModified = Number.isFinite(targetLevelForCalc) && targetLevelForCalc !== Number(maxLevel);
+                        const modifiedClass = targetModified ? " select-modified" : "";
+                        const opts = [];
+                        for (let lv = nextLevelForCalc; lv <= Number(maxLevel); lv++) {
+                            opts.push(`<option value="${lv}" ${lv === targetLevelForCalc ? "selected" : ""}>${lv}</option>`);
+                        }
+                        targetSelectHtml = `<select class="calc-target-select${modifiedClass}" data-research-name="${escapeAttr(item.name)}">${opts.join("")}</select>`;
+                    }
+                    const cb = `<span class="calc-inline-box"><input class="calc-item-checkbox" data-research-name="${escapeAttr(item.name)}" type="checkbox" style="accent-color:#4fc3f7;" ${checked ? "checked" : ""} />${targetSelectHtml}</span>`;
+                    if (etaHtml) {
+                        etaWithCalc = etaHtml.replace('<span class="eta-left">', `${cb}<span class="eta-left">`);
+                    } else {
+                        etaWithCalc = `<div class="research-eta">${cb}</div>`;
+                    }
+                }
+                renderedRows.push(`<li class="research-item clickable" data-research-name="${escapeAttr(item.name)}" data-display-value="${escapeAttr(displayValue)}"><div class="research-main-row"><span class="${nameClass}">${rankStrip}${formatNameForList(item.name)}</span><div class="research-value-box"><span class="research-value ${valueClass}">${displayValue}</span></div></div>${etaWithCalc}</li>`);
+            });
+            REMAIN_CALC_SECTION_ITEMS[title] = calcEligibleNames;
+            const allChecked = calcEligibleNames.length > 0 && calcEligibleNames.every(n => !!REMAIN_CALC_SELECTED[n]);
+            const groupToggleHtml = REMAIN_CALC_ENABLED
+                ? `<label class="section-calc-toggle" title="이 그룹의 미완료 연구 전체 선택"><input class="calc-group-checkbox" data-section="${escapeAttr(title)}" type="checkbox" style="accent-color:#4fc3f7;" ${allChecked ? "checked" : ""} /> 전체</label>`
+                : "";
+            let html = `<h2>${groupToggleHtml}${titleText}</h2><ul class="research-list">`;
+            html += renderedRows.join("");
+            html += '</ul>';
+            return html;
+        }
+
+        function renderSection(title, items, extraItems = []) {
+            const card = document.createElement('div');
+            card.className = 'research-card';
+            const html = buildSectionHtml(title, items, extraItems);
+            card.innerHTML = html;
+            resultsContainer.appendChild(card);
+        }
+
+        const perksSection = sectionData.find(s => s.title === "Perks Research");
+        const botsSection = sectionData.find(s => s.title === "Bots");
+
+        function renderPerksBotsColumn() {
+            if (!perksSection && !botsSection) return;
+            const column = document.createElement('div');
+            column.className = 'research-column';
+            if (perksSection) {
+                const perksCard = document.createElement('div');
+                perksCard.className = 'research-card';
+                perksCard.innerHTML = buildSectionHtml(perksSection.title, perksSection.items);
+                column.appendChild(perksCard);
+            }
+            if (botsSection) {
+                const botsCard = document.createElement('div');
+                botsCard.className = 'research-card';
+                botsCard.innerHTML = buildSectionHtml(botsSection.title, botsSection.items);
+                column.appendChild(botsCard);
+            }
+            resultsContainer.appendChild(column);
+        }
+
+        let insertedPerksBots = false;
+        for (const section of sectionData) {
+            if (section.title === "Perks Research" || section.title === "Bots") continue;
+            renderSection(section.title, section.items);
+            if (!insertedPerksBots && section.title === "Cards Research") {
+                renderPerksBotsColumn();
+                insertedPerksBots = true;
+            }
+        }
+        if (!insertedPerksBots) renderPerksBotsColumn();
+        updateResetButtonsVisibility();
+
+        const calcSummaryEl = document.getElementById("calc-summary");
+        if (calcSummaryEl) {
+            if (!REMAIN_CALC_ENABLED) {
+                calcSummaryEl.textContent = "계산기 비활성화";
+            } else {
+                const selectedEntries = Object.entries(REMAIN_CALC_SELECTED).filter(([, v]) => !!v);
+                const selectedNames = selectedEntries.map(([k]) => k);
+                let unknownCount = 0;
+                const knownSecs = [];
+                for (const n of selectedNames) {
+                    const sec = calcRemainingByName.has(n) ? calcRemainingByName.get(n) : null;
+                    if (!Number.isFinite(sec)) unknownCount += 1;
+                    else if (sec > 0) knownSecs.push(sec);
+                }
+                if (!selectedNames.length) {
+                    calcSummaryEl.textContent = "선택된 연구 없음";
+                    REMAIN_CALC_LAST_PLAN = { slots: REMAIN_CALC_SLOTS, slotArr: [], unknown: [], total: 0, selectedCount: 0 };
+                } else {
+                    const plan = buildRemainCalcPlan(selectedNames, calcRemainingByName, REMAIN_CALC_SLOTS);
+                    REMAIN_CALC_LAST_PLAN = plan;
+                    const total = plan.total;
+                    const unknownText = unknownCount > 0 ? `시간 미확인 ${unknownCount}개` : "";
+                    calcSummaryEl.innerHTML = `선택 ${selectedNames.length}개${unknownText ? ` · ${unknownText}` : ""}<br>남은시간: ${escapeHtml(formatDuration(total))}`;
+                }
+            }
+        }
+    }
+</script>
+</body>
+</html>
+
