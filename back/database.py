@@ -25,7 +25,7 @@ DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_SERV
 engine = create_engine(
     DATABASE_URL,
     pool_size=3,         
-    max_overflow=12,     
+    max_overflow=9,     
     pool_recycle=3600,
     pool_pre_ping=True
 )
@@ -42,7 +42,7 @@ DATABASE_URL_READ = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES
 engine_read = create_engine(
     DATABASE_URL_READ,
     pool_size=2,         
-    max_overflow=8,
+    max_overflow=5,
     pool_recycle=3600,
     pool_pre_ping=True
 )
