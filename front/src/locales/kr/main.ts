@@ -34,6 +34,7 @@ export const MAIN = {
   WIDGET: {
     TITLE: "최고 웨이브", // 기존
     NO_RECORD: "기록 없음",     // 기존
+    LAB_LINK: "연구실 (Laboratory)",
     // [New]
     TOGGLE_ON: "최고 기록 위젯 켜기",
     TOGGLE_OFF: "위젯 끄기",

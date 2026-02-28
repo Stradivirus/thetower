@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getGlobalMaxWaves, type TierRecord } from '../../api/stats';
-import { ChevronDown, ChevronUp, Settings, X, Trophy, Info } from 'lucide-react'; 
+import { ChevronDown, ChevronUp, Settings, X, Trophy, Info, ExternalLink } from 'lucide-react'; 
 import { T } from '../../locales'; 
 
 // 로컬 스토리지 키 상수 정의
@@ -95,9 +95,22 @@ const TierRecordWidget: React.FC = () => {
   const filteredRecords = safeRecords.filter(r => r.tier >= minTier && r.tier <= maxTier);
 
   return (
-    <div className="fixed right-6 top-24 w-64 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-2xl z-40 transition-all">
-      {/* 위젯 헤더 */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-700">
+    <div className="fixed right-6 top-24 w-64 z-40 flex flex-col gap-2">
+      {/* Lab Link */}
+      <a 
+        href="https://td-lab.pages.dev" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="flex items-center justify-between px-4 py-3 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg hover:border-blue-500/50 hover:bg-blue-500/10 text-blue-400 transition-all group"
+      >
+        <span className="text-sm font-bold tracking-tight">{Text.LAB_LINK}</span>
+        <ExternalLink size={16} className="opacity-50 group-hover:opacity-100 transition-all" />
+      </a>
+
+      {/* 메인 위젯 */}
+      <div className="bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-lg shadow-2xl overflow-hidden transition-all">
+        {/* 위젯 헤더 */}
+        <div className="flex items-center justify-between p-3 border-b border-gray-700">
         <div className="flex items-center gap-2">
           <Trophy size={18} className="text-yellow-400" />
           <span className="text-yellow-400 font-bold">{Text.TITLE}</span>
@@ -198,6 +211,7 @@ const TierRecordWidget: React.FC = () => {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 };

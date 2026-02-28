@@ -27,6 +27,7 @@ export const MAIN = {
   WIDGET: {
     TITLE: "Tier Max Waves",
     NO_RECORD: "No Records",
+    LAB_LINK: "Laboratory",
     MAX_WAVE: "Max Wave",
     TOGGLE_ON: "Show Widget",
     TOGGLE_OFF: "Hide Widget",
