@@ -12,6 +12,7 @@ import ModuleColumn from '../components/Modules/ModuleColumn';
 import ModuleHeader from '../components/Modules/ModuleHeader';
 import ModuleRerollView from '../components/Modules/RerollPanel';
 import ModuleDetailModal from '../components/Modules/ModuleDetailModal';
+import moduleImg from '../images/module.webp';
 
 /** 
  * [헬퍼] 클라이언트의 모듈 상태를 서버 저장용 JSON 포맷으로 변환합니다.
@@ -40,8 +41,8 @@ export default function ModulesInfoPage() {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // 뷰 모드 상태: 장착중 / 인벤토리 / 리롤 시뮬레이터
-  const [viewMode, setViewMode] = useState<'equipped' | 'inventory' | 'reroll'>('equipped');
+  // 뷰 모드 상태: 장착중 / 인벤토리 / 리롤 시뮬레이터 / 정보
+  const [viewMode, setViewMode] = useState<'equipped' | 'inventory' | 'reroll' | 'info'>('equipped');
 
   // 상세 모달 상태
   const [detailModal, setDetailModal] = useState<{
@@ -235,6 +236,17 @@ export default function ModulesInfoPage() {
       {viewMode === 'reroll' ? (
         <div className="mt-4">
           <ModuleRerollView />
+        </div>
+      ) : viewMode === 'info' ? (
+        <div className="mt-4 flex flex-col items-center">
+          <div className="w-full max-w-4xl bg-slate-900/50 rounded-2xl border border-slate-800 p-6 overflow-hidden">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+              Module Guide
+            </h2>
+            <div className="flex justify-center">
+              <img src={moduleImg} alt="Module Info" className="max-w-full h-auto rounded-lg shadow-2xl" />
+            </div>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mt-4 items-start">

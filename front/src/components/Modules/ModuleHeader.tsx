@@ -3,14 +3,14 @@
  * 용도: 모듈 관리 페이지 상단 컨트롤 바
  * 기능: 장착/인벤토리/리롤 탭 전환, 변경 사항 저장 및 요약 버튼 제공, 스티키 헤더 적용
  */
-import { List, Layers, Box, Dices } from 'lucide-react';
+import { List, Layers, Box, Dices, Info } from 'lucide-react';
 
 interface Props {
   handleSave: () => void;                                // 저장 버튼 클릭 핸들러
   isChanged: boolean;                                    // 변경 사항 존재 여부
   token: string | null;                                  // 로그인 토큰 (버튼 활성화 여부 결정)
-  viewMode: 'equipped' | 'inventory' | 'reroll';         // 현재 선택된 뷰 모드
-  setViewMode: (mode: 'equipped' | 'inventory' | 'reroll') => void; // 모드 변경 함수
+  viewMode: 'equipped' | 'inventory' | 'reroll' | 'info';         // 현재 선택된 뷰 모드
+  setViewMode: (mode: 'equipped' | 'inventory' | 'reroll' | 'info') => void; // 모드 변경 함수
 }
 
 export default function ModuleHeader({ 
@@ -22,6 +22,17 @@ export default function ModuleHeader({
       
       {/* 탭 전환 버튼 그룹 */}
       <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800">
+        {/* 정보 탭 */}
+        <button
+          onClick={() => setViewMode('info')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+            viewMode === 'info' 
+              ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-sm' 
+              : 'text-slate-500 hover:text-slate-300'
+          }`}
+        >
+          <Info size={16} /> Info
+        </button>
         {/* 장착 정보 탭 */}
         <button
           onClick={() => setViewMode('equipped')}
