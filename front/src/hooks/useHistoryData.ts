@@ -96,10 +96,12 @@ export function useHistoryData() {
   const recentGroup = useMemo((): MonthlyGroup | null => {
     if (tournamentFilter !== 'all' || onlyMemo || tierFilter || viewMode === 'list') return null;
     
-    const now = new Date();
-    const oneWeekAgo = new Date(now);
-    oneWeekAgo.setDate(now.getDate() - 7);
-    const recent = filteredReports.filter(r => new Date(r.battle_date) >= oneWeekAgo);
+    // 오늘 포함 7일 전 00:00:00 설정 (예: 21일이면 15일 00시부터)
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    startDate.setDate(startDate.getDate() - 6); 
+    
+    const recent = filteredReports.filter(r => new Date(r.battle_date) >= startDate);
     
     if (recent.length === 0) return null;
 
