@@ -25,6 +25,8 @@ export interface MonthlyGroup {
     total_coins: number;
     total_cells: number;
     total_shards: number;
+    avg_coins_per_game: number;
+    avg_coins_per_day: number;
   };
 }
 
@@ -146,16 +148,24 @@ export default function HistoryPage() {
   const monthlyGroups = useMemo(() => {
     if (viewMode === 'list') return [];
 
-    const groups: Record<string, MonthlyGroup> = {};
+    const groups: Record<string, { 
+        monthKey: string, 
+        reports: BattleMain[], 
+        summary: { count: number, total_coins: number, total_cells: number, total_shards: number },
+        uniqueDays: Set<string>
+    }> = {};
+
     filteredReports.forEach(report => {
       const date = new Date(report.battle_date);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const dayKey = report.battle_date.split('T')[0];
 
       if (!groups[monthKey]) {
         groups[monthKey] = {
           monthKey,
           reports: [],
-          summary: { count: 0, total_coins: 0, total_cells: 0, total_shards: 0 }
+          summary: { count: 0, total_coins: 0, total_cells: 0, total_shards: 0 },
+          uniqueDays: new Set()
         };
       }
       groups[monthKey].reports.push(report);
@@ -163,8 +173,18 @@ export default function HistoryPage() {
       groups[monthKey].summary.total_coins += report.coin_earned;
       groups[monthKey].summary.total_cells += report.cells_earned;
       groups[monthKey].summary.total_shards += report.reroll_shards_earned;
+      groups[monthKey].uniqueDays.add(dayKey);
     });
-    return Object.values(groups).sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+
+    return Object.values(groups).map(group => ({
+        monthKey: group.monthKey,
+        reports: group.reports,
+        summary: {
+            ...group.summary,
+            avg_coins_per_game: Math.round(group.summary.total_coins / group.summary.count),
+            avg_coins_per_day: Math.round(group.summary.total_coins / group.uniqueDays.size)
+        }
+    })).sort((a, b) => b.monthKey.localeCompare(a.monthKey));
   }, [filteredReports, viewMode]);
 
   const totalCount = filteredReports.length;

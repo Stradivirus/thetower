@@ -17,6 +17,8 @@ interface MonthlyGroup {
     total_coins: number;
     total_cells: number;
     total_shards: number;
+    avg_coins_per_game: number;
+    avg_coins_per_day: number;
   };
 }
 
@@ -55,21 +57,34 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
         </div>
       </div>
 
-      <div className="flex items-center justify-between border-t border-slate-800/50 pt-2 px-1">
-        <div className="flex items-center gap-1.5">
-           <Coins size={14} className="text-yellow-500"/>
-           <span className="text-yellow-400 font-mono font-bold text-base">{formatNumber(group.summary.total_coins)}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-           <Zap size={14} className="text-cyan-400"/>
-           <span className="text-cyan-400 font-mono font-bold text-base">{formatNumber(group.summary.total_cells)}</span>
-        </div>
-        {group.summary.total_shards > 0 && (
+      <div className="flex flex-col gap-2 border-t border-slate-800/50 pt-2 px-1">
+        <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Layers size={14} className="text-green-500"/>
-              <span className="text-green-400 font-mono font-bold text-base">{formatNumber(group.summary.total_shards)}</span>
+            <Coins size={14} className="text-yellow-500"/>
+            <span className="text-yellow-400 font-mono font-bold text-lg">{formatNumber(group.summary.total_coins)}</span>
             </div>
-        )}
+            <div className="flex items-center gap-1.5">
+            <Zap size={14} className="text-cyan-400"/>
+            <span className="text-cyan-400 font-mono font-bold text-base">{formatNumber(group.summary.total_cells)}</span>
+            </div>
+            {group.summary.total_shards > 0 && (
+                <div className="flex items-center gap-1.5">
+                <Layers size={14} className="text-green-500"/>
+                <span className="text-green-400 font-mono font-bold text-base">{formatNumber(group.summary.total_shards)}</span>
+                </div>
+            )}
+        </div>
+        
+        <div className="flex items-center gap-3 text-[10px] text-slate-500 border-t border-slate-800/30 pt-1 mt-0.5">
+            <div className="flex items-center gap-1">
+                <span>{Text.AVG_PER_GAME}</span>
+                <span className="text-slate-400 font-mono">{formatNumber(group.summary.avg_coins_per_game)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+                <span>{Text.AVG_PER_DAY}</span>
+                <span className="text-slate-400 font-mono">{formatNumber(group.summary.avg_coins_per_day)}</span>
+            </div>
+        </div>
       </div>
     </div>
   );
@@ -91,16 +106,16 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
               <div className="h-4 w-px bg-slate-800"></div>
 
               <div className="flex items-center gap-4 text-sm">
-                 <span className="flex items-center gap-1.5" title="Coins">
+                 <span className="flex items-center gap-1.5" title="Total Coins">
                     <Coins size={14} className="text-yellow-500"/>
-                    <span className="text-yellow-400 font-mono font-bold">{formatNumber(group.summary.total_coins)}</span>
+                    <span className="text-yellow-400 font-mono font-bold text-base">{formatNumber(group.summary.total_coins)}</span>
                  </span>
-                 <span className="flex items-center gap-1.5" title="Cells">
+                 <span className="flex items-center gap-1.5" title="Total Cells">
                     <Zap size={14} className="text-cyan-400"/>
                     <span className="text-cyan-400 font-mono font-bold">{formatNumber(group.summary.total_cells)}</span>
                  </span>
                  {group.summary.total_shards > 0 && (
-                     <span className="flex items-center gap-1.5" title="Reroll Shards">
+                     <span className="flex items-center gap-1.5" title="Total Reroll Shards">
                         <Layers size={14} className="text-green-500"/>
                         <span className="text-green-400 font-mono font-bold">{formatNumber(group.summary.total_shards)}</span>
                      </span>
@@ -109,8 +124,21 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
            </div>
        </div>
 
-       <div className="text-slate-500 ml-2 group-hover:text-white transition-colors">
-          {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+       <div className="flex items-center gap-6 ml-auto mr-4">
+          <div className="flex items-center gap-5 text-sm">
+             <div className="flex items-center gap-1.5">
+                <span className="text-yellow-500/50 font-medium text-xs">{Text.AVG_PER_DAY}</span>
+                <span className="text-yellow-400 font-mono font-bold">{formatNumber(group.summary.avg_coins_per_day)}</span>
+             </div>
+             <div className="flex items-center gap-1.5">
+                <span className="text-yellow-500/50 font-medium text-xs">{Text.AVG_PER_GAME}</span>
+                <span className="text-yellow-400 font-mono font-bold">{formatNumber(group.summary.avg_coins_per_game)}</span>
+             </div>
+          </div>
+
+          <div className="text-slate-500 group-hover:text-white transition-colors">
+            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          </div>
        </div>
     </div>
   );

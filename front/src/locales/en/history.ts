@@ -43,5 +43,7 @@ export const HISTORY = {
     FORMAT_YEAR: "",
     FORMAT_MONTH: "",
     GAMES: "Games",
+    AVG_PER_GAME: "Per Game",
+    AVG_PER_DAY: "Daily Avg",
   }
 };

@@ -44,5 +44,7 @@ export const HISTORY = {
     FORMAT_YEAR: "년",
     FORMAT_MONTH: "월",
     GAMES: "Games",
+    AVG_PER_GAME: "게임당",
+    AVG_PER_DAY: "일평균",
   }
 };
