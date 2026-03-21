@@ -3,24 +3,11 @@
  * 용도: 히스토리 페이지에서 월별로 그룹화된 리포트 카드 표시
  * 기능: 월별 요약 통계(게임 수, 코인, 셀, 리롤) 표시 및 리포트 리스트 확장/축소 토글
  */
-import { Calendar, ChevronDown, ChevronUp, Zap, Coins, Layers } from 'lucide-react';
-import type { BattleMain } from '../../types/report';
+import { Calendar, ChevronDown, ChevronUp, Zap, Coins, Layers, Clock } from 'lucide-react';
+import type { MonthlyGroup } from '../../types/history';
 import { formatNumber } from '../../utils/format';
 import ReportList from '../Main/ReportList';
 import { T } from '../../locales'; 
-
-interface MonthlyGroup {
-  monthKey: string;      // "YYYY-MM" 형식의 키
-  reports: BattleMain[]; // 해당 월의 리포트 목록
-  summary: {
-    count: number;
-    total_coins: number;
-    total_cells: number;
-    total_shards: number;
-    avg_coins_per_game: number;
-    avg_coins_per_day: number;
-  };
-}
 
 interface Props {
   group: MonthlyGroup;
@@ -31,19 +18,23 @@ interface Props {
 
 export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelectReport }: Props) {
   const Text = T.history.MONTH_GROUP;
+  const SectionText = T.history.SECTION;
 
   /** 월 키를 읽기 쉬운 한글 형식으로 변환 */
   const formatMonthKey = (monthKey: string) => {
+    if (monthKey === 'recent') return SectionText.RECENT_7DAYS;
     const [year, month] = monthKey.split('-');
     return `${year}${Text.FORMAT_YEAR} ${parseInt(month)}${Text.FORMAT_MONTH}`;
   };
+
+  const isRecent = group.monthKey === 'recent';
 
   /** 모바일 전용 헤더 레이아웃 (세로형 요약) */
   const MobileHeader = () => (
     <div className="md:hidden w-full flex flex-col gap-3">
       <div className="flex items-center justify-between">
-        <span className="text-white font-bold text-lg flex items-center gap-2">
-          <Calendar size={18} className="text-slate-500" />
+        <span className={`font-bold text-lg flex items-center gap-2 ${isRecent ? 'text-blue-400' : 'text-white'}`}>
+          {isRecent ? <Clock size={18} /> : <Calendar size={18} className="text-slate-500" />}
           {formatMonthKey(group.monthKey)}
         </span>
         
@@ -93,8 +84,8 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
   const DesktopHeader = () => (
     <div className="hidden md:flex w-full items-center justify-between">
        <div className="flex items-center gap-6">
-           <span className="text-white font-bold text-lg flex items-center gap-2 min-w-[120px]">
-              <Calendar size={18} className="text-slate-500" />
+           <span className={`font-bold text-lg flex items-center gap-2 min-w-[120px] ${isRecent ? 'text-blue-400' : 'text-white'}`}>
+              {isRecent ? <Clock size={18} /> : <Calendar size={18} className="text-slate-500" />}
               {formatMonthKey(group.monthKey)}
            </span>
 
@@ -148,7 +139,11 @@ export default function HistoryMonthGroup({ group, isExpanded, onToggle, onSelec
       {/* 월별 요약 버튼 (클릭 시 토글) */}
       <button
         onClick={() => onToggle(group.monthKey)}
-        className="w-full bg-slate-900/50 hover:bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 transition-all group"
+        className={`w-full border rounded-xl px-4 py-3 transition-all group ${
+            isRecent 
+            ? 'bg-blue-500/5 hover:bg-blue-500/10 border-blue-500/20 hover:border-blue-500/40' 
+            : 'bg-slate-900/50 hover:bg-slate-900 border-slate-800'
+        }`}
       >
         <MobileHeader />
         <DesktopHeader />
