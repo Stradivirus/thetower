@@ -4,7 +4,6 @@
  * 기능: MonthlyGroup, TournamentFilterMode 등 데이터 구조 및 타입 인터페이스 제공
  */
 import type { BattleMain } from './report';
-...
 
 /** 
  * 월별 그룹화된 데이터 인터페이스 
