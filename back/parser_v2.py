@@ -2,6 +2,7 @@
 파일명: thetower/back/parser_v2.py
 용도: data2 포맷 전투 리포트 텍스트 파싱 엔진
 기능: V2 섹션 구조 파싱, BattleMainV2 / BattleDetailV2 데이터 생성
+test
 """
 from mappings import (
     KEY_MAP,
