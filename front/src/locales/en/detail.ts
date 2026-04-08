@@ -15,13 +15,18 @@ export const DETAIL = {
   
   HEADER_COMBAT: "Combat Stats",
   HEADER_DEFENSE: "Defense (Taken)",
+  HEADER_TAKEN: "Damage Taken & Regen",
+  HEADER_ABSORBED: "Damage Absorbed",
   HEADER_MISC_DEALER: "Other Dealers",
   HEADER_TOTAL: "Total Damage",
   NO_DATA: "No Main Dealer Data",
   
+  SECTION_RECORDS: "Records",
   SECTION_UTILITY: "Utility",
   SECTION_ENEMY: "Enemy Stats",
   SECTION_BOT: "Bots & Guardians",
+  SECTION_COIN: "Coins",
+  SECTION_CURRENCY: "Currency",
   
   SUB_COIN: "Coin Utility",
   SUB_MISC: "Misc",

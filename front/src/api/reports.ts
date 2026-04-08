@@ -3,7 +3,7 @@
  * 용도: 전투 기록(Battle Report) 및 통계 관련 API 호출 함수 정의
  * 기능: 리포트 생성, 상세 조회, 목록 페이징, 일간/주간/월간 통계 데이터 페칭
  */
-import type { BattleMain, FullReport, HistoryViewResponse } from '../types/report';
+import type { BattleMain, FullReportV2, HistoryViewResponse } from '../types/report';
 import { API_BASE_URL, fetchWithAuth } from '../utils/apiConfig';
 
 const REPORTS_URL = `${API_BASE_URL}/reports`;
@@ -155,7 +155,7 @@ export const getRecentReports = async (): Promise<BattleMain[]> => {
 /** 
  * 특정 시점의 상세 리포트 데이터를 조회합니다.
  */
-export const getFullReport = async (battleDate: string): Promise<FullReport> => {
+export const getFullReport = async (battleDate: string): Promise<FullReportV2> => {
   const response = await fetchWithAuth(`${REPORTS_URL}/${battleDate}`, {
     headers: getAuthHeaders(),
   });

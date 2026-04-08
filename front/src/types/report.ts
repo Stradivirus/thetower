@@ -53,6 +53,45 @@ export interface FullReport {
   detail: BattleDetail;
 }
 
+/**
+ * V2 신규 지표 인터페이스
+ */
+export interface BattleMainV2 {
+  battle_date: string;
+  cells_per_hour?: number;
+  best_coins_per_minute?: number;
+  max_wave_skip?: number;
+  best_skip_coins?: number;
+  best_skip_cells?: number;
+  max_smart_missile_stack?: number;
+  max_golden_combo?: number;
+  best_golden_combo_coins?: number;
+  max_inner_mine_charge?: number;
+}
+
+/**
+ * V2 상세 JSON 데이터 인터페이스
+ */
+export interface BattleDetailV2 {
+  damage_json: Record<string, any>;
+  utility_json: Record<string, any>;
+  stats_json: Record<string, any>;
+  enemy_json: Record<string, any>;
+  coin_json: Record<string, any>;
+  currency_json: Record<string, any>;
+  kill_source_json: Record<string, any>;
+}
+
+/**
+ * V2 통합 리포트 인터페이스
+ */
+export interface FullReportV2 {
+  main: BattleMain;
+  v2_main?: BattleMainV2;
+  detail?: BattleDetail;
+  v2_detail?: BattleDetailV2;
+}
+
 /** 
  * 월별 집계 요약 정보 인터페이스
  */

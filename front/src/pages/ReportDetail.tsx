@@ -1,16 +1,23 @@
 /**
  * 파일명: thetower/front/src/pages/ReportDetail.tsx
  * 용도: 개별 전투 기록의 상세 분석 정보 표시 페이지
- * 기능: 전투 요약 정보, 상세 통계(Utility, Enemy, Bot), 리팩토링된 전투 분석 차트 제공 및 기록 삭제 기능
+ * 기능: 전투 요약 정보, 상세 통계(Utility, Enemy, Bot, Coin, Currency), 전투 분석 차트 제공 및 기록 삭제 기능
+ * 특징: V1 및 V2(data2) 데이터 포맷 모두 지원
  */
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Activity, Skull, Shield, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react';
+import { 
+  ArrowLeft, Activity, Skull, Shield, Clock, FileText, Trash2, AlertTriangle, 
+  Trophy, Coins, Wallet, Landmark 
+} from 'lucide-react';
 import { getFullReport, deleteReport } from '../api/reports';
-import type { FullReport } from '../types/report';
-import { formatDate } from '../utils/format';
+import type { FullReportV2 } from '../types/report';
+import { formatDate, formatNumber } from '../utils/format';
 import CombatAnalysis from '../components/Detail/CombatAnalysis';
 import StatGrid from '../components/Detail/StatGrid';
 import { T } from '../locales'; 
+import { 
+  ENEMY_LEFT_ORDER, ENEMY_RIGHT_ORDER, V2_CURRENCY_KEYS 
+} from '../constants/reportRules';
 
 interface Props {
   battleDate: string; // 조회할 리포트의 날짜 ID
@@ -18,16 +25,16 @@ interface Props {
 }
 
 export default function ReportDetailPage({ battleDate, onBack }: Props) {
-  const [data, setData] = useState<FullReport | null>(null);
+  const [data, setData] = useState<FullReportV2 | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // 삭제 확인 팝업 상태 (위치 및 오픈 여부)
+  // 삭제 확인 팝업 상태
   const [deletePopup, setDeletePopup] = useState<{isOpen: boolean; x: number; y: number;}>({ isOpen: false, x: 0, y: 0 });
 
   const Text = T.detail; 
   const Common = T.common; 
 
-  // 초기 데이터 로드: 상세 리포트 정보 페칭
+  // 초기 데이터 로드
   useEffect(() => {
     getFullReport(battleDate).then(setData).finally(() => setLoading(false));
   }, [battleDate]);
@@ -57,7 +64,24 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
   if (loading) return <div className="text-center text-slate-400 py-20">{Common.LOADING}</div>;
   if (!data) return null;
 
-  const { main, detail } = data;
+  const { main, detail, v2_main, v2_detail } = data;
+
+  // V2 기록(Records) 데이터 변환 (StatGrid용)
+  const getRecordData = () => {
+    if (!v2_main) return null;
+    const records: Record<string, string> = {};
+    records['분당 최고 코인 수'] = formatNumber(v2_main.best_coins_per_minute || 0);
+    records['최대 웨이브 건너뛰기'] = String(v2_main.max_wave_skip || 0);
+    records['웨이브 스킵 코인'] = formatNumber(v2_main.best_skip_coins || 0);
+    records['웨이브 스킵 세포'] = formatNumber(v2_main.best_skip_cells || 0);
+    records['최대 SM 중첩'] = String(v2_main.max_smart_missile_stack || 0);
+    records['최대 골든 콤보'] = String(v2_main.max_golden_combo || 0);
+    records['골든 콤보 코인'] = formatNumber(v2_main.best_golden_combo_coins || 0);
+    records['최대 ILM 충전'] = String(v2_main.max_inner_mine_charge || 0);
+    return records;
+  };
+
+  const recordsData = getRecordData();
 
   return (
     <div className="max-w-7xl mx-auto pb-20 animate-fade-in px-4" onClick={closePopup}>
@@ -83,7 +107,6 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
         </div>
 
         <div className="flex items-start gap-3">
-          {/* 메모 표시 (모바일에서는 숨김) */}
           {main.notes && (
             <div className="hidden md:flex flex-col items-end max-w-md">
                <div className="flex items-start gap-2 bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl text-sm text-slate-300 shadow-sm">
@@ -93,7 +116,6 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
             </div>
           )}
           
-          {/* 삭제 버튼 */}
           <button onClick={handleDeleteClick} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all shadow-sm group" title={Text.DELETE_TITLE}>
             <Trash2 size={20} />
           </button>
@@ -103,14 +125,62 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
       <div className="space-y-6">
         {/* 중앙: 대미지 및 전투 분석 차트 */}
         <div className="w-full">
-            <CombatAnalysis combatJson={detail.combat_json} />
+            <CombatAnalysis 
+                combatJson={detail?.combat_json} 
+                damageJsonV2={v2_detail?.damage_json}
+            />
         </div>
         
-        {/* 하단: 유틸리티, 적, 봇 상세 스탯 그리드 */}
+        {/* 하단: 섹션별 상세 스탯 그리드 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <StatGrid title={Text.SECTION_UTILITY} icon={Activity} color="text-blue-500" data={detail.utility_json} defaultOpen={false} />
-          <StatGrid title={Text.SECTION_ENEMY} icon={Skull} color="text-orange-500" data={detail.enemy_json} defaultOpen={false} />
-          <StatGrid title={Text.SECTION_BOT} icon={Shield} color="text-purple-500" data={detail.bot_json} defaultOpen={false} />
+          {/* 1. 유틸리티 / 기록 */}
+          <div className="space-y-6">
+            {recordsData && (
+               <StatGrid title={Text.SECTION_RECORDS} icon={Trophy} color="text-yellow-500" data={recordsData} />
+            )}
+            <StatGrid 
+                title={Text.SECTION_UTILITY} 
+                icon={Activity} 
+                color="text-blue-500" 
+                data={v2_detail ? v2_detail.utility_json : (detail?.utility_json || {})} 
+                defaultOpen={!!v2_detail} 
+            />
+          </div>
+
+          {/* 2. 적 통계 / 효과 */}
+          <div className="space-y-6">
+            <StatGrid 
+                title={Text.SECTION_ENEMY} 
+                icon={Skull} 
+                color="text-orange-500" 
+                data={v2_detail 
+                    ? { 
+                        ...v2_detail.enemy_json, 
+                        ...(v2_detail.stats_json?.stats || {}),
+                        ...(v2_detail.stats_json?.enemy_hits || {}),
+                        ...(v2_detail.stats_json?.kill_effects || {})
+                      } 
+                    : (detail?.enemy_json || {})} 
+                order={[...ENEMY_LEFT_ORDER, ...ENEMY_RIGHT_ORDER]}
+                defaultOpen={false} 
+            />
+            {v2_detail?.kill_source_json && (
+                <StatGrid title="Destroyed By" icon={Skull} color="text-rose-500" data={v2_detail.kill_source_json} defaultOpen={false} />
+            )}
+          </div>
+
+          {/* 3. 봇 / 화폐 / 코인 */}
+          <div className="space-y-6">
+            {v2_detail ? (
+              <>
+                <StatGrid title={Text.SECTION_COIN} icon={Coins} color="text-amber-500" data={v2_detail.coin_json} />
+                <StatGrid title={Text.SECTION_CURRENCY} icon={Wallet} color="text-emerald-500" data={v2_detail.currency_json} order={V2_CURRENCY_KEYS} />
+                <StatGrid title={Text.SECTION_BOT} icon={Landmark} color="text-purple-500" data={v2_detail.stats_json.kill_effects || {}} defaultOpen={false} />
+              </>
+            ) : (
+                <StatGrid title={Text.SECTION_BOT} icon={Shield} color="text-purple-500" data={detail?.bot_json || {}} defaultOpen={false} />
+            )}
+          </div>
         </div>
       </div>
 

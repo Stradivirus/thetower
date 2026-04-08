@@ -19,14 +19,19 @@ export const DETAIL = {
   // 차트 및 분석 (CombatAnalysis)
   HEADER_COMBAT: "전투 통계",
   HEADER_DEFENSE: "방어 (피격)",
+  HEADER_TAKEN: "받은 대미지 & 재생",
+  HEADER_ABSORBED: "대미지 흡수",
   HEADER_MISC_DEALER: "기타 딜러",
   HEADER_TOTAL: "Total Damage",
   NO_DATA: "주요 딜러 데이터 없음",
   
   // 스탯 그리드 (StatGrid)
+  SECTION_RECORDS: "기록",
   SECTION_UTILITY: "유틸리티",
   SECTION_ENEMY: "적 통계",
   SECTION_BOT: "봇 & 가디언",
+  SECTION_COIN: "코인",
+  SECTION_CURRENCY: "화폐",
   
   SUB_COIN: "Coin Utility",
   SUB_MISC: "Misc",

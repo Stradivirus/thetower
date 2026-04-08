@@ -4,7 +4,7 @@
  * 기능: 섹션별 데이터 필터링(0 제외) 및 정렬, 중요 스탯(적 합계 등) 강조, 접기/펼치기 및 다국어 지원
  */
 import { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { type LucideIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { parseGameNumber } from '../../utils/format';
 import { T } from '../../locales'; 
 import { 
@@ -12,14 +12,16 @@ import {
 } from '../../constants/reportRules'; 
 
 interface StatGridProps {
-  data: Record<string, string | number>; // 섹션별 스탯 데이터 객체
-  icon: any;                             // 타이틀 옆에 표시할 아이콘
+  data: Record<string, any>;             // V1, V2 호환을 위해 any 허용
+  icon: LucideIcon;                      // 타이틀 옆에 표시할 아이콘
   title: string;                         // 섹션 제목
   color: string;                         // 섹션 테마 색상
   defaultOpen?: boolean;                 // 기본 확장 여부
+  v2Sections?: string[];                 // V2 다중 섹션 병합용
+  order?: string[];                      // 커스텀 정렬 배열 (신규 섹션용)
 }
 
-export default function StatGrid({ data, icon: Icon, title, color, defaultOpen = false }: StatGridProps) {
+export default function StatGrid({ data, icon: Icon, title, color, defaultOpen = false, v2Sections, order }: StatGridProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const Text = T.detail; 
 
@@ -28,16 +30,38 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   const isEnemy = title === Text.SECTION_ENEMY; 
   const isBot = title === Text.SECTION_BOT; 
 
+  // --- V2 데이터 병합 로직 ---
+  let displayData: Record<string, any> = {};
+  if (v2Sections) {
+      v2Sections.forEach(sec => {
+          if (data[sec]) Object.assign(displayData, data[sec]);
+      });
+  } else {
+      displayData = data;
+  }
+
   /** 
    * 표시할 유효한 데이터 엔트리 필터링
    * - 내부 필드(_std_), 숨김 설정 필드, 값이 0인 데이터는 제외
    */
-  const entries = Object.entries(data).filter(([key, value]) => {
+  const entries = Object.entries(displayData).filter(([key, value]) => {
     if (key.startsWith('_std_')) return false;
     if (HIDDEN_KEYS.includes(key)) return false;
     if (value === 0 || value === '0' || value === '0.00') return false;
     return true;
   });
+
+  // V2 신규 섹션(Currency 등)을 위한 커스텀 정렬 (기존 분류 섹션이 아닐 때만 적용)
+  if (order && !isUtility && !isEnemy && !isBot) {
+    entries.sort((a, b) => {
+        const idxA = order.indexOf(a[0]);
+        const idxB = order.indexOf(b[0]);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+    });
+  }
 
   // --- [A] 유틸리티 섹션: 코인 관련 항목과 기타 항목으로 분류 ---
   let utilCoinItems: [string, string | number][] = [];
@@ -57,17 +81,19 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   let enemyKillItems: [string, string | number][] = [];
 
   if (isEnemy) {
-    // 처치 관련 스탯 분리
+    // 처치 관련 스탯 분리 (V2 '효과 활성 상태 처치' 키워드 포함)
+    const v2KillKeywords = ['황금 타워', '죽음의 파동', '스포트라이트', '증폭 봇', '황금 봇', '사형 선고'];
+    
     enemyKillItems = entries.filter(([key]) => {
         const lower = key.toLowerCase();
-        const isKillStat = key.includes('파괴') || lower.includes('destroyed') || lower.includes('killed');
+        const isKillStat = key.includes('파괴') || lower.includes('destroyed') || lower.includes('killed') || v2KillKeywords.includes(key);
         if (['파괴 공작원', 'Saboteur', 'Saboteurs'].includes(key)) return false;
         return isKillStat;
     });
     // 스폰/등장 관련 스탯 분리
     const spawnItems = entries.filter(([key]) => {
         const lower = key.toLowerCase();
-        const isKillStat = key.includes('파괴') || lower.includes('destroyed') || lower.includes('killed');
+        const isKillStat = key.includes('파괴') || lower.includes('destroyed') || lower.includes('killed') || v2KillKeywords.includes(key);
         if (['파괴 공작원', 'Saboteur', 'Saboteurs'].includes(key)) return true;
         return !isKillStat;
     });
@@ -160,6 +186,8 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     );
   };
 
+  if (entries.length === 0) return null;
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden transition-all shadow-md h-fit">
       {/* 아코디언 헤더 버튼 */}
@@ -212,7 +240,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
                <div className="flex flex-col">{botRightItems.map(renderItem)}</div>
             </div>
           ) : 
-          /* 4. 기본 그리드 레이아웃 */
+          /* 4. 기본 그리드 레이아웃 (신규 V2 섹션 등) */
           (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-y-4 gap-x-2">{entries.map(renderItem)}</div>
           )}

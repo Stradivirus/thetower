@@ -59,3 +59,22 @@ export const RESOURCE_ORDER = [
   '다시 뽑기 파편', 'Reroll Shards',
   '회수한 코인', 'Coins Fetched'
 ];
+
+// 8. [V2 전용] 섹션 정의
+export const V2_DAMAGE_JSON_SECTIONS = ['damage', 'damage_taken', 'bonus_hp', 'hp_regen', 'damage_block'];
+export const V2_STATS_JSON_SECTIONS = ['enemy_json', 'stats', 'enemy_hits', 'kill_effects'];
+
+// 9. [V2 전용] 화폐 섹션 필터링
+export const V2_CURRENCY_KEYS = [
+  '획득한 셀', 'Cells Earned',
+  '보석', 'Gems',
+  '광고 보석', 'Ad Gems',
+  '메달', 'Medals',
+  '다시 뽑기 파편 획득함', 'Reroll Shards Earned',
+  '대포 파편', 'Cannon Shards',
+  '방어구 파편', 'Armor Shards',
+  '발전기 파편', 'Generator Shards',
+  '코어 파편', 'Core Shards',
+  '일반 모듈', 'Common Modules',
+  '희귀 모듈', 'Rare Modules'
+];
