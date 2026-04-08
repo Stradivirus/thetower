@@ -182,3 +182,53 @@ class TierRecordSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+"""
+기존 schemas.py 하단에 추가할 V2 스키마
+기존 스키마는 그대로 유지
+"""
+
+# =================================================================
+# V2 전투 기록 관련 스키마
+# =================================================================
+
+class BattleMainV2Schema(BaseModel):
+    """BattleMainV2 응답 스키마 - 기록 섹션 및 신규 지표"""
+    battle_date: datetime
+    owner_id: int
+
+    cells_per_hour: Optional[int] = None
+
+    best_coins_per_minute: Optional[int] = None
+    max_wave_skip: Optional[int] = None
+    best_skip_coins: Optional[int] = None
+    best_skip_cells: Optional[int] = None
+    max_smart_missile_stack: Optional[int] = None
+    max_golden_combo: Optional[int] = None
+    best_golden_combo_coins: Optional[int] = None
+    max_inner_mine_charge: Optional[int] = None
+
+    class Config:
+        from_attributes = True
+
+
+class BattleDetailV2Schema(BaseModel):
+    """BattleDetailV2 응답 스키마 - 섹션별 JSON"""
+    damage_json: Dict[str, Any] = {}
+    utility_json: Dict[str, Any] = {}
+    stats_json: Dict[str, Any] = {}
+    enemy_json: Dict[str, Any] = {}
+    coin_json: Dict[str, Any] = {}
+    currency_json: Dict[str, Any] = {}
+    kill_source_json: Dict[str, Any] = {}
+
+    class Config:
+        from_attributes = True
+
+
+class FullReportV2Response(BaseModel):
+    """V2 전투 기록 통합 응답 스키마 (main + v2_main + v2_detail)"""
+    main: BattleMainResponse          # 기존 BattleMain 데이터
+    v2_main: Optional[BattleMainV2Schema] = None      # V2 신규 컬럼 (없으면 V1 데이터)
+    detail: Optional[BattleDetailResponse] = None     # V1 detail (V1 유저)
+    v2_detail: Optional[BattleDetailV2Schema] = None  # V2 detail (V2 유저)

@@ -29,3 +29,5 @@ from .max_wave import (
     get_all_tier_records,
     update_tier_record
 )
+
+from .report_v2 import create_battle_record_v2

@@ -10,6 +10,17 @@ from sqlalchemy.orm import Session
 from crud import max_wave as max_wave_crud
 from mappings import SECTION_MAP, KEY_MAP, EXCLUDE_TOP_DAMAGE
 
+from mappings import (
+    KEY_MAP,
+    SECTION_MAP,
+    V2_LINE_THRESHOLD,
+    SECTION_MAP_V2,
+    KEY_MAP_V2_REPORT,
+    KEY_MAP_V2_RECORDS,
+    DAMAGE_JSON_SECTIONS,
+    STATS_JSON_SECTIONS,
+)
+
 def parse_number(value_str: str):
     """
     게임 특유의 숫자 단위(K, M, B, T 등)를 정수형으로 변환
