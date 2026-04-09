@@ -33,7 +33,7 @@ def _send_to_slack(url: str, payload: dict):
             data=data, 
             headers={"Content-Type": "application/json"}
         )
-        with urllib.request.urlopen(req) as response:
+        with urllib.request.urlopen(req, timeout=10) as response:
             if response.status != 200:
                 print(f"[System] Failed to send Slack: Status {response.status}")
     except Exception as e:

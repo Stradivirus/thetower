@@ -2,7 +2,6 @@
 파일명: thetower/back/parser_v2.py
 용도: data2 포맷 전투 리포트 텍스트 파싱 엔진
 기능: V2 섹션 구조 파싱, BattleMainV2 / BattleDetailV2 데이터 생성
-test
 """
 from mappings import (
     KEY_MAP,
@@ -115,7 +114,7 @@ def parse_battle_report_v2(text: str) -> dict:
 
         # V2는 대미지 섹션이 분리됨
         'damage_dealt': sections['damage'].get('입힌 대미지', sections['damage'].get('Damage dealt', '0')),
-        'damage_taken': sections['damage_taken'].get('타워', '0'),  # 타워 피해를 대표값으로
+        'damage_taken': sections['damage_taken'].get('타워', '0'),
 
         # V2 적 합계
         'total_enemies': parse_number(sections['enemy'].get('적 합계', sections['enemy'].get('Total Enemies', '0'))),
@@ -139,13 +138,13 @@ def parse_battle_report_v2(text: str) -> dict:
         'battle_date': battle_date,
         'cells_per_hour': parse_number(get_repo('시간당 셀', get_repo('Cells per hour', '0'))),
         'best_coins_per_minute': parse_number(get_rec('분당 최고 코인 수', 'Best Coins Per Minute')),
-        'max_wave_skip': int(float(get_rec('최대 웨이브 건너뛰기', 'Max Wave Skip'))),
+        'max_wave_skip': parse_number(get_rec('최대 웨이브 건너뛰기', 'Max Wave Skip')),
         'best_skip_coins': parse_number(get_rec('웨이브 스킵에서 얻은 대부분의 코인', 'Most Coins From Wave Skip')),
-        'best_skip_cells': int(float(get_rec('웨이브 스킵에서 나온 대부분의 세포', 'Most Cells From Wave Skip'))),
-        'max_smart_missile_stack': int(float(get_rec('최대 스마트 미사일 중첩', 'Max Smart Missile Stack'))),
-        'max_golden_combo': int(float(get_rec('최대 골든 콤보', 'Max Golden Combo'))),
+        'best_skip_cells': parse_number(get_rec('웨이브 스킵에서 나온 대부분의 세포', 'Most Cells From Wave Skip')),
+        'max_smart_missile_stack': parse_number(get_rec('최대 스마트 미사일 중첩', 'Max Smart Missile Stack')),
+        'max_golden_combo': parse_number(get_rec('최대 골든 콤보', 'Max Golden Combo')),
         'best_golden_combo_coins': parse_number(get_rec('골든 콤보에서 얻는 대부분의 코인', 'Most Coins From Golden Combo')),
-        'max_inner_mine_charge': int(float(get_rec('최대 내부 지뢰 충전', 'Max Inner Mine Charge'))),
+        'max_inner_mine_charge': parse_number(get_rec('최대 내부 지뢰 충전', 'Max Inner Mine Charge')),
     }
 
     # ── BattleDetailV2 데이터 구성 ──
