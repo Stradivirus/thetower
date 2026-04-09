@@ -12,8 +12,23 @@ export const DETAIL = {
   // 입력 모달 (ReportInputModal)
   INPUT_TITLE: "전투 기록 입력",
   INPUT_PLACEHOLDER: "여기에 전투 기록 텍스트를 붙여넣으세요 (Ctrl+V)...",
+  INPUT_HELP: "엔터키 누르면 바로 입력",
   NOTE_PLACEHOLDER: "메모를 입력하세요 (예: 신규 모듈 테스트)",
   BTN_TOURNAMENT: "토너",
+  
+  // 테스트 섹션
+  LBL_TEST: "테스트",
+  BTN_CARD: "카드",
+  BTN_WORKSHOP: "워크샵",
+  BTN_MODULE: "모듈",
+
+  // 불협화음 섹션
+  LBL_DISSONANT: "불협화음",
+  BTN_ATTACK: "공격",
+  BTN_DEFENSE: "방어",
+  BTN_UTILITY: "유틸",
+  BTN_ULTIMATE: "궁무",
+
   ERR_SAVE_FAIL: "저장 실패",
   
   // 차트 및 분석 (CombatAnalysis)
