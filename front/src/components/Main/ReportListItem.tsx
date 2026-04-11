@@ -22,13 +22,8 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
   const durationHours = parseDurationToHours(report.real_time);
   const cellsPerHour = durationHours > 0 ? report.cells_earned / durationHours : 0;
 
-  // 딜 순위에서 제외할 유틸리티성 키워드
-  const utilityKeywords = ['오브', '블랙홀', '데스 페널티', '안티 큐브'];
-  
-  // 유틸 키워드 제외 후 상위 3개 딜러 추출
-  const mainDamages = (report.top_damages || [])
-    .filter((name: string) => !utilityKeywords.includes(name)) 
-    .slice(0, 3);
+  // 주요 딜러 추출 (백엔드에서 이미 필터링되어 전달됨)
+  const mainDamages = (report.top_damages || []).slice(0, 3);
 
   /** 
    * [1. Mobile View] 세로형 카드 레이아웃

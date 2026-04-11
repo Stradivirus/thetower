@@ -181,18 +181,28 @@ def parse_battle_report_v2(text: str) -> dict:
 def _calculate_top_damages_v2(damage_section: dict) -> list:
     """
     V2 대미지 섹션에서 top_damages 계산
-    V2는 '투사체 대미지' 형태가 아닌 '투사체' 형태로 키가 존재함
-    '입힌 대미지'와 숫자가 아닌 항목은 제외
+    오브, 블랙홀, 가시 등 제외 키워드를 필터링하고 상위 3개 추출
     """
-    EXCLUDE_KEYS = {'입힌 대미지', 'Damage dealt'}
+    # 1. 요약 리스트에서 제외할 키워드들
+    EXCLUDE_LIST = [
+        '입힌 대미지', 'Damage dealt', 
+        '오브', 'Orb', 
+        '블랙홀', 'Black Hole', 
+        '가시', 'Thorns',
+        '타워', 'Tower',
+        '죽음의 광선', 'Death Ray'
+    ]
 
     candidates = []
     for key, val in damage_section.items():
-        if key in EXCLUDE_KEYS:
+        # 2. 제외 목록에 포함되어 있는지 확인 (부분 일치 포함)
+        if any(ex in key for ex in EXCLUDE_LIST):
             continue
+            
         raw_val = parse_number(str(val))
         if raw_val > 0:
             candidates.append({'name': key, 'raw': raw_val})
 
+    # 3. 대미지량 기준 내림차순 정렬 후 상위 3개 반환
     candidates.sort(key=lambda x: x['raw'], reverse=True)
     return [item['name'] for item in candidates[:3]]

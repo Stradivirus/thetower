@@ -100,11 +100,16 @@ export default function CombatAnalysis({ combatJson, damageJsonV2 }: Props) {
   const majorStats: [string, any, number][] = [];
   const minorStats: [string, any][] = [];
 
-  allAttackStats.forEach(([key, value]) => {
+  allAttackStats.forEach(([key, value], idx) => {
     const valNum = parseGameNumber(String(value));
     const percentage = totalDamageVal > 0 ? (valNum / totalDamageVal) * 100 : 0;
-    if (percentage >= 1.0) majorStats.push([key, value, percentage]);
-    else minorStats.push([key, value]);
+    
+    // 상위 3개는 무조건 majorStats에 포함, 그 외에는 1% 이상일 때만 포함
+    if (idx < 3 || percentage >= 1.0) {
+      majorStats.push([key, value, percentage]);
+    } else {
+      minorStats.push([key, value]);
+    }
   });
 
   /** 4. 기타 전투 스탯 및 내림차순 정렬 */
