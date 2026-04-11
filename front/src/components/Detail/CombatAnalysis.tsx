@@ -21,7 +21,7 @@ interface Props {
   totalEnemies?: number;              // V2 전체 적 처치 수
 }
 
-/** 차트 색상 팔레트 (선명하고 구분이 뚜렷한 멀티 컬러 조합) */
+/** 차트 색상 팔레트 */
 const CHART_COLORS = [
   '#f59e0b', '#8b5cf6', '#3b82f6', '#10b981', '#ec4899', 
   '#06b6d4', '#f43f5e', '#a855f7', '#14b8a6', '#f97316'
@@ -96,7 +96,7 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
 
   /** 3. 기타 전투 스탯 (방어 및 공격 제외) */
   const attackKeys = allAttackStats.map(([k]) => k);
-  const miscStats = combatEntries
+  const miscStats = (damageJsonV2 ? Object.entries(combatJson || {}) : combatEntries)
     .filter(([key, val]) => {
         if (key.startsWith('_std_')) return false;
         if (DEFENSE_KEYS.includes(key)) return false;
@@ -114,18 +114,24 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
     : [];
 
   /** 5. 파괴 수단 데이터 가공 (원형 차트용) */
-  const killSourceData = killSourceJson
+  const allKillSourceItems = killSourceJson
     ? Object.entries(killSourceJson)
         .filter(([key, val]) => key !== '기타' && key !== 'Other' && parseGameNumber(String(val)) > 0)
         .sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])))
-        .map(([name, value]) => ({
+        .map(([name, value], index) => ({
             name,
             value: parseGameNumber(String(value)),
-            displayValue: String(value)
+            displayValue: String(value),
+            color: CHART_COLORS[index % CHART_COLORS.length],
+            originalIndex: index
         }))
     : [];
 
-  const totalKills = killSourceData.reduce((sum, item) => sum + item.value, 0);
+  const totalKills = allKillSourceItems.reduce((sum, item) => sum + item.value, 0);
+
+  // 비중에 따른 분리 (5% 기준)
+  const majorKillSources = allKillSourceItems.filter(item => (item.value / totalKills) * 100 >= 5);
+  const minorKillSources = allKillSourceItems.filter(item => (item.value / totalKills) * 100 < 5);
 
   /** [헬퍼] 원형 차트 지시선 라벨 렌더링 - 항상 밝게 표시 */
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, index }: any) => {
@@ -146,6 +152,31 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
       >
         {name}
       </text>
+    );
+  };
+
+  /** [내부 컴포넌트] 리스트 아이템 렌더러 */
+  const KillSourceItem = ({ item, isMajor }: { item: any, isMajor: boolean }) => {
+    const ratio = totalKills > 0 ? (item.value / totalKills) * 100 : 0;
+    const isHovered = activeIndex === item.originalIndex;
+    return (
+        <div 
+            className={`flex flex-col p-2.5 rounded-xl transition-all border ${isHovered ? 'bg-slate-800 border-slate-600 scale-[1.05]' : 'border-transparent hover:bg-slate-800/50'}`}
+            onMouseEnter={() => setActiveIndex(item.originalIndex)}
+            onMouseLeave={() => setActiveIndex(-1)}
+        >
+            <span className="text-[11px] font-black mb-1 truncate uppercase tracking-tight" style={{ color: item.color }}>{item.name}</span>
+            <div className="flex items-baseline justify-between">
+                {isMajor ? (
+                    <>
+                        <span className="text-base font-mono font-bold text-white leading-none">{item.displayValue}</span>
+                        <span className="text-[10px] font-black text-slate-500 font-mono leading-none">{ratio.toFixed(1)}%</span>
+                    </>
+                ) : (
+                    <span className="text-xs font-mono font-bold text-slate-300 leading-none">{item.displayValue}</span>
+                )}
+            </div>
+        </div>
     );
   };
 
@@ -214,37 +245,43 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
       {/* 4. 복합 분석 영역 (Destroyed By [3/4] + Kill Bonuses [1/4]) */}
       <div className="flex flex-col lg:flex-row gap-6 mt-8">
         
-        {/* [좌] Destroyed By 분석 (3/4 영역) */}
-        <div className="lg:w-3/4 bg-slate-950/30 border border-slate-800/50 rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-2 px-1">
+        {/* [좌] Destroyed By 분석 (3/4 영역) - 3컬럼 재배치 */}
+        <div className="lg:w-3/4 bg-slate-950/30 border border-slate-800/50 rounded-2xl p-6 flex flex-col">
+            <div className="flex items-center gap-2 mb-4 px-1">
                 <Skull size={18} className="text-blue-400" />
                 <h4 className="text-base font-black text-blue-400 uppercase tracking-widest">Destroyed By</h4>
             </div>
             
-            <div className="flex flex-col items-center">
-                {/* 상단: 초대형 원형 차트 */}
-                <div className="w-full h-[450px]">
+            <div className="flex flex-col xl:flex-row items-stretch gap-2 flex-1">
+                {/* [좌] Major Sources (5% 이상) */}
+                <div className="w-full xl:w-1/4 flex flex-col gap-2 justify-center py-4">
+                    <div className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mb-2 px-2 border-b border-slate-800/50 pb-1">Major (≥ 5%)</div>
+                    {majorKillSources.map(item => <KillSourceItem key={item.name} item={item} isMajor={true} />)}
+                </div>
+
+                {/* [중] 초대형 원형 차트 */}
+                <div className="w-full xl:w-2/4 h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
-                                data={killSourceData}
+                                data={allKillSourceItems}
                                 cx="50%"
                                 cy="50%"
-                                labelLine={{ stroke: '#64748b', strokeWidth: 2 }}
+                                labelLine={{ stroke: '#475569', strokeWidth: 2 }}
                                 label={renderCustomizedLabel}
-                                outerRadius={140}
-                                innerRadius={90}
+                                outerRadius={120}
+                                innerRadius={75}
                                 dataKey="value"
                                 stroke="none"
                                 onMouseEnter={(_, index) => setActiveIndex(index)}
                                 onMouseLeave={() => setActiveIndex(-1)}
                                 isAnimationActive={false}
                             >
-                                {killSourceData.map((_, index) => (
+                                {allKillSourceItems.map((item, index) => (
                                     <Cell 
                                         key={`cell-${index}`} 
-                                        fill={CHART_COLORS[index % CHART_COLORS.length]} 
-                                        opacity={activeIndex === -1 || activeIndex === index ? 1 : 0.3}
+                                        fill={item.color} 
+                                        opacity={activeIndex === -1 || activeIndex === item.originalIndex ? 1 : 0.3}
                                         style={{ transition: 'opacity 0.2s ease', cursor: 'pointer' }}
                                     />
                                 ))}
@@ -258,30 +295,17 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
                     </ResponsiveContainer>
                 </div>
 
-                {/* 하단: 그리드 목록 (5열 배치) */}
-                <div className="w-full grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4 mt-4 border-t border-slate-800/50 pt-8">
-                    {killSourceData.map((item, index) => {
-                        const ratio = totalKills > 0 ? (item.value / totalKills) * 100 : 0;
-                        const isHovered = activeIndex === index;
-                        const color = CHART_COLORS[index % CHART_COLORS.length];
-                        return (
-                            <div 
-                                key={item.name} 
-                                className={`flex flex-col p-3 rounded-xl transition-all border ${isHovered ? 'bg-slate-800 border-slate-600 scale-[1.05]' : 'border-transparent hover:bg-slate-800/50'}`}
-                                onMouseEnter={() => setActiveIndex(index)}
-                                onMouseLeave={() => setActiveIndex(-1)}
-                            >
-                                <span className="text-[12px] font-black mb-2 truncate uppercase tracking-tight" style={{ color }}>{item.name}</span>
-                                <span className="text-base font-mono font-bold text-white leading-none mb-1">{item.displayValue}</span>
-                                <span className="text-[10px] font-black text-slate-500 font-mono leading-none">{ratio.toFixed(1)}%</span>
-                            </div>
-                        );
-                    })}
+                {/* [우] Minor Sources (5% 미만) */}
+                <div className="w-full xl:w-1/4 flex flex-col gap-2 justify-center py-4">
+                    <div className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mb-2 px-2 border-b border-slate-800/50 pb-1">Minor (&lt; 5%)</div>
+                    <div className="grid grid-cols-1 gap-1 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
+                        {minorKillSources.map(item => <KillSourceItem key={item.name} item={item} isMajor={false} />)}
+                    </div>
                 </div>
             </div>
         </div>
 
-        {/* [우] Kill Bonus 분석 (1/4 영역) */}
+        {/* [우측 끝] Kill Bonus 분석 (1/4 영역) */}
         <div className="lg:w-1/4 bg-slate-950/30 border border-slate-800/50 rounded-2xl p-6 flex flex-col h-full">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
