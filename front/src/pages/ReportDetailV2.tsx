@@ -156,7 +156,9 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, se
             <CombatAnalysis 
                 combatJson={detail?.combat_json} 
                 damageJsonV2={v2_detail?.damage_json} 
+                enemyJson={v2_detail?.enemy_json}
                 killEffects={v2_detail?.stats_json?.kill_effects}
+                killSourceJson={v2_detail?.kill_source_json}
                 totalEnemies={main.total_enemies}
             />
         </div>
@@ -181,9 +183,6 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, se
                 order={[...ENEMY_LEFT_ORDER, ...ENEMY_RIGHT_ORDER]}
                 defaultOpen={false} 
             />
-            {v2_detail?.kill_source_json && (
-                <StatGrid title="Destroyed By" icon={Skull} color="text-rose-500" data={v2_detail.kill_source_json} defaultOpen={false} />
-            )}
           </div>
           <div className="space-y-6">
             <StatGrid title={Text.SECTION_COIN} icon={Coins} color="text-amber-500" data={v2_detail?.coin_json || {}} />

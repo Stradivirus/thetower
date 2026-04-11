@@ -1,11 +1,11 @@
 /**
  * 파일명: thetower/front/src/components/Detail/CombatAnalysis.tsx
  * 용도: 전투 리포트 상세 페이지에서 대미지 및 전투 데이터를 분석하여 시각화
- * 기능: 총 대미지 대비 기여도 계산, 상위 딜러 순위 표시, 기타 전투 스탯 정렬, 처치 효과 분석 포함
+ * 기능: 총 대미지 대비 기여도 계산, 상위 딜러 순위 표시, 처치 수단(Destroyed By), 처치 효과 분석 포함
  */
 import { useState } from 'react';
-import { Sword, ChevronDown, ChevronUp, Zap, Target } from 'lucide-react';
-import { parseGameNumber } from '../../utils/format'; 
+import { Sword, ChevronDown, ChevronUp, Zap, Target, Skull } from 'lucide-react';
+import { parseGameNumber, formatNumber } from '../../utils/format'; 
 import { T } from '../../locales'; 
 import { 
   DEFENSE_KEYS, ATTACK_SPECIFIC_KEYS, RANK_COLORS, DEFAULT_RANK_COLOR 
@@ -16,10 +16,11 @@ interface Props {
   damageJsonV2?: Record<string, any>; // V2 대미지 관련 통합 JSON 데이터
   enemyJson?: Record<string, any>;    // V2 적 통계 데이터 (Fallback용)
   killEffects?: Record<string, any>;  // V2 처치 효과 데이터
+  killSourceJson?: Record<string, any>; // V2 처치 수단 데이터 (Destroyed By)
   totalEnemies?: number;              // V2 전체 적 처치 수
 }
 
-export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, killEffects, totalEnemies }: Props) {
+export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, killEffects, killSourceJson, totalEnemies }: Props) {
   const [showMinors, setShowMinors] = useState(false);
   const Text = T.detail;
 
@@ -55,23 +56,21 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
   /** [헬퍼] 키워드를 통해 공격 관련 스탯인지 확인 */
   const isAttackKey = (key: string) => {
     const lower = key.toLowerCase();
-    if (damageJsonV2 && damageJsonV2.damage?.[key]) {
-        return key !== '입힌 대미지' && key !== 'Damage dealt';
-    }
-    return (key.endsWith(' 대미지') || lower.endsWith(' damage') || ATTACK_SPECIFIC_KEYS.includes(key));
+    if (key === '입힌 대미지' || key === 'Damage dealt') return false;
+    if (DEFENSE_KEYS.includes(key)) return false;
+    
+    return (
+        (damageJsonV2 && damageJsonV2.damage?.[key]) || 
+        key.endsWith(' 대미지') || lower.endsWith(' damage') || 
+        ATTACK_SPECIFIC_KEYS.includes(key) ||
+        key.includes('봇') || lower.includes('bot') || 
+        key.includes('칩') || lower.includes('chip')
+    );
   };
 
   /** 1. 모든 공격 스탯 필터링 및 정렬 */
   const allAttackStats = combatEntries
-    .filter(([key, val]) => {
-      if (DEFENSE_KEYS.includes(key)) return false;
-      if (damageJsonV2) {
-          if (damageJsonV2.damage_taken?.[key] || damageJsonV2.damage_block?.[key]) return false;
-      }
-      if (key === '입힌 대미지' || key === 'Damage dealt') return false; 
-      if (key.includes('광전사') || key.includes('Berserk')) return false;
-      return isAttackKey(key) && isNotEmpty(val);
-    })
+    .filter(([key, val]) => isAttackKey(key) && isNotEmpty(val))
     .sort(sortByValueDesc);
 
   /** 2. 기여도(%)에 따라 주요 딜러와 소수 딜러 분리 */
@@ -82,6 +81,7 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
     const valNum = parseGameNumber(String(value));
     const percentage = totalDamageVal > 0 ? (valNum / totalDamageVal) * 100 : 0;
     
+    // 조건: 상위 3위 안에 들거나 비율이 1.0% 이상인 경우에만 상단에 노출
     if (idx < 3 || percentage >= 1.0) {
       majorStats.push([key, value, percentage]);
     } else {
@@ -89,24 +89,29 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
     }
   });
 
-  /** 3. 기타 전투 스탯 (방어 관련 완전 제외) */
-  const miscStats = (damageJsonV2 ? Object.entries(combatJson || {}) : combatEntries)
+  /** 3. 기타 전투 스탯 (공격 리스트에 포함되지 않은 나머지) */
+  const attackKeys = allAttackStats.map(([k]) => k);
+  const miscStats = combatEntries
     .filter(([key, val]) => {
         if (key.startsWith('_std_')) return false;
-        if (DEFENSE_KEYS.includes(key)) return false;
-        if (damageJsonV2) {
-            if (damageJsonV2.damage_taken?.[key] || damageJsonV2.hp_regen?.[key] || damageJsonV2.damage_block?.[key] || damageJsonV2.bonus_hp?.[key]) return false;
-            if (damageJsonV2.damage?.[key] && isAttackKey(key)) return false;
-        }
         if (key === '입힌 대미지' || key === 'Damage dealt') return false;
-        if (key.includes('광전사') || key.includes('Berserk')) return isNotEmpty(val);
-        return !isAttackKey(key) && isNotEmpty(val);
+        if (DEFENSE_KEYS.includes(key)) return false;
+        if (attackKeys.includes(key)) return false;
+        return isNotEmpty(val);
     })
     .sort(sortByValueDesc);
 
   /** 4. 처치 보너스 데이터 가공 (V2 전용) */
   const killBonusEntries = killEffects 
     ? Object.entries(killEffects).filter(([_key, val]) => {
+        return parseGameNumber(String(val)) > 0;
+      }).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])))
+    : [];
+
+  /** 5. 처치 수단 데이터 가공 (Destroyed By) */
+  const killSourceEntries = killSourceJson
+    ? Object.entries(killSourceJson).filter(([key, val]) => {
+        if (key === '기타' || key === 'Other') return false;
         return parseGameNumber(String(val)) > 0;
       }).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])))
     : [];
@@ -180,9 +185,43 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
         </div>
       )}
 
-      {/* 3. 처치 보너스 분석 (동적 그리드 레이아웃) */}
-      {killBonusEntries.length > 0 && (
+      {/* 3. 처치 수단 분석 (콤팩트 6열 레이아웃) */}
+      {killSourceEntries.length > 0 && (
         <div className="mb-4 mt-8 bg-slate-950/30 border border-slate-800/50 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2">
+                    <Skull size={18} className="text-rose-400" />
+                    <h4 className="text-base font-black text-rose-400 uppercase tracking-widest">Destroyed By</h4>
+                </div>
+            </div>
+            
+            <div 
+                className="grid gap-4"
+                style={{ 
+                    gridTemplateColumns: window.innerWidth > 1024 
+                        ? `repeat(${Math.min(killSourceEntries.length, 6)}, minmax(0, 1fr))` 
+                        : `repeat(auto-fill, minmax(140px, 1fr))`
+                }}
+            >
+                {killSourceEntries.map(([key, val]) => {
+                    const valNum = parseGameNumber(String(val));
+                    const ratio = actualTotalEnemies > 0 ? (valNum / actualTotalEnemies) * 100 : 0;
+                    
+                    return (
+                        <div key={key} className="flex flex-col bg-slate-900/50 border border-slate-800 rounded-xl p-3 group hover:border-rose-500/30 transition-all">
+                            <span className="text-[13px] font-bold text-slate-300 mb-2 truncate group-hover:text-rose-400 transition-colors" title={key}>{key}</span>
+                            <span className="text-base font-mono font-bold text-white tracking-tight leading-none mb-1">{valNum.toLocaleString()}</span>
+                            <span className="text-xs font-black text-rose-500/80 font-mono leading-none">{ratio.toFixed(1)}%</span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+      )}
+
+      {/* 4. 처치 보너스 분석 (동적 그리드 레이아웃) */}
+      {killBonusEntries.length > 0 && (
+        <div className="mb-4 mt-6 bg-slate-950/30 border border-slate-800/50 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                     <Target size={18} className="text-emerald-400" />
@@ -199,7 +238,6 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
             <div 
                 className="grid gap-4"
                 style={{ 
-                    // 모바일에서는 2열, 큰 화면에서는 항목 수에 맞춰 동적 열 생성
                     gridTemplateColumns: window.innerWidth > 1024 
                         ? `repeat(${killBonusEntries.length}, minmax(0, 1fr))` 
                         : `repeat(auto-fill, minmax(140px, 1fr))`
@@ -221,7 +259,7 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
         </div>
       )}
 
-      {/* 4. 기타 전투 스탯 (최하단) */}
+      {/* 5. 기타 전투 스탯 (최하단) */}
       {miscStats.length > 0 && (
         <>
           <div className="my-6 border-t border-slate-800 border-dashed"></div>
