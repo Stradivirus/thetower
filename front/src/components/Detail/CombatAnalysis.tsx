@@ -37,12 +37,19 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
 
   if (damageJsonV2) {
     const dmg = damageJsonV2.damage || {};
-    totalDamageStr = String(dmg['입힌 대미지'] || dmg['Damage dealt'] || '0');
+    // 대소문자 무관하게 '입힌 대미지' 또는 'Damage Dealt' 찾기
+    const totalKey = Object.keys(dmg).find(k => 
+      k === '입힌 대미지' || k.toLowerCase() === 'damage dealt'
+    );
+    totalDamageStr = String(totalKey ? dmg[totalKey] : '0');
     combatEntries = Object.entries(dmg);
   } else if (combatJson) {
     combatEntries = Object.entries(combatJson).filter(([key]) => !key.startsWith('_std_'));
     const stdTotal = combatJson['_std_damage_dealt'];
-    totalDamageStr = String(stdTotal || combatJson['입힌 대미지'] || combatJson['Damage dealt'] || '0');
+    const totalKey = Object.keys(combatJson).find(k => 
+      k === '입힌 대미지' || k.toLowerCase() === 'damage dealt'
+    );
+    totalDamageStr = String(stdTotal || (totalKey ? combatJson[totalKey] : '0'));
   }
 
   const totalDamageVal = parseGameNumber(totalDamageStr);
@@ -64,12 +71,14 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
   /** [헬퍼] 키워드 판별 */
   const isAttackKey = (key: string) => {
     const lower = key.toLowerCase();
-    if (key === '입힌 대미지' || key === 'Damage dealt') return false;
-    if (DEFENSE_KEYS.includes(key)) return false;
+    // 대소문자 무관하게 합계 항목 제외
+    if (key === '입힌 대미지' || lower === 'damage dealt') return false;
+    if (DEFENSE_KEYS.some(dk => dk.toLowerCase() === lower)) return false;
+    
     return (
         (damageJsonV2 && damageJsonV2.damage?.[key]) || 
         key.endsWith(' 대미지') || lower.endsWith(' damage') || 
-        ATTACK_SPECIFIC_KEYS.includes(key) ||
+        ATTACK_SPECIFIC_KEYS.some(ak => ak.toLowerCase() === lower) ||
         key.includes('봇') || lower.includes('bot') || 
         key.includes('칩') || lower.includes('chip')
     );
@@ -98,10 +107,11 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
   const attackKeys = allAttackStats.map(([k]) => k);
   const miscStats = (damageJsonV2 ? Object.entries(combatJson || {}) : combatEntries)
     .filter(([key, val]) => {
+        const lower = key.toLowerCase();
         if (key.startsWith('_std_')) return false;
-        if (DEFENSE_KEYS.includes(key)) return false;
+        if (DEFENSE_KEYS.some(dk => dk.toLowerCase() === lower)) return false;
         if (attackKeys.includes(key)) return false;
-        if (key === '입힌 대미지' || key === 'Damage dealt') return false;
+        if (key === '입힌 대미지' || lower === 'damage dealt') return false;
         return isNotEmpty(val);
     })
     .sort(sortByValueDesc);
@@ -129,9 +139,9 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
 
   const totalKills = allKillSourceItems.reduce((sum, item) => sum + item.value, 0);
 
-  // 비중에 따른 분리 (5% 기준)
-  const majorKillSources = allKillSourceItems.filter(item => (item.value / totalKills) * 100 >= 5);
-  const minorKillSources = allKillSourceItems.filter(item => (item.value / totalKills) * 100 < 5);
+  // 비중에 따른 분리 (3% 기준)
+  const majorKillSources = allKillSourceItems.filter(item => (item.value / totalKills) * 100 >= 3);
+  const minorKillSources = allKillSourceItems.filter(item => (item.value / totalKills) * 100 < 3);
 
   /** [헬퍼] 원형 차트 지시선 라벨 렌더링 - 항상 밝게 표시 */
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, index }: any) => {
@@ -220,7 +230,7 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-slate-400 font-mono">{String(value)}</span>
-                  <span className={`font-bold w-12 text-right ${colorSet.text}`}>{percentage.toFixed(1)}%</span>
+                  <span className={`font-bold w-20 text-right text-base ${colorSet.text}`}>{percentage.toFixed(1)}%</span>
                 </div>
               </div>
               <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
@@ -323,8 +333,9 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
                             <span className="text-[12px] font-bold text-slate-300 mb-1.5 truncate group-hover:text-emerald-400" title={key}>{key}</span>
                             <div className="flex justify-between items-end">
                                 <span className="text-sm font-mono font-bold text-white leading-none">{formatNumber(valNum)}</span>
-                                <span className="text-[11px] font-black text-emerald-400/80 font-mono leading-none">{ratio.toFixed(1)}%</span>
-                            </div>
+                                <span className="text-base font-black text-emerald-400/80 font-mono leading-none">{ratio.toFixed(1)}%</span>
+                                </div>
+
                         </div>
                     );
                 })}

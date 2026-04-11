@@ -9,12 +9,16 @@ export const HIDDEN_KEYS = [
 // 2. [전투 통계] 방어(피격) 관련 키
 export const DEFENSE_KEYS = [
   '받은 대미지', '장벽이 받은 대미지', '죽음 저항', '생명력 흡수',
-  'Damage Taken', 'Damage Taken Wall', 'Death Defy', 'Lifesteal'
+  'Damage Taken', 'Damage Taken Wall', 'Death Defy', 'Lifesteal',
+  'Tower', 'Wall', 'Defense %', 'Defense Absolute'
 ];
 
 // 3. [전투 통계] 공격(딜러) 관련 특수 키 (Suffix로 감지 안 되는 것들)
 export const ATTACK_SPECIFIC_KEYS = [
-  '전자 손상', 'Electrons Damage'
+  '전자 손상', 'Electrons Damage',
+  'Projectiles', 'Rend Armor', 'Thorns', 'Orbs', 'Land Mines',
+  'Chain Lightning', 'Smart Missiles', 'Inner Land Mines', 'Poison Swamp',
+  'Death Wave', 'Black Hole', 'Flame Bot', 'Attack Chip', 'Electrons'
 ];
 
 // 4. [전투 통계] 랭킹 색상 팔레트

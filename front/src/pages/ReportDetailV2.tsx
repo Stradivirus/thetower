@@ -7,7 +7,7 @@ import type { FullReportV2 } from '../types/report';
 import { formatDate, formatNumber } from '../utils/format';
 import CombatAnalysis from '../components/Detail/CombatAnalysis';
 import StatGrid from '../components/Detail/StatGrid';
-import { T, CURRENT_LANG } from '../locales'; 
+import { T } from '../locales'; 
 import { ENEMY_LEFT_ORDER, ENEMY_RIGHT_ORDER, V2_CURRENCY_KEYS } from '../constants/reportRules';
 
 interface Props {
@@ -23,7 +23,6 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, se
   const { main, v2_main, v2_detail, detail } = data;
   const Text = T.detail;
   const Common = T.common;
-  const isKR = CURRENT_LANG === 'KR';
 
   const closePopup = () => setDeletePopup((prev: any) => ({ ...prev, isOpen: false }));
 

@@ -118,15 +118,19 @@ SECTION_MAP_V2 = {
 
     '수치': 'stats',
     'Stats': 'stats',
+    'Counts': 'stats',  # English V2 Mapping
 
     '적 타격 수': 'enemy_hits',
     'Enemy Hits': 'enemy_hits',
+    'Enemies Hit By': 'enemy_hits',  # English V2 Mapping
 
     '효과 활성 상태에서 처치': 'kill_effects',
     'Kills While Effect Active': 'kill_effects',
+    'Killed With Effect Active': 'kill_effects', # English V2 Mapping
 
     '적 합계': 'enemy',
     'Enemies Destroyed': 'enemy',
+    'Total Enemies': 'enemy', # English V2 Mapping (Header)
 
     '코인': 'coin',
     'Coins': 'coin',
@@ -136,9 +140,11 @@ SECTION_MAP_V2 = {
 
     '화폐': 'currency',
     'Currency': 'currency',
+    'Currencies': 'currency', # English V2 Mapping
 
     '다음으로 파괴한 적:': 'kill_source',
     'Killed By:': 'kill_source',
+    'Enemies Destroyed By': 'kill_source', # English V2 Mapping
 }
 
 # V2 report 섹션 Key 매핑 -> DB 컬럼명
@@ -152,9 +158,11 @@ KEY_MAP_V2_REPORT = {
 KEY_MAP_V2_RECORDS = {
     '분당 최고 코인 수': 'best_coins_per_minute',
     'Best Coins Per Minute': 'best_coins_per_minute',
+    'Highest Coins / Minute': 'best_coins_per_minute', # English V2 Mapping
 
     '최대 웨이브 건너뛰기': 'max_wave_skip',
     'Max Wave Skip': 'max_wave_skip',
+    'Largest Wave Skip': 'max_wave_skip', # English V2 Mapping
 
     '웨이브 스킵에서 얻은 대부분의 코인': 'best_skip_coins',
     'Most Coins From Wave Skip': 'best_skip_coins',
@@ -164,15 +172,18 @@ KEY_MAP_V2_RECORDS = {
 
     '최대 스마트 미사일 중첩': 'max_smart_missile_stack',
     'Max Smart Missile Stack': 'max_smart_missile_stack',
+    'Largest Smart Missile Stack': 'max_smart_missile_stack', # English V2 Mapping
 
     '최대 골든 콤보': 'max_golden_combo',
     'Max Golden Combo': 'max_golden_combo',
+    'Largest Golden Combo': 'max_golden_combo', # English V2 Mapping
 
     '골든 콤보에서 얻는 대부분의 코인': 'best_golden_combo_coins',
     'Most Coins From Golden Combo': 'best_golden_combo_coins',
 
     '최대 내부 지뢰 충전': 'max_inner_mine_charge',
     'Max Inner Mine Charge': 'max_inner_mine_charge',
+    'Largest Inner Landmine Charge': 'max_inner_mine_charge', # English V2 Mapping
 }
 
 # damage_json에 묶일 섹션 목록

@@ -22,15 +22,30 @@ def is_v2(text: str) -> bool:
     return len(lines) > V2_LINE_THRESHOLD
 
 
+def _get_val_insensitive(section_dict: dict, *keys: str, default: str = '0') -> str:
+    """
+    딕셔너리에서 여러 키 후보를 대소문자 구분 없이 검색하여 반환
+    """
+    if not section_dict:
+        return default
+        
+    # 1. 원본 키들로 먼저 확인
+    for key in keys:
+        if key in section_dict:
+            return section_dict[key]
+            
+    # 2. 소문자로 변환하여 대소문자 무관 검색
+    lowered_dict = {k.lower(): v for k, v in section_dict.items()}
+    for key in keys:
+        if key.lower() in lowered_dict:
+            return lowered_dict[key.lower()]
+            
+    return default
+
+
 def parse_battle_report_v2(text: str) -> dict:
     """
     V2 포맷 리포트 텍스트를 파싱하여 반환
-    반환 구조:
-    {
-        'main': {...},          # 기존 BattleMain 컬럼 데이터 (parser.py와 동일 구조)
-        'main_v2': {...},       # BattleMainV2 컬럼 데이터
-        'detail_v2': {...}      # BattleDetailV2 JSON 섹션 데이터
-    }
     """
     clean_text = text.replace('\r\n', '\n').replace('\r', '\n')
     lines = clean_text.split('\n')
@@ -81,45 +96,36 @@ def parse_battle_report_v2(text: str) -> dict:
         if key and val is not None:
             sections[current_section][key] = val
 
-    # ── BattleMain 데이터 구성 (기존 parser.py와 동일한 키 구조) ──
+    # ── BattleMain 데이터 구성 ──
     repo = sections['report']
+    cur = sections['currency']
+    kle = sections['kill_effects']
 
-    def get_repo(raw_key, default='0'):
-        return repo.get(raw_key, default)
-
-    battle_date = parse_date(get_repo('전투 날짜', get_repo('Battle Date', '')))
+    battle_date = parse_date(_get_val_insensitive(repo, '전투 날짜', 'Battle Date', default=''))
 
     main_data = {
         'battle_date': battle_date,
-        'tier': get_repo('티어', get_repo('Tier', 'T1')),
-        'wave': int(get_repo('웨이브', get_repo('Wave', '0')).replace(',', '')),
-        'game_time': get_repo('게임 시간', get_repo('Game Time', '')),
-        'real_time': get_repo('실시간', get_repo('Real Time', '')),
-        'coin_earned': parse_number(get_repo('코인 획득', get_repo('Coins earned', '0'))),
-        'coins_per_hour': parse_number(get_repo('시간당 코인', get_repo('Coins per hour', '0'))),
-        'cells_earned': parse_number(
-            sections['currency'].get('획득한 셀',
-            sections['currency'].get('Cells Earned',
-            get_repo('획득한 셀', '0')))
-        ),
-        'reroll_shards_earned': parse_number(
-            sections['currency'].get('다시 뽑기 파편 획득함',
-            sections['currency'].get('Reroll Shards Earned',
-            get_repo('다시 뽑기 파편 획득함', '0')))
-        ),
-        'killer': get_repo('처치자', get_repo('Killed By', '')),
+        'tier': _get_val_insensitive(repo, '티어', 'Tier', default='T1'),
+        'wave': int(_get_val_insensitive(repo, '웨이브', 'Wave', default='0').replace(',', '')),
+        'game_time': _get_val_insensitive(repo, '게임 시간', 'Game Time', default=''),
+        'real_time': _get_val_insensitive(repo, '실시간', 'Real Time', default=''),
+        'coin_earned': parse_number(_get_val_insensitive(repo, '코인 획득', 'Coins Earned', 'Coins earned')),
+        'coins_per_hour': parse_number(_get_val_insensitive(repo, '시간당 코인', 'Coins Per Hour', 'Coins per hour')),
+        'cells_earned': parse_number(_get_val_insensitive(cur, '획득한 셀', 'Cells Earned', default=_get_val_insensitive(repo, '획득한 셀', 'Cells Earned'))),
+        'reroll_shards_earned': parse_number(_get_val_insensitive(cur, '다시 뽑기 파편 획득함', 'Reroll Shards Earned', default=_get_val_insensitive(repo, '다시 뽑기 파편 획득함', 'Reroll Shards Earned'))),
+        'killer': _get_val_insensitive(repo, '처치자', 'Killed By', default=''),
 
         # V2는 대미지 섹션이 분리됨
-        'damage_dealt': sections['damage'].get('입힌 대미지', sections['damage'].get('Damage dealt', '0')),
-        'damage_taken': sections['damage_taken'].get('타워', '0'),
+        'damage_dealt': _get_val_insensitive(sections['damage'], '입힌 대미지', 'Damage Dealt', 'Damage dealt'),
+        'damage_taken': _get_val_insensitive(sections['damage_taken'], '타워', 'Tower', default='0'),
 
         # V2 적 합계
-        'total_enemies': parse_number(sections['enemy'].get('적 합계', sections['enemy'].get('Total Enemies', '0'))),
+        'total_enemies': parse_number(_get_val_insensitive(sections['enemy'], '적 합계', 'Total Enemies', default='0')),
 
-        # V2에서는 효과 활성 상태에서 처치 섹션으로 이동
-        'death_wave_kills': parse_number(sections['kill_effects'].get('죽음의 파동', sections['kill_effects'].get('Death Wave', '0'))),
-        'spotlight_kills': parse_number(sections['kill_effects'].get('스포트라이트', sections['kill_effects'].get('Spotlight', '0'))),
-        'golden_bot_kills': parse_number(sections['kill_effects'].get('황금 봇', sections['kill_effects'].get('Golden Bot', '0'))),
+        # V2 효과 활성 상태에서 처치
+        'death_wave_kills': parse_number(_get_val_insensitive(kle, '죽음의 파동', 'Death Wave', default='0')),
+        'spotlight_kills': parse_number(_get_val_insensitive(kle, '스포트라이트', 'Spotlight', default='0')),
+        'golden_bot_kills': parse_number(_get_val_insensitive(kle, '황금 봇', 'Golden Bot', default='0')),
 
         # top_damages: V2 대미지 섹션 기준으로 계산
         'top_damages': _calculate_top_damages_v2(sections['damage']),
@@ -128,20 +134,17 @@ def parse_battle_report_v2(text: str) -> dict:
     # ── BattleMainV2 데이터 구성 ──
     rec = sections['records']
 
-    def get_rec(raw_key, en_key='', default='0'):
-        return rec.get(raw_key, rec.get(en_key, default))
-
     main_v2_data = {
         'battle_date': battle_date,
-        'cells_per_hour': parse_number(get_repo('시간당 셀', get_repo('Cells per hour', '0'))),
-        'best_coins_per_minute': parse_number(get_rec('분당 최고 코인 수', 'Best Coins Per Minute')),
-        'max_wave_skip': parse_number(get_rec('최대 웨이브 건너뛰기', 'Max Wave Skip')),
-        'best_skip_coins': parse_number(get_rec('웨이브 스킵에서 얻은 대부분의 코인', 'Most Coins From Wave Skip')),
-        'best_skip_cells': parse_number(get_rec('웨이브 스킵에서 나온 대부분의 세포', 'Most Cells From Wave Skip')),
-        'max_smart_missile_stack': parse_number(get_rec('최대 스마트 미사일 중첩', 'Max Smart Missile Stack')),
-        'max_golden_combo': parse_number(get_rec('최대 골든 콤보', 'Max Golden Combo')),
-        'best_golden_combo_coins': parse_number(get_rec('골든 콤보에서 얻는 대부분의 코인', 'Most Coins From Golden Combo')),
-        'max_inner_mine_charge': parse_number(get_rec('최대 내부 지뢰 충전', 'Max Inner Mine Charge')),
+        'cells_per_hour': parse_number(_get_val_insensitive(repo, '시간당 셀', 'Cells Per Hour', 'Cells per hour')),
+        'best_coins_per_minute': parse_number(_get_val_insensitive(rec, '분당 최고 코인 수', 'Best Coins Per Minute', 'Highest Coins / Minute')),
+        'max_wave_skip': parse_number(_get_val_insensitive(rec, '최대 웨이브 건너뛰기', 'Max Wave Skip', 'Largest Wave Skip')),
+        'best_skip_coins': parse_number(_get_val_insensitive(rec, '웨이브 스킵에서 얻은 대부분의 코인', 'Most Coins From Wave Skip')),
+        'best_skip_cells': parse_number(_get_val_insensitive(rec, '웨이브 스킵에서 나온 대부분의 세포', 'Most Cells From Wave Skip')),
+        'max_smart_missile_stack': parse_number(_get_val_insensitive(rec, '최대 스마트 미사일 중첩', 'Max Smart Missile Stack', 'Largest Smart Missile Stack')),
+        'max_golden_combo': parse_number(_get_val_insensitive(rec, '최대 골든 콤보', 'Max Golden Combo', 'Largest Golden Combo')),
+        'best_golden_combo_coins': parse_number(_get_val_insensitive(rec, '골든 콤보에서 얻는 대부분의 코인', 'Most Coins From Golden Combo')),
+        'max_inner_mine_charge': parse_number(_get_val_insensitive(rec, '최대 내부 지뢰 충전', 'Max Inner Mine Charge', 'Largest Inner Landmine Charge')),
     }
 
     # ── BattleDetailV2 데이터 구성 ──
@@ -182,10 +185,11 @@ def _calculate_top_damages_v2(damage_section: dict) -> list:
     """
     candidates = []
     for key, val in damage_section.items():
-        # mappings.py의 공통 제외 목록에 포함되어 있는지 확인 (부분 일치 포함)
-        if any(ex in key for ex in EXCLUDE_TOP_DAMAGE):
+        # mappings.py의 공통 제외 목록에 포함되어 있는지 확인 (대소문자 무시 부분 일치 포함)
+        is_excluded = any(ex.lower() in key.lower() for ex in EXCLUDE_TOP_DAMAGE)
+        if is_excluded:
             continue
-            
+
         raw_val = parse_number(str(val))
         if raw_val > 0:
             candidates.append({'name': key, 'raw': raw_val})
