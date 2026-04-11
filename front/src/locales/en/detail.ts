@@ -50,5 +50,23 @@ export const DETAIL = {
   
   SUB_COIN: "Coin Utility",
   SUB_MISC: "Misc",
-  SUB_KILL: "Kill Methods"
+  SUB_KILL: "Kill Methods",
+
+  // V2 Dashboard
+  DASH_TOTAL_COINS: "Total Coins",
+  DASH_EFFICIENCY: "Efficiency",
+  DASH_PEAK_CPM: "Peak CPM",
+  DASH_CELL_HARVEST: "Cell Harvest",
+  DASH_HOURLY_RATE: "Hourly Rate",
+  DASH_GOLDEN_COMBO: "Golden Combo",
+
+  // V2 Records (getRecordData)
+  REC_BEST_CPM: "Best Coins Per Minute",
+  REC_MAX_WAVE_SKIP: "Max Wave Skip",
+  REC_SKIP_COINS: "Wave Skip Coins",
+  REC_SKIP_CELLS: "Wave Skip Cells",
+  REC_MAX_SM_STACK: "Max SM Stack",
+  REC_MAX_GOLDEN_COMBO: "Max Golden Combo",
+  REC_GOLDEN_COMBO_COINS: "Golden Combo Coins",
+  REC_MAX_ILM_CHARGE: "Max ILM Charge"
 };

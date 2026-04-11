@@ -50,5 +50,23 @@ export const DETAIL = {
   
   SUB_COIN: "Coin Utility",
   SUB_MISC: "Misc",
-  SUB_KILL: "Kill Methods"
+  SUB_KILL: "Kill Methods",
+
+  // V2 Dashboard
+  DASH_TOTAL_COINS: "총 코인",
+  DASH_EFFICIENCY: "효율",
+  DASH_PEAK_CPM: "최고 CPM",
+  DASH_CELL_HARVEST: "셀 수확",
+  DASH_HOURLY_RATE: "시간당 획득량",
+  DASH_GOLDEN_COMBO: "골든 콤보",
+
+  // V2 Records (getRecordData)
+  REC_BEST_CPM: "분당 최고 코인 수",
+  REC_MAX_WAVE_SKIP: "최대 웨이브 건너뛰기",
+  REC_SKIP_COINS: "웨이브 스킵 코인",
+  REC_SKIP_CELLS: "웨이브 스킵 세포",
+  REC_MAX_SM_STACK: "최대 SM 중첩",
+  REC_MAX_GOLDEN_COMBO: "최대 골든 콤보",
+  REC_GOLDEN_COMBO_COINS: "골든 콤보 코인",
+  REC_MAX_ILM_CHARGE: "최대 ILM 충전"
 };

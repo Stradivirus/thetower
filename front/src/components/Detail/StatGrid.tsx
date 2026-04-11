@@ -2,6 +2,7 @@
  * 파일명: thetower/front/src/components/Detail/StatGrid.tsx
  * 용도: 전투 리포트 상세 데이터(Utility, Enemy, Bot)를 그리드 형태로 표시
  * 기능: 섹션별 데이터 필터링(0 제외) 및 정렬, 중요 스탯(적 합계 등) 강조, 접기/펼치기 및 다국어 지원
+ * 특징: V2 전용 시각화 (막대 차트) 지원
  */
 import { useState } from 'react';
 import { type LucideIcon, ChevronDown, ChevronUp } from 'lucide-react';
@@ -29,6 +30,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   const isUtility = title === Text.SECTION_UTILITY;
   const isEnemy = title === Text.SECTION_ENEMY; 
   const isBot = title === Text.SECTION_BOT; 
+  const isDestroyedBy = title === "Destroyed By"; // V2 전용
 
   // --- V2 데이터 병합 로직 ---
   let displayData: Record<string, any> = {};
@@ -150,6 +152,11 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     });
   }
 
+  // --- [D] 시각화 비율 계산 (V2 전용) ---
+  const totalValue = isDestroyedBy 
+    ? entries.reduce((sum, [, val]) => sum + parseGameNumber(String(val)), 0)
+    : 0;
+
   /** 
    * 개별 스탯 항목을 렌더링합니다. 
    * - 중요도에 따른 색상 및 폰트 크기 조정
@@ -178,10 +185,26 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
       displayLabel = displayLabel.replace('획득한 코인', '획득');
     }
 
+    // 시각화 비율 (Destroyed By 등)
+    const percentage = totalValue > 0 ? (parseGameNumber(String(value)) / totalValue) * 100 : 0;
+
     return (
-      <div key={key} className="flex flex-col mb-4 last:mb-0">
-        <span className={`text-xs mb-0.5 ${labelColor} truncate`} title={displayLabel}>{displayLabel}</span>
-        <span className={`font-medium font-mono truncate ${valueColor} ${valueSize}`} title={String(value)}>{String(value)}</span>
+      <div key={key} className="relative flex flex-col mb-4 last:mb-0 group">
+        {isDestroyedBy && percentage > 0 && (
+          <div 
+            className="absolute inset-y-0 left-0 bg-rose-500/10 border-l-2 border-rose-500/30 rounded-r transition-all duration-700 ease-out"
+            style={{ width: `${percentage}%` }}
+          />
+        )}
+        <div className="relative z-10 pl-1">
+          <span className={`text-xs mb-0.5 ${labelColor} truncate block`} title={displayLabel}>{displayLabel}</span>
+          <div className="flex items-end justify-between gap-2">
+            <span className={`font-medium font-mono truncate ${valueColor} ${valueSize}`} title={String(value)}>{String(value)}</span>
+            {isDestroyedBy && percentage > 0 && (
+              <span className="text-[10px] font-bold text-rose-500/60 font-mono">{percentage.toFixed(1)}%</span>
+            )}
+          </div>
+        </div>
       </div>
     );
   };
@@ -242,7 +265,14 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
           ) : 
           /* 4. 기본 그리드 레이아웃 (신규 V2 섹션 등) */
           (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-y-4 gap-x-2">{entries.map(renderItem)}</div>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-y-4 gap-x-2">
+              {isDestroyedBy ? (
+                // Destroyed By는 단일 컬럼으로 크게 보여줌
+                <div className="col-span-2 space-y-1">{entries.sort((a,b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1]))).map(renderItem)}</div>
+              ) : (
+                entries.map(renderItem)
+              )}
+            </div>
           )}
         </div>
       )}
