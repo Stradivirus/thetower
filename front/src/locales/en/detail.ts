@@ -33,7 +33,7 @@ export const DETAIL = {
   
   // Charts & Analysis (CombatAnalysis)
   HEADER_COMBAT: "Combat Stats",
-  HEADER_DEFENSE: "Defense (Taken)",
+  HEADER_DEFENSE: "Defense",
   HEADER_TAKEN: "Damage Taken & Regen",
   HEADER_ABSORBED: "Damage Absorbed",
   HEADER_MISC_DEALER: "Other Dealers",
@@ -51,6 +51,7 @@ export const DETAIL = {
   SUB_COIN: "Coin Utility",
   SUB_MISC: "Misc",
   SUB_KILL: "Kill Methods",
+  SUB_REGEN: "Regen",
 
   // V2 Dashboard
   DASH_TOTAL_COINS: "Total Coins",
@@ -59,6 +60,8 @@ export const DETAIL = {
   DASH_CELL_HARVEST: "Cell Harvest",
   DASH_HOURLY_RATE: "Hourly Rate",
   DASH_GOLDEN_COMBO: "Golden Combo",
+  DASH_KILL_BONUS: "Kill Bonus Analysis",
+  DASH_TOTAL_ENEMIES: "Total Enemies",
 
   // V2 Records (getRecordData)
   REC_BEST_CPM: "Best Coins Per Minute",

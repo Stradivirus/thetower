@@ -2,7 +2,7 @@
  * 파일명: thetower/front/src/pages/ReportDetailV2.tsx
  * 용도: V2 전용 전투 기록 상세 분석 페이지 (향상된 대시보드 및 시각화 포함)
  */
-import { ArrowLeft, Activity, Skull, Clock, FileText, Trash2, AlertTriangle, Trophy, Coins, Wallet, Landmark, Zap } from 'lucide-react';
+import { ArrowLeft, Activity, Skull, Clock, FileText, Trash2, AlertTriangle, Trophy, Coins, Wallet, Landmark, Zap, Shield, Target } from 'lucide-react';
 import type { FullReportV2 } from '../types/report';
 import { formatDate, formatNumber } from '../utils/format';
 import CombatAnalysis from '../components/Detail/CombatAnalysis';
@@ -153,13 +153,19 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, se
         <V2HighlightDashboard />
         
         <div className="w-full">
-            <CombatAnalysis combatJson={detail?.combat_json} damageJsonV2={v2_detail?.damage_json} />
+            <CombatAnalysis 
+                combatJson={detail?.combat_json} 
+                damageJsonV2={v2_detail?.damage_json} 
+                killEffects={v2_detail?.stats_json?.kill_effects}
+                totalEnemies={main.total_enemies}
+            />
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <div className="space-y-6">
             <StatGrid title={Text.SECTION_RECORDS} icon={Trophy} color="text-yellow-500" data={recordsData || {}} defaultOpen={false} />
             <StatGrid title={Text.SECTION_UTILITY} icon={Activity} color="text-blue-500" data={v2_detail?.utility_json || {}} defaultOpen={false} />
+            <StatGrid title={Text.HEADER_DEFENSE} icon={Shield} color="text-blue-400" data={v2_detail?.damage_json || {}} v2Sections={['damage_taken', 'bonus_hp', 'hp_regen', 'damage_block']} defaultOpen={false} />
           </div>
           <div className="space-y-6">
             <StatGrid 
@@ -182,7 +188,6 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, se
           <div className="space-y-6">
             <StatGrid title={Text.SECTION_COIN} icon={Coins} color="text-amber-500" data={v2_detail?.coin_json || {}} />
             <StatGrid title={Text.SECTION_CURRENCY} icon={Wallet} color="text-emerald-500" data={v2_detail?.currency_json || {}} order={V2_CURRENCY_KEYS} />
-            <StatGrid title={Text.SECTION_BOT} icon={Landmark} color="text-purple-500" data={v2_detail?.stats_json?.kill_effects || {}} defaultOpen={false} />
           </div>
         </div>
       </div>

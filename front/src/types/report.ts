@@ -25,6 +25,8 @@ export interface BattleMain {
   damage_taken: string;
   notes?: string;
   
+  total_enemies?: number; // 추가: 전체 적 처치 수
+  
   // 상위 딜러 리스트 (문자열 배열)
   top_damages: string[];
   

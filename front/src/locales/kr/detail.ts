@@ -33,7 +33,7 @@ export const DETAIL = {
   
   // 차트 및 분석 (CombatAnalysis)
   HEADER_COMBAT: "전투 통계",
-  HEADER_DEFENSE: "방어 (피격)",
+  HEADER_DEFENSE: "방어",
   HEADER_TAKEN: "받은 대미지 & 재생",
   HEADER_ABSORBED: "대미지 흡수",
   HEADER_MISC_DEALER: "기타 딜러",
@@ -51,6 +51,7 @@ export const DETAIL = {
   SUB_COIN: "Coin Utility",
   SUB_MISC: "Misc",
   SUB_KILL: "Kill Methods",
+  SUB_REGEN: "Regen",
 
   // V2 Dashboard
   DASH_TOTAL_COINS: "총 코인",
@@ -59,6 +60,8 @@ export const DETAIL = {
   DASH_CELL_HARVEST: "셀 수확",
   DASH_HOURLY_RATE: "시간당 획득량",
   DASH_GOLDEN_COMBO: "골든 콤보",
+  DASH_KILL_BONUS: "처치 보너스 분석",
+  DASH_TOTAL_ENEMIES: "전체 적",
 
   // V2 Records (getRecordData)
   REC_BEST_CPM: "분당 최고 코인 수",
@@ -66,7 +69,7 @@ export const DETAIL = {
   REC_SKIP_COINS: "웨이브 스킵 코인",
   REC_SKIP_CELLS: "웨이브 스킵 세포",
   REC_MAX_SM_STACK: "최대 SM 중첩",
-  REC_MAX_GOLDEN_COMBO: "최대 골든 콤보",
+  REC_MAX_GOLDEN_COMBO: "최대 골든콤보",
   REC_GOLDEN_COMBO_COINS: "골든 콤보 코인",
   REC_MAX_ILM_CHARGE: "최대 ILM 충전"
 };

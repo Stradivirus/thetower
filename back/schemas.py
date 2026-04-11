@@ -106,6 +106,9 @@ class BattleMainResponse(BaseModel):
     killer: str
     damage_dealt: str
     damage_taken: str
+    
+    total_enemies: Optional[int] = 0 # 추가: 전체 적 처치 수
+    
     notes: Optional[str] = None
     top_damages: List[str] = [] 
     death_wave_ratio: Optional[str] = None

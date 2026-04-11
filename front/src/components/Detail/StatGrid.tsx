@@ -20,9 +20,10 @@ interface StatGridProps {
   defaultOpen?: boolean;                 // 기본 확장 여부
   v2Sections?: string[];                 // V2 다중 섹션 병합용
   order?: string[];                      // 커스텀 정렬 배열 (신규 섹션용)
+  totalEnemies?: number;                 // 신규: 비율 계산용 전체 적 수
 }
 
-export default function StatGrid({ data, icon: Icon, title, color, defaultOpen = false, v2Sections, order }: StatGridProps) {
+export default function StatGrid({ data, icon: Icon, title, color, defaultOpen = false, v2Sections, order, totalEnemies }: StatGridProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const Text = T.detail; 
 
@@ -30,13 +31,17 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   const isUtility = title === Text.SECTION_UTILITY;
   const isEnemy = title === Text.SECTION_ENEMY; 
   const isBot = title === Text.SECTION_BOT; 
+  const isDefense = title === Text.HEADER_DEFENSE; 
+  const isKillAnalysis = title === Text.DASH_KILL_BONUS; 
   const isDestroyedBy = title === "Destroyed By"; // V2 전용
 
   // --- V2 데이터 병합 로직 ---
   let displayData: Record<string, any> = {};
   if (v2Sections) {
       v2Sections.forEach(sec => {
-          if (data[sec]) Object.assign(displayData, data[sec]);
+          if (data[sec]) {
+              Object.assign(displayData, data[sec]);
+          }
       });
   } else {
       displayData = data;
@@ -49,12 +54,12 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   const entries = Object.entries(displayData).filter(([key, value]) => {
     if (key.startsWith('_std_')) return false;
     if (HIDDEN_KEYS.includes(key)) return false;
-    if (value === 0 || value === '0' || value === '0.00') return false;
+    if (value === 0 || value === '0' || value === '0.00' || value === '$0') return false;
     return true;
   });
 
-  // V2 신규 섹션(Currency 등)을 위한 커스텀 정렬 (기존 분류 섹션이 아닐 때만 적용)
-  if (order && !isUtility && !isEnemy && !isBot) {
+  // V2 신규 섹션들을 위한 커스텀 정렬
+  if (order && !isUtility && !isEnemy && !isBot && !isDefense && !isKillAnalysis) {
     entries.sort((a, b) => {
         const idxA = order.indexOf(a[0]);
         const idxB = order.indexOf(b[0]);
@@ -65,7 +70,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     });
   }
 
-  // --- [A] 유틸리티 섹션: 코인 관련 항목과 기타 항목으로 분류 ---
+  // --- [A] 유틸리티 섹션 분류 ---
   let utilCoinItems: [string, string | number][] = [];
   let utilMiscItems: [string, string | number][] = [];
 
@@ -77,36 +82,28 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     utilMiscItems = otherItems;
   }
 
-  // --- [B] 적 통계 섹션: 스폰 정보(좌/우)와 처치 정보(Kill)로 분류 ---
+  // --- [B] 적 통계 섹션 분류 ---
   let enemyLeftItems: [string, string | number][] = [];
   let enemyRightItems: [string, string | number][] = [];
-  let enemyKillItems: [string, string | number][] = [];
 
   if (isEnemy) {
-    // 처치 관련 스탯 분리 (V2 '효과 활성 상태 처치' 키워드 포함)
-    const v2KillKeywords = ['황금 타워', '죽음의 파동', '스포트라이트', '증폭 봇', '황금 봇', '사형 선고'];
+    // 처치 관련 키워드 (제외할 항목들)
+    const killKeywords = ['황금 타워', '죽음의 파동', '스포트라이트', '증폭 봇', '황금 봇', '사형 선고', '파괴', 'Destroyed', 'Killed'];
     
-    enemyKillItems = entries.filter(([key]) => {
-        const lower = key.toLowerCase();
-        const isKillStat = key.includes('파괴') || lower.includes('destroyed') || lower.includes('killed') || v2KillKeywords.includes(key);
-        if (['파괴 공작원', 'Saboteur', 'Saboteurs'].includes(key)) return false;
-        return isKillStat;
-    });
-    // 스폰/등장 관련 스탯 분리
+    // 순수 등장/히트 관련 스탯만 필터링
     const spawnItems = entries.filter(([key]) => {
         const lower = key.toLowerCase();
-        const isKillStat = key.includes('파괴') || lower.includes('destroyed') || lower.includes('killed') || v2KillKeywords.includes(key);
+        // 파괴 공작원(Saboteur)은 적 종류이므로 유지
         if (['파괴 공작원', 'Saboteur', 'Saboteurs'].includes(key)) return true;
-        return !isKillStat;
+        // 그 외 처치 관련 키워드가 포함된 항목은 제외
+        return !killKeywords.some(k => key.includes(k) || lower.includes(k.toLowerCase()));
     });
 
-    // 사전에 정의된 순서에 따라 좌측/우측 배치
     spawnItems.forEach(item => {
       if (ENEMY_LEFT_ORDER.includes(item[0])) enemyLeftItems.push(item);
       else enemyRightItems.push(item);
     });
 
-    /** 지정된 리스트 순서에 맞춰 정렬하는 함수 */
     const sortFn = (orderList: string[]) => (a: [string, any], b: [string, any]) => {
       const idxA = orderList.indexOf(a[0]);
       const idxB = orderList.indexOf(b[0]);
@@ -120,7 +117,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     enemyRightItems.sort(sortFn(ENEMY_RIGHT_ORDER));
   }
 
-  // --- [C] 봇 & 가디언 섹션: 자원 정보와 봇 효과 정보로 분류 ---
+  // --- [C] 봇 & 가디언 섹션 분류 ---
   let botLeftItems: [string, string | number][] = [];
   let botRightItems: [string, string | number][] = [];
 
@@ -152,21 +149,52 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     });
   }
 
-  // --- [D] 시각화 비율 계산 (V2 전용) ---
+  // --- [D] 방어 섹션 분류 ---
+  let defenseTakenItems: [string, string | number][] = [];
+  let defenseRegenItems: [string, string | number][] = [];
+  let defenseAbsorbedItems: [string, string | number][] = [];
+
+  if (isDefense) {
+    const isAbsorbed = (key: string, val: any) => {
+        if (v2Sections && data['damage_block'] && data['damage_block'][key] === val) return true;
+        const keywords = ['차단', 'Block', '방어 %', 'Defense %', '절대 방어', '필드', '천둥', '붕괴', '프로젝터'];
+        return keywords.some(k => key.includes(k));
+    };
+    const isRegen = (key: string) => {
+        const keywords = ['재생', '흡수', '체력', 'Regen', 'Lifesteal', 'Health', 'Bonus', '로부터'];
+        if (['타워', '장벽', 'Tower', 'Wall'].includes(key)) return false;
+        return keywords.some(k => key.includes(k));
+    };
+    entries.forEach(item => {
+        if (isAbsorbed(item[0], item[1])) defenseAbsorbedItems.push(item);
+        else if (isRegen(item[0])) defenseRegenItems.push(item);
+        else defenseTakenItems.push(item);
+    });
+    const uniqueItems = (arr: [string, any][]) => {
+        const map = new Map();
+        arr.forEach(item => map.set(item[0], item[1]));
+        return Array.from(map.entries()) as [string, string | number][];
+    };
+    defenseTakenItems = uniqueItems(defenseTakenItems).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])));
+    defenseRegenItems = uniqueItems(defenseRegenItems).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])));
+    defenseAbsorbedItems = uniqueItems(defenseAbsorbedItems).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])));
+  }
+
+  // --- [E] 시각화 비율 계산 (V2 전용) ---
+  const showBar = isDestroyedBy || isKillAnalysis;
   const totalValue = isDestroyedBy 
     ? entries.reduce((sum, [, val]) => sum + parseGameNumber(String(val)), 0)
-    : 0;
+    : isKillAnalysis ? (totalEnemies || 0) : 0;
 
   /** 
    * 개별 스탯 항목을 렌더링합니다. 
-   * - 중요도에 따른 색상 및 폰트 크기 조정
    */
   const renderItem = ([key, value]: [string, string | number]) => {
     let labelColor = "text-slate-500";
     let valueColor = "text-slate-200";
     let valueSize = "text-sm";
     
-    // 특수 강조 항목 (총합 정보 등)
+    // 특수 강조 항목
     if (['적 합계', 'Total Enemies'].includes(key)) {
         labelColor = "text-orange-400 font-bold";
         valueColor = "text-orange-300 font-bold";
@@ -178,30 +206,32 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
         valueSize = "text-base";
     }
 
-    // 이름 간소화 (UI 가독성 향상)
+    // 이름 간소화
     let displayLabel = key;
     if (isUtility) {
       displayLabel = displayLabel.replace('코인 업그레이드로 얻은 코인', '코인 업그레이드로 획득');
       displayLabel = displayLabel.replace('획득한 코인', '획득');
     }
 
-    // 시각화 비율 (Destroyed By 등)
+    // 시각화 비율
     const percentage = totalValue > 0 ? (parseGameNumber(String(value)) / totalValue) * 100 : 0;
+    const barColor = isDestroyedBy ? "bg-rose-500/10 border-rose-500/30" : "bg-emerald-500/10 border-emerald-500/30";
+    const percentColor = isDestroyedBy ? "text-rose-500/60" : "text-emerald-500/60";
 
     return (
       <div key={key} className="relative flex flex-col mb-4 last:mb-0 group">
-        {isDestroyedBy && percentage > 0 && (
+        {showBar && percentage > 0 && (
           <div 
-            className="absolute inset-y-0 left-0 bg-rose-500/10 border-l-2 border-rose-500/30 rounded-r transition-all duration-700 ease-out"
-            style={{ width: `${percentage}%` }}
+            className={`absolute inset-y-0 left-0 ${barColor} border-l-2 rounded-r transition-all duration-700 ease-out`}
+            style={{ width: `${Math.min(percentage, 100)}%` }}
           />
         )}
         <div className="relative z-10 pl-1">
           <span className={`text-xs mb-0.5 ${labelColor} truncate block`} title={displayLabel}>{displayLabel}</span>
           <div className="flex items-end justify-between gap-2">
             <span className={`font-medium font-mono truncate ${valueColor} ${valueSize}`} title={String(value)}>{String(value)}</span>
-            {isDestroyedBy && percentage > 0 && (
-              <span className="text-[10px] font-bold text-rose-500/60 font-mono">{percentage.toFixed(1)}%</span>
+            {showBar && percentage > 0 && (
+              <span className={`text-[10px] font-bold font-mono ${percentColor}`}>{percentage.toFixed(1)}%</span>
             )}
           </div>
         </div>
@@ -224,7 +254,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
         <div className="px-5 pb-5 animate-fade-in-down">
           <div className="border-t border-slate-800 mb-4"></div>
           
-          {/* 1. 유틸리티 레이아웃 (코인 vs 기타) */}
+          {/* 1. 유틸리티 레이아웃 */}
           {isUtility ? (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
               <div className="flex flex-col">
@@ -237,23 +267,11 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
               </div>
             </div>
           ) : 
-          /* 2. 적 통계 레이아웃 (스폰 vs 처치) */
+          /* 2. 적 통계 레이아웃 (순수 스폰/정보만 표시) */
           isEnemy ? (
-            <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-2 gap-x-8">
+            <div className="grid grid-cols-2 gap-x-8">
                 <div className="flex flex-col">{enemyLeftItems.map(renderItem)}</div>
                 <div className="flex flex-col">{enemyRightItems.map(renderItem)}</div>
-              </div>
-              {enemyKillItems.length > 0 && (
-                <div>
-                  <div className="border-t border-slate-800 border-dashed my-2 relative">
-                    <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-2 text-[10px] text-slate-600 font-bold uppercase tracking-wider">{Text.SUB_KILL}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-8 mt-4">
-                    {enemyKillItems.map((item, idx) => <div key={item[0]} className={`${idx % 2 === 0 ? 'pr-2' : 'pl-2'}`}>{renderItem(item)}</div>)}
-                  </div>
-                </div>
-              )}
             </div>
           ) : 
           /* 3. 봇 레이아웃 */
@@ -263,11 +281,33 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
                <div className="flex flex-col">{botRightItems.map(renderItem)}</div>
             </div>
           ) : 
-          /* 4. 기본 그리드 레이아웃 (신규 V2 섹션 등) */
+          /* 4. 방어 레이아웃 */
+          isDefense ? (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
+              <div className="flex flex-col">
+                <div className="flex flex-col">
+                    {defenseTakenItems.length > 0 && <div className="mb-3 text-xs font-bold text-blue-400/70 uppercase tracking-wider border-b border-slate-800 pb-1">{Text.HEADER_TAKEN}</div>}
+                    {defenseTakenItems.map(renderItem)}
+                </div>
+                {defenseRegenItems.length > 0 && (
+                    <div className="mt-6">
+                        <div className="border-t border-slate-800 border-dashed my-2 relative">
+                            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-2 text-[10px] text-slate-600 font-bold uppercase tracking-wider">{Text.SUB_REGEN}</span>
+                        </div>
+                        <div className="mt-4 flex flex-col">{defenseRegenItems.map(renderItem)}</div>
+                    </div>
+                )}
+              </div>
+              <div className="flex flex-col">
+                 {defenseAbsorbedItems.length > 0 && <div className="mb-3 text-xs font-bold text-emerald-400/70 uppercase tracking-wider border-b border-slate-800 pb-1">{Text.HEADER_ABSORBED}</div>}
+                {defenseAbsorbedItems.map(renderItem)}
+              </div>
+            </div>
+          ) : 
+          /* 5. 기본 그리드 레이아웃 (시각화 지원 포함) */
           (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-y-4 gap-x-2">
-              {isDestroyedBy ? (
-                // Destroyed By는 단일 컬럼으로 크게 보여줌
+              {showBar ? (
                 <div className="col-span-2 space-y-1">{entries.sort((a,b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1]))).map(renderItem)}</div>
               ) : (
                 entries.map(renderItem)
