@@ -12,7 +12,7 @@ import { T } from '../../locales';
 interface Props {
   data: FullReportV2;
   onBack: () => void;
-  onDelete: () => void;
+  onDelete: (e: React.MouseEvent) => void;
   deletePopup: { isOpen: boolean; x: number; y: number };
   setDeletePopup: (val: any) => void;
   handleConfirmDelete: () => void;

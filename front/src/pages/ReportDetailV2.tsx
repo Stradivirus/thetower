@@ -13,7 +13,7 @@ import { ENEMY_LEFT_ORDER, ENEMY_RIGHT_ORDER, V2_CURRENCY_KEYS } from '../consta
 interface Props {
   data: FullReportV2;
   onBack: () => void;
-  onDelete: () => void;
+  onDelete: (e: React.MouseEvent) => void;
   deletePopup: { isOpen: boolean; x: number; y: number };
   setDeletePopup: (val: any) => void;
   handleConfirmDelete: () => void;
