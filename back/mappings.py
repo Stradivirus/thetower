@@ -74,9 +74,10 @@ KEY_MAP = {
 EXCLUDE_TOP_DAMAGE = [
     # Korean
     "입힌", "받은", "장벽이 받은", "회복 패키지", "생명력 흡수", "죽음 저항", "오브", "블랙홀",
+    "가시", "타워", "죽음의 광선",
     # English
     "Damage dealt", "Damage Taken", "Damage Taken Wall", "Recovery Packages", 
-    "Lifesteal", "Death Defy", "Orb", "Black Hole"
+    "Lifesteal", "Death Defy", "Orb", "Black Hole", "Thorns", "Tower", "Death Ray"
 ]
 
 """

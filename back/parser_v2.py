@@ -4,14 +4,11 @@
 기능: V2 섹션 구조 파싱, BattleMainV2 / BattleDetailV2 데이터 생성
 """
 from mappings import (
-    KEY_MAP,
-    SECTION_MAP,
     V2_LINE_THRESHOLD,
     SECTION_MAP_V2,
-    KEY_MAP_V2_REPORT,
-    KEY_MAP_V2_RECORDS,
     DAMAGE_JSON_SECTIONS,
     STATS_JSON_SECTIONS,
+    EXCLUDE_TOP_DAMAGE,
 )
 from parser import parse_number, parse_date
 
@@ -183,26 +180,16 @@ def _calculate_top_damages_v2(damage_section: dict) -> list:
     V2 대미지 섹션에서 top_damages 계산
     오브, 블랙홀, 가시 등 제외 키워드를 필터링하고 상위 3개 추출
     """
-    # 1. 요약 리스트에서 제외할 키워드들
-    EXCLUDE_LIST = [
-        '입힌 대미지', 'Damage dealt', 
-        '오브', 'Orb', 
-        '블랙홀', 'Black Hole', 
-        '가시', 'Thorns',
-        '타워', 'Tower',
-        '죽음의 광선', 'Death Ray'
-    ]
-
     candidates = []
     for key, val in damage_section.items():
-        # 2. 제외 목록에 포함되어 있는지 확인 (부분 일치 포함)
-        if any(ex in key for ex in EXCLUDE_LIST):
+        # mappings.py의 공통 제외 목록에 포함되어 있는지 확인 (부분 일치 포함)
+        if any(ex in key for ex in EXCLUDE_TOP_DAMAGE):
             continue
             
         raw_val = parse_number(str(val))
         if raw_val > 0:
             candidates.append({'name': key, 'raw': raw_val})
 
-    # 3. 대미지량 기준 내림차순 정렬 후 상위 3개 반환
+    # 대미지량 기준 내림차순 정렬 후 상위 3개 반환
     candidates.sort(key=lambda x: x['raw'], reverse=True)
     return [item['name'] for item in candidates[:3]]
