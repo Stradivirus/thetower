@@ -106,7 +106,7 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
 
   /** 4. 처치 보너스 데이터 가공 (V2 전용) */
   const killBonusEntries = killEffects 
-    ? Object.entries(killEffects).filter(([key, val]) => {
+    ? Object.entries(killEffects).filter(([_key, val]) => {
         return parseGameNumber(String(val)) > 0;
       }).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])))
     : [];
