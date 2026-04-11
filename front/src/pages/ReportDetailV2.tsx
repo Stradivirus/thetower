@@ -52,24 +52,24 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, se
         {/* 1. 코인 획득 (단독) */}
         <div className="bg-slate-900/40 border border-slate-800 rounded-2xl px-4 py-3 flex items-center justify-between group hover:border-slate-700 transition-colors h-16">
           <div className="flex items-center gap-2 text-amber-500 opacity-90">
-            <Coins size={16} />
-            <span className={`${isKR ? 'text-[11px]' : 'text-[10px]'} font-black uppercase tracking-widest`}>{Text.DASH_TOTAL_COINS}</span>
+            <Coins size={18} />
+            <span className="text-xs font-black uppercase tracking-widest">{Text.DASH_TOTAL_COINS}</span>
           </div>
-          <div className="text-lg font-mono font-bold text-white tracking-tight">{formatNumber(main.coin_earned)}</div>
+          <div className="text-xl font-mono font-bold text-white tracking-tight">{formatNumber(main.coin_earned)}</div>
         </div>
 
         {/* 2. 코인 효율 (2행) */}
         <div className="bg-slate-900/40 border border-slate-800 rounded-2xl px-4 py-3 flex flex-col justify-center gap-1 group hover:border-slate-700 transition-colors h-16">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-blue-400 opacity-90">
-              <Zap size={14} />
-              <span className={`${isKR ? 'text-[10px]' : 'text-[9px]'} font-black uppercase tracking-widest`}>{Text.DASH_EFFICIENCY}</span>
+              <Zap size={16} />
+              <span className="text-[11px] font-black uppercase tracking-widest">{Text.DASH_EFFICIENCY}</span>
             </div>
-            <div className="text-sm font-mono font-bold text-white">{formatNumber(main.coins_per_hour)}<span className="text-[9px] text-slate-500 font-normal ml-0.5">/hr</span></div>
+            <div className="text-base font-mono font-bold text-white">{formatNumber(main.coins_per_hour)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">/hr</span></div>
           </div>
           <div className="flex items-center justify-between">
-            <span className={`${isKR ? 'text-[10px]' : 'text-[9px]'} text-slate-500 font-bold uppercase pl-5`}>{Text.DASH_PEAK_CPM}</span>
-            <div className="text-sm font-mono font-bold text-slate-300">{formatNumber(v2_main.best_coins_per_minute || 0)}<span className="text-[9px] text-slate-500 font-normal ml-0.5">/m</span></div>
+            <span className="text-[11px] text-slate-500 font-bold uppercase pl-5">{Text.DASH_PEAK_CPM}</span>
+            <div className="text-base font-mono font-bold text-slate-300">{formatNumber(v2_main.best_coins_per_minute || 0)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">/m</span></div>
           </div>
         </div>
 
@@ -77,24 +77,24 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, se
         <div className="bg-slate-900/40 border border-slate-800 rounded-2xl px-4 py-3 flex flex-col justify-center gap-1 group hover:border-slate-700 transition-colors h-16">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-emerald-400 opacity-90">
-              <Activity size={14} />
-              <span className={`${isKR ? 'text-[10px]' : 'text-[9px]'} font-black uppercase tracking-widest`}>{Text.DASH_CELL_HARVEST}</span>
+              <Activity size={16} />
+              <span className="text-[11px] font-black uppercase tracking-widest">{Text.DASH_CELL_HARVEST}</span>
             </div>
-            <div className="text-sm font-mono font-bold text-white">{formatNumber(main.cells_earned)}</div>
+            <div className="text-base font-mono font-bold text-white">{formatNumber(main.cells_earned)}</div>
           </div>
           <div className="flex items-center justify-between">
-            <span className={`${isKR ? 'text-[10px]' : 'text-[9px]'} text-slate-500 font-bold uppercase pl-5`}>{Text.DASH_HOURLY_RATE}</span>
-            <div className="text-sm font-mono font-bold text-slate-300">{formatNumber(v2_main.cells_per_hour || 0)}<span className="text-[9px] text-slate-500 font-normal ml-0.5">/hr</span></div>
+            <span className="text-[11px] text-slate-500 font-bold uppercase pl-5">{Text.DASH_HOURLY_RATE}</span>
+            <div className="text-base font-mono font-bold text-slate-300">{formatNumber(v2_main.cells_per_hour || 0)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">/hr</span></div>
           </div>
         </div>
 
         {/* 4. 골든 콤보 (단독) */}
         <div className="bg-slate-900/40 border border-slate-800 rounded-2xl px-4 py-3 flex items-center justify-between group hover:border-slate-700 transition-colors h-16">
           <div className="flex items-center gap-2 text-yellow-500 opacity-90">
-            <Trophy size={16} />
-            <span className={`${isKR ? 'text-[11px]' : 'text-[10px]'} font-black uppercase tracking-widest`}>{Text.DASH_GOLDEN_COMBO}</span>
+            <Trophy size={18} />
+            <span className="text-xs font-black uppercase tracking-widest">{Text.DASH_GOLDEN_COMBO}</span>
           </div>
-          <div className="text-lg font-mono font-bold text-white tracking-tight">{v2_main.max_golden_combo || 0} <span className="text-[10px] text-slate-500 font-normal ml-0.5">Hits</span></div>
+          <div className="text-xl font-mono font-bold text-white tracking-tight">{v2_main.max_golden_combo || 0} <span className="text-[10px] text-slate-500 font-normal ml-0.5">Hits</span></div>
         </div>
       </div>
     );
@@ -136,9 +136,9 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, se
 
         <div className="flex items-center gap-4">
           {main.notes && (
-            <div className="hidden md:block max-w-xs">
-               <div className="flex items-start gap-2 bg-slate-900/60 border border-slate-800 px-3 py-2 rounded-xl text-[12px] text-slate-300">
-                  <FileText size={14} className="text-slate-500 mt-0.5 flex-shrink-0" />
+            <div className="hidden md:block max-w-md">
+               <div className="flex items-start gap-2 bg-slate-900/60 border border-slate-800 px-4 py-2.5 rounded-xl text-base text-slate-300">
+                  <FileText size={18} className="text-slate-500 mt-0.5 flex-shrink-0" />
                   <p className="whitespace-pre-wrap leading-tight">{main.notes}</p>
                </div>
             </div>
