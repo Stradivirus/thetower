@@ -32,21 +32,22 @@ const getRandomRarity = (maxCap: number) => {
   return RARITY.COMMON;
 };
 
-/** 
+// 초기 슬롯 상태 (8개 슬롯) — 훅 외부 상수로 분리하여 렌더마다 재생성 방지
+const INITIAL_SLOTS: SimulationSlot[] = Array.from({ length: 8 }, (_, i) => ({
+  id: i,
+  effectId: null,
+  rarity: 0,
+  value: '-',
+  unit: '',
+  isLocked: false
+}));
+
+/**
  * 리롤 시뮬레이션 관리를 위한 커스텀 훅
  */
 export function useRerollSimulation() {
-  // 초기 슬롯 상태 (8개 슬롯)
-  const initialSlots: SimulationSlot[] = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    effectId: null,
-    rarity: 0,
-    value: '-',
-    unit: '',
-    isLocked: false 
-  }));
 
-  const [slots, setSlots] = useState<SimulationSlot[]>(initialSlots);
+  const [slots, setSlots] = useState<SimulationSlot[]>(INITIAL_SLOTS);
   const [totalCost, setTotalCost] = useState(0); 
   const [isSimulating, setIsSimulating] = useState(false);
   const intervalRef = useRef<number | null>(null);
@@ -63,7 +64,7 @@ export function useRerollSimulation() {
   /** 상태를 초기화합니다. */
   const resetSimulation = useCallback(() => {
     stopSimulation();
-    setSlots(initialSlots);
+    setSlots(INITIAL_SLOTS);
     setTotalCost(0);
   }, [stopSimulation]);
 
@@ -104,19 +105,13 @@ export function useRerollSimulation() {
     currentEffects: any[],
     targetRarityCap: number,
     isBanMode: boolean
-  ) => {
-    if (targetOptions.length === 0) {
-      alert("Please select target options first.");
-      return;
-    }
-    
-    const activeSlots = slots.slice(0, targetOptions.length);
-    if (activeSlots.every(s => s.isLocked)) return;
+  ): boolean => {
+    if (targetOptions.length === 0) return false;
 
-    if (isBanMode) {
-      alert("Please confirm your Ban Wishlist first.");
-      return;
-    }
+    const activeSlots = slots.slice(0, targetOptions.length);
+    if (activeSlots.every(s => s.isLocked)) return false;
+
+    if (isBanMode) return false;
 
     setIsSimulating(true);
     
@@ -172,7 +167,8 @@ export function useRerollSimulation() {
 
         return newSlots;
       });
-    }, 20); 
+    }, 20);
+    return true;
   }, [slots, stopSimulation]);
 
   // 컴포넌트 언마운트 시 인터벌 정리

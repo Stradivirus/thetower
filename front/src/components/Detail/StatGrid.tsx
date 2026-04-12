@@ -7,13 +7,14 @@
 import { useState } from 'react';
 import { type LucideIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { parseGameNumber } from '../../utils/format';
-import { T } from '../../locales'; 
-import { 
-  HIDDEN_KEYS, ENEMY_LEFT_ORDER, ENEMY_RIGHT_ORDER, RESOURCE_ORDER 
-} from '../../constants/reportRules'; 
+import { T } from '../../locales';
+import type { GameValue } from '../../types/report';
+import {
+  HIDDEN_KEYS, ENEMY_LEFT_ORDER, ENEMY_RIGHT_ORDER, RESOURCE_ORDER
+} from '../../constants/reportRules';
 
 interface StatGridProps {
-  data: Record<string, any>;             // V1, V2 호환을 위해 any 허용
+  data: Record<string, GameValue | Record<string, GameValue> | undefined>;
   icon: LucideIcon;                      // 타이틀 옆에 표시할 아이콘
   title: string;                         // 섹션 제목
   color: string;                         // 섹션 테마 색상
@@ -36,15 +37,18 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   const isDestroyedBy = title === "Destroyed By"; // V2 전용
 
   // --- V2 데이터 병합 로직 ---
-  let displayData: Record<string, any> = {};
+  let displayData: Record<string, GameValue> = {};
   if (v2Sections) {
-      v2Sections.forEach(sec => {
-          if (data[sec]) {
-              Object.assign(displayData, data[sec]);
-          }
-      });
+    v2Sections.forEach(sec => {
+      const section = data[sec];
+      if (section && typeof section === 'object') {
+        Object.assign(displayData, section);
+      }
+    });
   } else {
-      displayData = data;
+    Object.entries(data).forEach(([k, v]) => {
+      if (v !== undefined && typeof v !== 'object') displayData[k] = v;
+    });
   }
 
   /** 
@@ -71,8 +75,8 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   }
 
   // --- [A] 유틸리티 섹션 분류 ---
-  let utilCoinItems: [string, string | number][] = [];
-  let utilMiscItems: [string, string | number][] = [];
+  let utilCoinItems: [string, GameValue][] = [];
+  let utilMiscItems: [string, GameValue][] = [];
 
   if (isUtility) {
     const coinItems = entries.filter(([key]) => key.includes('코인') || key.toLowerCase().includes('coin'));
@@ -83,8 +87,8 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   }
 
   // --- [B] 적 통계 섹션 분류 ---
-  let enemyLeftItems: [string, string | number][] = [];
-  let enemyRightItems: [string, string | number][] = [];
+  let enemyLeftItems: [string, GameValue][] = [];
+  let enemyRightItems: [string, GameValue][] = [];
 
   if (isEnemy) {
     // 처치 관련 키워드 (제외할 항목들)
@@ -104,7 +108,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
       else enemyRightItems.push(item);
     });
 
-    const sortFn = (orderList: string[]) => (a: [string, any], b: [string, any]) => {
+    const sortFn = (orderList: string[]) => (a: [string, GameValue], b: [string, GameValue]) => {
       const idxA = orderList.indexOf(a[0]);
       const idxB = orderList.indexOf(b[0]);
       if (idxA !== -1 && idxB !== -1) return idxA - idxB;
@@ -118,8 +122,8 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   }
 
   // --- [C] 봇 & 가디언 섹션 분류 ---
-  let botLeftItems: [string, string | number][] = [];
-  let botRightItems: [string, string | number][] = [];
+  let botLeftItems: [string, GameValue][] = [];
+  let botRightItems: [string, GameValue][] = [];
 
   if (isBot) {
     const isRightSide = (key: string) => {
@@ -150,13 +154,14 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   }
 
   // --- [D] 방어 섹션 분류 ---
-  let defenseTakenItems: [string, string | number][] = [];
-  let defenseRegenItems: [string, string | number][] = [];
-  let defenseAbsorbedItems: [string, string | number][] = [];
+  let defenseTakenItems: [string, GameValue][] = [];
+  let defenseRegenItems: [string, GameValue][] = [];
+  let defenseAbsorbedItems: [string, GameValue][] = [];
 
   if (isDefense) {
-    const isAbsorbed = (key: string, val: any) => {
-        if (v2Sections && data['damage_block'] && data['damage_block'][key] === val) return true;
+    const isAbsorbed = (key: string, val: GameValue) => {
+        const damageBlock = data['damage_block'];
+        if (v2Sections && damageBlock && typeof damageBlock === 'object' && (damageBlock as Record<string, GameValue>)[key] === val) return true;
         const keywords = ['차단', 'Block', '방어 %', 'Defense %', '절대 방어', '필드', '천둥', '붕괴', '프로젝터'];
         return keywords.some(k => key.includes(k));
     };
@@ -170,7 +175,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
         else if (isRegen(item[0])) defenseRegenItems.push(item);
         else defenseTakenItems.push(item);
     });
-    const uniqueItems = (arr: [string, any][]) => {
+    const uniqueItems = (arr: [string, GameValue][]) => {
         const map = new Map();
         arr.forEach(item => map.set(item[0], item[1]));
         return Array.from(map.entries()) as [string, string | number][];
@@ -189,7 +194,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   /** 
    * 개별 스탯 항목을 렌더링합니다. 
    */
-  const renderItem = ([key, value]: [string, string | number]) => {
+  const renderItem = ([key, value]: [string, GameValue]) => {
     let labelColor = "text-slate-500";
     let valueColor = "text-slate-200";
     let valueSize = "text-sm";

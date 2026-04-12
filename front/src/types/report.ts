@@ -71,17 +71,46 @@ export interface BattleMainV2 {
   max_inner_mine_charge?: number;
 }
 
+/** 게임 데이터 값 타입 (게임 내 수치는 항상 문자열 또는 숫자) */
+export type GameValue = string | number;
+
+/**
+ * damage_json 중첩 구조
+ * 파서가 DAMAGE_JSON_SECTIONS 기준으로 묶는 하위 섹션들
+ * 인덱스 시그니처 포함 → StatGrid의 Record 타입에 할당 가능
+ */
+export type DamageJson = {
+  [key: string]: Record<string, GameValue> | undefined;
+  damage?: Record<string, GameValue>;        // 공격 대미지 (Damage Dealt, 무기별 대미지)
+  damage_taken?: Record<string, GameValue>;  // 받은 대미지 (Tower, Wall)
+  bonus_hp?: Record<string, GameValue>;      // 보너스 체력 획득
+  hp_regen?: Record<string, GameValue>;      // 체력 재생 (Lifesteal, Tower/Wall Regen)
+  damage_block?: Record<string, GameValue>;  // 대미지 차단 (Defense %, Absolute 등)
+};
+
+/**
+ * stats_json 중첩 구조
+ * 파서가 STATS_JSON_SECTIONS 기준으로 묶는 하위 섹션들
+ * 인덱스 시그니처 포함 → StatGrid의 Record 타입에 할당 가능
+ */
+export type StatsJson = {
+  [key: string]: Record<string, GameValue> | undefined;
+  stats?: Record<string, GameValue>;         // 수치/카운트 (Counts 섹션)
+  enemy_hits?: Record<string, GameValue>;    // 적 타격 수 (Enemies Hit By)
+  kill_effects?: Record<string, GameValue>;  // 효과 활성 상태에서 처치 (Killed With Effect Active)
+};
+
 /**
  * V2 상세 JSON 데이터 인터페이스
  */
 export interface BattleDetailV2 {
-  damage_json: Record<string, any>;
-  utility_json: Record<string, any>;
-  stats_json: Record<string, any>;
-  enemy_json: Record<string, any>;
-  coin_json: Record<string, any>;
-  currency_json: Record<string, any>;
-  kill_source_json: Record<string, any>;
+  damage_json: DamageJson;
+  utility_json: Record<string, GameValue>;
+  stats_json: StatsJson;
+  enemy_json: Record<string, GameValue>;
+  coin_json: Record<string, GameValue>;
+  currency_json: Record<string, GameValue>;
+  kill_source_json: Record<string, GameValue>;
 }
 
 /**

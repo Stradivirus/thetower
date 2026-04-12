@@ -4,6 +4,7 @@
  * 기능: UW 해금/스탯, 카드, 모듈 등 각 카테고리별 스톤 소모량 계산 및 서버 동기화
  */
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Triangle, Lock, Zap, PlusCircle, Layers, Box, List, RotateCcw } from 'lucide-react';
 import UnlockTab from '../components/Stones/UnlockTab';
 import UwStatsTab from '../components/Stones/UwStatsTab';
@@ -14,14 +15,14 @@ import { formatNum } from '../components/Stones/StoneShared';
 import { useStonesData } from '../hooks/useStonesData'; 
 
 interface Props {
-  onBack: () => void;
   token: string | null;
 }
 
 // 탭 종류 타입 정의
 type TabType = 'unlock' | 'base' | 'plus' | 'card' | 'module';
 
-export default function StonesPage({ onBack, token }: Props) {
+export default function StonesPage({ token }: Props) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>('unlock');
   const [selectedUw, setSelectedUw] = useState<string>('death_wave'); // 선택된 궁극 무기
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
@@ -64,7 +65,7 @@ export default function StonesPage({ onBack, token }: Props) {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 sticky top-0 bg-slate-950/90 backdrop-blur-md py-3 z-20 border-b border-slate-800 gap-4">
         <div className="flex items-center justify-between w-full md:w-auto gap-4">
           <div className="flex items-center gap-4">
-            <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
               <ArrowLeft size={20} />
             </button>
             <h1 className="text-xl font-bold text-white flex flex-col items-start gap-1">

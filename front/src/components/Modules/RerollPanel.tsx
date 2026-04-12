@@ -48,6 +48,9 @@ export default function RerollPanel() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSlotIdx, setSelectedSlotIdx] = useState<number | null>(null);
 
+  // 에러 메시지 상태
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   // 시뮬레이션 엔진 훅 사용
   const { 
     slots, 
@@ -151,9 +154,14 @@ export default function RerollPanel() {
 
   /** 시뮬레이션 시작/정지 토글 */
   const toggleSimulation = () => {
-    if (isSimulating) stopSimulation();
-    else {
-      startSimulation(targetOptions, bannedOptions, currentEffects, targetRarityCap, isBanMode);
+    if (isSimulating) {
+      stopSimulation();
+      return;
+    }
+    const ok = startSimulation(targetOptions, bannedOptions, currentEffects, targetRarityCap, isBanMode);
+    if (!ok && isBanMode) {
+      setErrorMsg("Ban Wishlist를 먼저 확정해주세요.");
+      setTimeout(() => setErrorMsg(null), 3000);
     }
   };
 
@@ -234,6 +242,13 @@ export default function RerollPanel() {
             />
           </div>
         </div>
+
+        {/* 에러 메시지 */}
+        {errorMsg && (
+          <div className="mt-2 px-3 py-2 bg-rose-500/10 border border-rose-500/30 rounded-lg text-xs text-rose-400 text-center shrink-0">
+            {errorMsg}
+          </div>
+        )}
 
         {/* 하단 도움말 안내 */}
         <div className="mt-4 flex items-center gap-2 text-[10px] text-slate-500 border-t border-slate-800 pt-3 shrink-0">

@@ -7,20 +7,7 @@ import { API_BASE_URL } from '../utils/apiConfig';
 
 const AUTH_URL = `${API_BASE_URL}/auth`;
 
-/** 
- * 인증 헤더를 생성합니다. 
- * @param contentType JSON 여부 (기본 false)
- */
-const getAuthHeaders = (contentType: boolean = false) => {
-  const token = localStorage.getItem('access_token');
-  const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
-  if (contentType) {
-    headers['Content-Type'] = 'application/json';
-  }
-  return headers;
-};
-
-/** 
+/**
  * 사용자 로그인을 수행하고 토큰을 반환받습니다.
  * - OAuth2 Password Flow 표준에 맞춰 x-www-form-urlencoded 형식을 사용합니다.
  */
@@ -52,7 +39,7 @@ export const loginUser = async (username: string, password: string) => {
 export const registerUser = async (username: string, password: string) => {
   const response = await fetch(`${AUTH_URL}/register`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
 

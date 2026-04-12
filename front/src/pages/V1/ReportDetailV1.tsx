@@ -14,16 +14,16 @@ interface Props {
   onBack: () => void;
   onDelete: (e: React.MouseEvent) => void;
   deletePopup: { isOpen: boolean; x: number; y: number };
-  setDeletePopup: (val: any) => void;
+  onClosePopup: () => void;
   handleConfirmDelete: () => void;
 }
 
-export default function ReportDetailV1({ data, onBack, onDelete, deletePopup, setDeletePopup, handleConfirmDelete }: Props) {
+export default function ReportDetailV1({ data, onBack, onDelete, deletePopup, onClosePopup, handleConfirmDelete }: Props) {
   const { main, detail } = data;
   const Text = T.detail;
   const Common = T.common;
 
-  const closePopup = () => setDeletePopup((prev: any) => ({ ...prev, isOpen: false }));
+  const closePopup = onClosePopup;
 
   return (
     <div className="max-w-7xl mx-auto pb-20 animate-fade-in px-4">

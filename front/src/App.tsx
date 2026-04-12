@@ -144,7 +144,7 @@ export default function App() {
 
                 {/* 스톤 계산기 */}
                 <Route path="/stones" element={
-                  <StonesPage onBack={() => window.history.back()} token={token} />
+                  <StonesPage token={token} />
                 } />
 
                 {/* 리포트 상세 페이지 */}

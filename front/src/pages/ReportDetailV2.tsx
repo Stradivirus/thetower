@@ -16,16 +16,16 @@ interface Props {
   onBack: () => void;
   onDelete: (e: React.MouseEvent) => void;
   deletePopup: { isOpen: boolean; x: number; y: number };
-  setDeletePopup: (val: any) => void;
+  onClosePopup: () => void;
   handleConfirmDelete: () => void;
 }
 
-export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, setDeletePopup, handleConfirmDelete }: Props) {
+export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, onClosePopup, handleConfirmDelete }: Props) {
   const { main, v2_main, v2_detail, detail } = data;
   const Text = T.detail;
   const Common = T.common;
 
-  const closePopup = () => setDeletePopup((prev: any) => ({ ...prev, isOpen: false }));
+  const closePopup = onClosePopup;
 
   const getRecordData = () => {
     if (!v2_main) return null;

@@ -8,18 +8,6 @@ import { API_BASE_URL, fetchWithAuth } from '../utils/apiConfig';
 const MODULES_URL = `${API_BASE_URL}/modules`;
 
 /** 
- * 인증 헤더를 생성합니다. 
- */
-const getAuthHeaders = (contentType: boolean = false) => {
-  const token = localStorage.getItem('access_token');
-  const headers: Record<string, string> = token ? { 'Authorization': `Bearer ${token}` } : {};
-  if (contentType) {
-    headers['Content-Type'] = 'application/json';
-  }
-  return headers;
-};
-
-/** 
  * 모듈 데이터 인터페이스
  */
 export interface ModulesData {
@@ -31,9 +19,7 @@ export interface ModulesData {
  * 사용자의 모듈 데이터를 서버에서 불러옵니다.
  */
 export const fetchModules = async (): Promise<ModulesData> => {
-  const response = await fetchWithAuth(`${MODULES_URL}/`, {
-    headers: getAuthHeaders(),
-  });
+  const response = await fetchWithAuth(`${MODULES_URL}/`);
 
   if (!response.ok) {
     throw new Error('모듈 데이터 불러오기 실패');
@@ -48,7 +34,6 @@ export const fetchModules = async (): Promise<ModulesData> => {
 export const saveModules = async (data: ModulesData): Promise<void> => {
   const response = await fetchWithAuth(`${MODULES_URL}/`, {
     method: 'POST',
-    headers: getAuthHeaders(true),
     body: JSON.stringify(data),
   });
 

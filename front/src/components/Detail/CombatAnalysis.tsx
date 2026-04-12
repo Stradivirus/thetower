@@ -2,10 +2,11 @@
  * 파일명: thetower/front/src/components/Detail/CombatAnalysis.tsx
  * 용도: 전투 리포트 상세 페이지에서 대미지 및 전투 데이터를 분석하여 시각화 (Refactored)
  */
-import { parseGameNumber } from '../../utils/format'; 
-import { 
-  DEFENSE_KEYS, ATTACK_SPECIFIC_KEYS 
-} from '../../constants/reportRules'; 
+import { parseGameNumber } from '../../utils/format';
+import {
+  DEFENSE_KEYS, ATTACK_SPECIFIC_KEYS
+} from '../../constants/reportRules';
+import type { GameValue, DamageJson } from '../../types/report';
 
 // 분리된 하위 컴포넌트 임포트
 import DamageDealerSection, { StatRow } from './Combat/DamageDealerSection';
@@ -13,12 +14,12 @@ import KillSourceSection from './Combat/KillSourceSection';
 import KillBonusSection from './Combat/KillBonusSection';
 
 interface Props {
-  combatJson?: Record<string, any>;   // V1 전투 섹션 원본 JSON 데이터
-  damageJsonV2?: Record<string, any>; // V2 대미지 관련 통합 JSON 데이터
-  enemyJson?: Record<string, any>;    // V2 적 통계 데이터 (Fallback용)
-  killEffects?: Record<string, any>;  // V2 처치 효과 데이터
-  killSourceJson?: Record<string, any>; // V2 처치 수단 데이터 (Destroyed By)
-  totalEnemies?: number;              // V2 전체 적 처치 수
+  combatJson?: Record<string, GameValue>;  // V1 전투 섹션 원본 JSON 데이터
+  damageJsonV2?: DamageJson;               // V2 대미지 관련 통합 JSON 데이터
+  enemyJson?: Record<string, GameValue>;   // V2 적 통계 데이터 (Fallback용)
+  killEffects?: Record<string, GameValue>; // V2 처치 효과 데이터
+  killSourceJson?: Record<string, GameValue>; // V2 처치 수단 데이터 (Destroyed By)
+  totalEnemies?: number;                   // V2 전체 적 처치 수
 }
 
 /** 차트 및 리스트에서 사용할 색상 팔레트 */

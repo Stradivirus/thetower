@@ -55,14 +55,16 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
   if (!data) return null;
 
   // V2 데이터 존재 여부에 따라 분기 처리
+  const handleClosePopup = () => setDeletePopup(prev => ({ ...prev, isOpen: false }));
+
   if (data.v2_main) {
     return (
-      <ReportDetailV2 
-        data={data} 
-        onBack={onBack} 
+      <ReportDetailV2
+        data={data}
+        onBack={onBack}
         onDelete={handleDeleteClick}
         deletePopup={deletePopup}
-        setDeletePopup={setDeletePopup}
+        onClosePopup={handleClosePopup}
         handleConfirmDelete={handleConfirmDelete}
       />
     );
@@ -70,12 +72,12 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
 
   // 기본적으로 V1 페이지 렌더링
   return (
-    <ReportDetailV1 
-      data={data} 
-      onBack={onBack} 
+    <ReportDetailV1
+      data={data}
+      onBack={onBack}
       onDelete={handleDeleteClick}
       deletePopup={deletePopup}
-      setDeletePopup={setDeletePopup}
+      onClosePopup={handleClosePopup}
       handleConfirmDelete={handleConfirmDelete}
     />
   );
