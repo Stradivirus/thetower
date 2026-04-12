@@ -72,7 +72,7 @@ export default function Dashboard({ reports }: Props) {
    */
   const topDamages = useMemo(() => {
     const damageCountMap: Record<string, number> = {};
-    const utilityKeywords = ['오브', '블랙홀']; // 유틸리티성 항목은 딜 순위에서 제외
+    const utilityKeywords = ['오브', '블랙홀', 'Orb', 'Black Hole']; // 유틸리티성 항목(오브, 블랙홀)만 순위에서 제외
 
     recentReports.forEach(r => {
       (r.top_damages || []).forEach((name: string) => {
