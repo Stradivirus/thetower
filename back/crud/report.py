@@ -18,10 +18,10 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
     """
     파싱된 데이터를 기반으로 새로운 전투 기록을 생성합니다.
     - BattleMain: 주요 통계 데이터 저장 (merge를 통한 중복 처리)
-    - BattleDetail: 상세 JSON 데이터 저장
+    - BattleDetail: 상세 JSON 데이터 저장 (detail_data가 있을 때만)
     """
     main_data = parsed_data['main']
-    detail_data = parsed_data['detail']
+    detail_data = parsed_data.get('detail')
 
     # 유효성 검사: 웨이브와 적 처치수가 모두 0이면 저장하지 않음
     if main_data.get('wave', 0) == 0 and main_data.get('total_enemies', 0) == 0:
@@ -36,23 +36,24 @@ def create_battle_record(db: Session, parsed_data: dict, user_id: int, notes: st
         battle_main = BattleMain(**main_data, owner_id=user_id)
         db.merge(battle_main)
         
-        # 2. Detail 저장
-        existing_detail = db.query(BattleDetail).filter(
-            BattleDetail.battle_date == battle_main.battle_date,
-            BattleDetail.owner_id == user_id
-        ).first()
+        # 2. Detail 저장 (데이터가 있는 경우에만)
+        if detail_data:
+            existing_detail = db.query(BattleDetail).filter(
+                BattleDetail.battle_date == battle_main.battle_date,
+                BattleDetail.owner_id == user_id
+            ).first()
 
-        if existing_detail:
-            for key, value in detail_data.items():
-                if hasattr(existing_detail, key):
-                    setattr(existing_detail, key, value)
-        else:
-            new_detail = BattleDetail(
-                battle_date=battle_main.battle_date,
-                owner_id=user_id,
-                **detail_data
-            )
-            db.add(new_detail)
+            if existing_detail:
+                for key, value in detail_data.items():
+                    if hasattr(existing_detail, key):
+                        setattr(existing_detail, key, value)
+            else:
+                new_detail = BattleDetail(
+                    battle_date=battle_main.battle_date,
+                    owner_id=user_id,
+                    **detail_data
+                )
+                db.add(new_detail)
         
         db.commit()
         return battle_main

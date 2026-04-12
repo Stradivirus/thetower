@@ -43,42 +43,41 @@ def create_report(
 ):
     """
     텍스트 형식의 전투 리포트를 파싱하여 DB에 저장합니다.
-    - V1/V2 포맷 자동 감지 (줄 수 기준)
-    - V1: 기존 BattleDetail 저장
-    - V2: BattleMainV2 + BattleDetailV2 추가 저장 (BattleDetail 저장 안 함)
+    - [변경] V2 포맷만 저장을 허용합니다. (V1은 더 이상 저장하지 않음)
+    - V1 포맷 업로드 시 400 에러를 반환합니다.
+    - V2: BattleMain + BattleMainV2 + BattleDetailV2 저장 (기존 BattleDetail은 저장 안 함)
     - 티어별 서버 최고 기록 갱신 시도
     - 50건 단위 기록 발생 시 Slack 알림 전송 (Background Task)
     """
     try:
         # 1. 버전 감지 및 파싱
         is_v2_report = is_v2(report_text)
-        if is_v2_report:
-            parsed_data = parse_battle_report_v2(report_text)
-            # V2는 main 데이터만 기존 create_battle_record에 넘김
-            # BattleDetail은 생성하지 않도록 detail 키를 비워서 전달
-            v1_compatible = {
-                'main': parsed_data['main'],
-                'detail': {
-                    'combat_json': {},
-                    'utility_json': {},
-                    'enemy_json': {},
-                    'bot_json': {},
-                }
-            }
-            result = crud.create_battle_record(db, v1_compatible, current_user.id, notes)
-        else:
-            parsed_data = parse_battle_report(report_text)
-            result = crud.create_battle_record(db, parsed_data, current_user.id, notes)
+        if not is_v2_report:
+            # V1 리포트는 저장을 차단하고 에러 메시지 반환
+            raise HTTPException(
+                status_code=400, 
+                detail="V1 포맷 리포트는 더 이상 지원하지 않습니다. 최신 버전의 게임 리포트를 사용해 주세요."
+            )
+
+        parsed_data = parse_battle_report_v2(report_text)
+        
+        # BattleMain만 생성 (V1 Detail은 생성하지 않음)
+        # v1_compatible 딕셔너리에서 detail을 비워서 전달하면 crud.create_battle_record가 Detail을 생성하지 않도록 수정 필요
+        v1_compatible = {
+            'main': parsed_data['main'],
+            'detail': None  # None을 전달하여 Detail 생성을 건너뜀
+        }
+        
+        result = crud.create_battle_record(db, v1_compatible, current_user.id, notes)
 
         if not result:
             print(f"⚠️ [User {current_user.id}] Invalid data, skipping save.")
             raise HTTPException(status_code=400, detail="Invalid data provided or data skipped")
 
-        # 2. V2 전용 데이터 저장
-        if is_v2_report:
-            v2_result = create_battle_record_v2(db, parsed_data, current_user.id)
-            if not v2_result:
-                print(f"⚠️ [User {current_user.id}] V2 data save failed.")
+        # 2. V2 전용 데이터 저장 (BattleMainV2, BattleDetailV2)
+        v2_result = create_battle_record_v2(db, parsed_data, current_user.id)
+        if not v2_result:
+            print(f"⚠️ [User {current_user.id}] V2 data save failed.")
 
         # 3. 서버 최고 기록(Max Wave) 갱신 시도
         try:
