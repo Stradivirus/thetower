@@ -1,0 +1,321 @@
+================================================================================
+  TheTower - 전체 코드 리뷰
+  작성일: 2026-04-12
+  대상: back/, docker/, front/src/
+================================================================================
+
+
+================================================================================
+  1. BACK (FastAPI 백엔드)
+================================================================================
+
+[ 잘 된 점 ]
+
+  - Router → CRUD → Model 계층 분리가 깔끔함
+    각 레이어의 역할이 명확하고, 책임이 섞이는 부분이 거의 없음
+
+  - Read/Write DB 분리 (database.py)
+    메인(쓰기) / 리플리카(읽기) 를 get_db / get_db_replica 로 분리
+    실제 트래픽 고려한 현실적인 설계
+
+  - fcntl 기반 스케줄러 잠금 (main.py)
+    멀티 워커(Gunicorn 4 workers) 환경에서 크론 중복 실행 방지
+    scheduler.lock 파일로 해결 — 실제 운영에서 겪은 문제를 해결한 흔적
+
+  - report_queries.py 로 복잡한 SQL 분리
+    비율 계산(CASE 문) 같은 복잡한 쿼리를 별도 파일로 격리해서 가독성 좋음
+
+  - BattleDetail / V2 Cascade 삭제 설정
+    ForeignKeyConstraint + ondelete='CASCADE' 로 부모 삭제 시 자식 자동 정리
+
+  - 주석과 docstring이 충실함
+    파일 상단 용도 설명, 함수별 설명이 잘 되어 있어 맥락 파악이 쉬움
+
+
+[ 개선이 필요한 부분 ]
+
+  ★ 보안 (즉시 수정 권장)
+
+  1. SECRET_KEY fallback 위험 (auth.py:23)
+     현재 코드:
+       SECRET_KEY = os.getenv("SECRET_KEY", "secret_key_fallback")
+     문제:
+       .env 파일 없이 배포 시 고정값으로 폴백됨 → JWT 서명 키가 공개되는 것과 같음
+       누구나 유효한 JWT를 위조 가능
+     권장 수정:
+       SECRET_KEY = os.getenv("SECRET_KEY")
+       if not SECRET_KEY:
+           raise ValueError("SECRET_KEY 환경 변수가 설정되지 않았습니다.")
+
+  2. 비밀번호 최소 길이 4자 (routers/auth.py:30)
+     bcrypt가 받아주긴 하지만 4자는 너무 짧음
+     최소 8자 이상 권장
+     현재 서비스가 개인용이라면 낮은 우선순위지만, 확장 시 문제될 수 있음
+
+
+  ★ 설계 이슈
+
+  3. is_v2() 를 두 번 호출 (routers/reports.py:53, 76)
+     현재 코드:
+       if is_v2(report_text):   # 53번째 줄에서 한 번
+           ...
+       if is_v2(report_text):   # 76번째 줄에서 또 한 번
+           ...
+     권장 수정:
+       is_v2_flag = is_v2(report_text)
+       if is_v2_flag: ...
+       if is_v2_flag: ...
+
+  4. 라우터에 DB 쿼리 직접 (routers/reports.py:203~212)
+     get_report_detail() 내부에서 BattleMainV2, BattleDetailV2 를 라우터가 직접 쿼리함
+     레이어 분리 원칙에 어긋남 → crud/report_v2.py 로 이동 권장
+     예: get_v2_report(db, date_obj, user_id) 같은 함수로 분리
+
+  5. BattleMain PK 가 (battle_date, owner_id) 복합키 (models.py:52-53)
+     분 단위 중복 가능성이 있음 (같은 분에 두 번 게임하면 덮어씀)
+     db.merge() 가 이를 의도하고 있으므로 기능상 문제는 없으나,
+     사용자가 인지하고 있어야 할 제약 조건임
+     주석이나 문서에 명시 권장
+
+  6. parser.py 에 dead code 존재 (parser.py:202)
+     update_server_max_wave() 함수가 정의되어 있으나 실제로 사용되지 않음
+     동일한 로직이 routers/reports.py 에 직접 구현되어 있음
+     둘 중 하나로 통일하거나 parser.py 의 함수 삭제 권장
+
+  7. parser.py 에 불필요한 import (parser.py:9)
+     from sqlalchemy.orm import Session 이 있으나 해당 파일 내에서 사용하지 않음
+     삭제 권장
+
+
+  ★ 사소한 것들
+
+  8. schemas.py 하단 주석 잔재 (schemas.py:189~191)
+     """
+     기존 schemas.py 하단에 추가할 V2 스키마
+     기존 스키마는 그대로 유지
+     """
+     코드가 이미 합쳐진 후에도 작업 메모가 남아 있음 → 삭제
+
+  9. monthly-trends 엔드포인트에 response_model 없음 (routers/reports.py:172)
+     다른 모든 GET 엔드포인트는 response_model 이 있는데 이것만 누락
+     Swagger 문서 자동 생성 시 응답 스키마가 표시되지 않음
+
+  10. cron_jobs.py 에서 report_ghost_users() 오류 발생 시 Slack 알림 없음 (cron_jobs.py:119)
+      report_monthly_stats() 는 오류 시 Slack으로 알림을 보내지만
+      report_ghost_users() 는 그냥 print() 만 함 → 통일 권장
+
+
+  [ 총평 - Back ]
+
+  전반적으로 실제 서비스를 운영하면서 필요에 의해 발전한 코드 느낌.
+  V1 → V2 마이그레이션 흔적, DB 분리, 스케줄러 잠금 등
+  실전에서 나온 의사결정들이 코드에 잘 반영되어 있음.
+  급하게 고쳐야 할 건 SECRET_KEY fallback 하나이고,
+  나머지는 시간 날 때 리팩터링 수준.
+
+
+================================================================================
+  2. DOCKER (인프라)
+================================================================================
+
+[ 잘 된 점 ]
+
+  - 멀티 스테이지 빌드 적용 (frontend.Dockerfile)
+    Node.js 빌드 → Caddy 서빙 분리로 최종 이미지 크기 최소화
+    node_modules 가 프로덕션 이미지에 포함되지 않음
+
+  - Caddy 도입으로 자동 SSL 처리
+    Let's Encrypt 인증서 자동 발급/갱신
+    Nginx 대비 설정 복잡도가 낮고 유지보수 쉬움
+
+  - 보안 헤더 설정이 잘 되어 있음 (Caddyfile)
+    X-Frame-Options, X-Content-Type-Options, HSTS, Referrer-Policy 모두 적용
+    -Server 로 Caddy 버전 정보 숨김
+
+  - 정적 자원 캐싱 전략이 올바름 (Caddyfile)
+    /assets/* : max-age=31536000, immutable (1년 캐시, Vite 빌드 해시 기반)
+    index.html : no-cache (새 배포 즉시 반영)
+    Vite 빌드 전략과 정확히 맞아 떨어지는 설정
+
+  - HTTP/3 (QUIC) 지원 (docker-compose.yml:38)
+    443/udp 포트 열어서 HTTP/3 활성화
+
+  - Gunicorn + UvicornWorker 조합 (backend.Dockerfile)
+    --max-requests 1000 으로 메모리 누수 방지를 위한 워커 재시작 설정
+    --max-requests-jitter 100 으로 동시 재시작 방지 (jitter 적용)
+
+
+[ 개선이 필요한 부분 ]
+
+  1. 백엔드 포트 미노출 (docker-compose.yml)
+     backend 서비스에 ports 매핑이 없음
+     Caddy 를 통해서만 접근 가능하므로 의도적인 것으로 보이나,
+     개발/디버깅 시 직접 접근이 필요하다면 선택적으로 열 수 있도록 주석 안내 추가 권장
+     예: # ports: ["8000:8000"]  # 개발 시에만 활성화
+
+  2. 헬스체크(healthcheck) 설정 없음 (docker-compose.yml)
+     restart: always 가 있지만, 컨테이너가 살아있어도 앱이 죽은 경우를 감지하지 못함
+     권장 추가 (backend):
+       healthcheck:
+         test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+         interval: 30s
+         timeout: 10s
+         retries: 3
+
+  3. Content-Security-Policy (CSP) 헤더 없음 (Caddyfile)
+     XSS 방어를 위한 CSP 헤더가 설정되어 있지 않음
+     게임 데이터 특성상 외부 이미지/스크립트 사용이 없다면 비교적 쉽게 적용 가능
+     최소한 default-src 'self' 정도라도 권장
+
+  4. POSTGRES_PORT 하드코딩 (docker-compose.yml:19)
+     environment 에 POSTGRES_PORT: 5432 가 값으로 직접 적혀 있음
+     다른 환경 변수들은 ${VAR} 형식인데 이것만 고정값
+     일관성을 위해 ${POSTGRES_PORT:-5432} 로 변경 권장
+
+
+  [ 총평 - Docker ]
+
+  Caddy 선택이 이 프로젝트 규모에 딱 맞음.
+  Nginx 대비 SSL 자동화와 설정 단순화가 실용적.
+  캐싱 전략이 Vite 빌드 방식과 정확히 맞아 떨어져서 프론트 배포 최적화가 잘 됨.
+  healthcheck 추가가 가장 실용적인 개선사항.
+
+
+================================================================================
+  3. FRONT/SRC (React 프론트엔드)
+================================================================================
+
+[ 잘 된 점 ]
+
+  - fetchWithAuth 공통 레이어 (utils/apiConfig.ts)
+    모든 API 호출을 한 곳에서 처리 (토큰 자동 첨부, 401 만료 처리)
+    401 발생 시 localStorage 정리 + auth:expired 이벤트 dispatch 로
+    App.tsx 에서 로그아웃 처리까지 연결되는 구조가 깔끔함
+
+  - CustomEvent 기반 인증 만료 처리 (App.tsx:82~88)
+    auth:expired 이벤트로 fetchWithAuth ↔ App 간 결합 없이 통신
+    컴포넌트 계층에 의존하지 않는 설계
+
+  - Lazy Loading 적용 (App.tsx:20~24)
+    주요 페이지들을 lazy() + Suspense 로 코드 스플리팅
+    초기 번들 크기 감소
+
+  - GameDataContext 에서 병렬 API 호출 (GameDataContext.tsx:53)
+    Promise.all([fetchProgress(), fetchModules()]) 로 동시 요청
+    각각 독립적인 .catch() 로 한쪽 실패해도 다른 쪽은 정상 로드
+
+  - 리롤 시뮬레이션 로직 분리 (hooks/useRerollSimulation.ts)
+    복잡한 시뮬레이션 상태를 커스텀 훅으로 분리
+    컴포넌트는 UI 만, 훅은 로직만 담당하는 관심사 분리 잘 됨
+
+  - V1/V2 컴포넌트 분리 (pages/, components/Detail/V1/)
+    구버전 호환성을 유지하면서 V2 컴포넌트를 독립적으로 개발
+    CombatAnalysis.tsx 가 V1/V2 데이터를 모두 처리하는 통합 컴포넌트
+
+  - 다국어(i18n) 지원 구조 (locales/)
+    kr / en 분리, 섹션별(auth, common, detail 등) 파일 분리
+    T.detail.WAVE 같은 상수 참조 방식
+
+
+[ 개선이 필요한 부분 ]
+
+  ★ 구조/설계 이슈
+
+  1. 토큰을 두 곳에서 읽음 (api/reports.ts:14~20 & utils/apiConfig.ts:17)
+     getAuthHeaders() 가 api/reports.ts 에 있고
+     fetchWithAuth() 도 apiConfig.ts 에서 토큰을 읽음
+     reports.ts 의 API 함수들이 fetchWithAuth 를 사용하면서도
+     getAuthHeaders() 를 options.headers 로 따로 넘기고 있음
+     → 결과적으로 토큰이 중복 첨부됨 (헤더에 두 번)
+     getAuthHeaders() 와 관련 코드를 api/reports.ts 에서 모두 제거하고
+     fetchWithAuth 에만 의존하면 됨
+
+  2. getAllReports() 에서 limit=10000 (api/reports.ts:104)
+     현재 코드:
+       `${REPORTS_URL}/history?skip=0&limit=10000`
+     기록이 많은 사용자의 경우 대용량 응답이 올 수 있음
+     검색/필터가 필요하다면 서버사이드 필터링 API 추가 권장
+     클라이언트사이드에서 전체를 받아서 필터링하는 패턴은 확장에 불리함
+
+  3. GameDataContext 의 modules 병합 로직 (GameDataContext.tsx:70~78)
+     owned_ 접두사로 인벤토리를 equipped 에 병합하는 방식이 암묵적임
+     owned_모듈명 과 모듈명 이 같은 객체에 혼재하면 타입 안전성이 깨짐
+     UserModules 타입이 Record<string, any> (types/gameData.ts) 인 것도 이 때문
+     inventory 와 equipped 를 별도 필드로 유지하는 것이 더 명확함:
+       modules: { inventory: {...}, equipped: {...} }
+
+  4. deletePopup 상태를 상위에서 관리 (pages/ReportDetail.tsx → ReportDetailV2.tsx)
+     setDeletePopup: (val: any) => void 처럼 any 타입으로 올라가 있음
+     삭제 팝업은 ReportDetailV2 내부에서 useState 로 관리해도 충분함
+     prop으로 올릴 이유가 없어 보임
+
+  5. CombatAnalysis.tsx 에서 V1 fallback 로직이 복잡 (CombatAnalysis.tsx:82~89)
+     현재:
+       const miscStats = (damageJsonV2 ? Object.entries(combatJson || {}) : combatEntries)
+     V2 데이터가 있으면 combatJson 을, 없으면 combatEntries(combatJson 기반)를 사용
+     한 눈에 이해하기 어려운 삼항 연산자 중첩
+     명시적인 분기나 주석 보강 권장
+
+
+  ★ 타입 안전성
+
+  6. any 타입이 여러 곳에 사용됨
+     contexts/GameDataContext.tsx:70 → const mergedModules: any = ...
+     pages/ReportDetailV2.tsx:19 → setDeletePopup: (val: any) => void
+     이런 any 사용이 타입 시스템의 이점을 희석시킴
+     규모가 커지면 런타임 오류 추적이 어려워짐
+
+  7. Record<string, any> 타입 남용 (types/report.ts)
+     combat_json, utility_json 등 모든 JSON 필드가 Record<string, any>
+     게임 데이터 구조가 고정적이라면 실제 키/값 타입 정의 권장
+     (완전히 동적인 구조라면 어쩔 수 없지만 적어도 최상위 키는 고정 가능)
+
+
+  ★ 사소한 것들
+
+  8. window.history.back() 직접 호출 (App.tsx:147)
+     <StonesPage onBack={() => window.history.back()} token={token} />
+     다른 페이지들은 useNavigate() 의 navigate(-1) 을 사용하는데 여기만 다름
+     통일 권장
+
+  9. useRerollSimulation.ts 에서 alert() 사용 (hooks/useRerollSimulation.ts:109, 118)
+     브라우저 기본 alert() 는 UI 흐름을 막고 스타일 통일이 안 됨
+     프로젝트 내 토스트/모달 컴포넌트가 있다면 그쪽으로 대체 권장
+
+  10. initialSlots 이 훅 내부에서 매 렌더마다 재생성 (hooks/useRerollSimulation.ts:40)
+      const initialSlots = Array.from(...) 이 훅 바디에 있어 참조가 매번 바뀜
+      resetSimulation 의 useCallback 의존성 배열에는 없어서 당장 버그는 없지만
+      useMemo 나 상수로 빼두는 게 명확함
+
+
+  [ 총평 - Front ]
+
+  fetchWithAuth 로 API 인증을 중앙화하고, CustomEvent 로 인증 만료를 처리하는
+  설계가 인상적. lazy loading 과 병렬 API 호출 등 성능 최적화도 잘 되어 있음.
+  주요 개선 포인트는 토큰 중복 첨부(즉시 수정 권장)와
+  any 타입 남용(장기적으로 정리 권장) 두 가지.
+  V1/V2 공존 구조는 마이그레이션 과도기라 어쩔 수 없는 복잡도이나,
+  V1 지원 종료 시점에 일괄 정리하면 코드가 많이 깔끔해질 것.
+
+
+================================================================================
+  종합 우선순위 요약
+================================================================================
+
+  [ 즉시 수정 ]
+  - (Back)  SECRET_KEY fallback 제거 → 환경 변수 없으면 서버 시작 실패로 변경
+  - (Front) api/reports.ts 의 getAuthHeaders() 중복 제거
+
+  [ 단기 개선 권장 ]
+  - (Back)  is_v2() 두 번 호출 → 변수 캐싱
+  - (Back)  라우터 내 V2 DB 쿼리 → crud/report_v2.py 로 이동
+  - (Docker) healthcheck 설정 추가
+  - (Front) getAllReports() limit=10000 → 서버사이드 필터링 검토
+
+  [ 장기 리팩터링 ]
+  - (Back)  parser.py 의 dead code (update_server_max_wave) 제거
+  - (Front) any 타입 정리
+  - (Front) GameDataContext 의 modules 병합 구조 개선
+  - (Front) V1 지원 종료 시 V1 관련 코드 일괄 정리
+
+================================================================================

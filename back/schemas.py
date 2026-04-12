@@ -160,6 +160,19 @@ class WeeklyTrendResponse(BaseModel):
     """주간 트렌드 응답"""
     weekly_stats: List[WeeklyTrendStat]
 
+class MonthlyTrendStat(BaseModel):
+    """월간 트렌드 항목"""
+    month: str
+    total_coins: int
+    total_cells: int
+    coin_growth: float
+    cell_growth: float
+    is_current: Optional[bool] = False
+
+class MonthlyTrendResponse(BaseModel):
+    """월간 트렌드 응답"""
+    monthly_stats: List[MonthlyTrendStat]
+
 # =================================================================
 # 5. 기록실 최적화 뷰 스키마 (History View)
 # =================================================================
@@ -185,11 +198,6 @@ class TierRecordSchema(BaseModel):
 
     class Config:
         from_attributes = True
-
-"""
-기존 schemas.py 하단에 추가할 V2 스키마
-기존 스키마는 그대로 유지
-"""
 
 # =================================================================
 # V2 전투 기록 관련 스키마

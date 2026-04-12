@@ -80,11 +80,6 @@ EXCLUDE_TOP_DAMAGE = [
     "Lifesteal", "Death Defy", "Orb", "Black Hole", "Thorns", "Tower", "Death Ray"
 ]
 
-"""
-기존 mappings.py 하단에 추가할 V2 매핑
-기존 SECTION_MAP, KEY_MAP, EXCLUDE_TOP_DAMAGE는 그대로 유지
-"""
-
 # V2 버전 감지 기준 줄 수 (data2는 100줄 이상)
 V2_LINE_THRESHOLD = 100
 

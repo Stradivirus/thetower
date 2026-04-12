@@ -117,6 +117,8 @@ def report_ghost_users():
         print(f"[System] 유령 계정 리포트 전송 완료 ({ghost_count}명)")
 
     except Exception as e:
-        print(f"[Error] 유령 계정 스캔 실패: {e}")
+        error_msg = f"⚠️ [오류] 유령 계정 스캔 실패: {e}"
+        print(error_msg)
+        send_slack_notification(error_msg)
     finally:
         db.close()

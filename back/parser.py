@@ -6,13 +6,10 @@
 """
 import re
 from datetime import datetime
-from sqlalchemy.orm import Session
-from crud import max_wave as max_wave_crud
-from mappings import SECTION_MAP, KEY_MAP, EXCLUDE_TOP_DAMAGE
-
 from mappings import (
     KEY_MAP,
     SECTION_MAP,
+    EXCLUDE_TOP_DAMAGE,
     V2_LINE_THRESHOLD,
     SECTION_MAP_V2,
     KEY_MAP_V2_REPORT,
@@ -199,16 +196,3 @@ def parse_battle_report(text: str) -> dict:
 
     return {'main': main_data, 'detail': detail_data}
 
-def update_server_max_wave(db: Session, main_data: dict):
-    """
-    파싱된 데이터를 기반으로 서버의 티어별 최고 웨이브 기록 갱신 시도
-    """
-    try:
-        tier_str = str(main_data.get('tier', '1'))
-        tier_val = int(re.search(r'\d+', tier_str).group()) if re.search(r'\d+', tier_str) else 1
-        wave_val = int(main_data.get('wave', 0))
-
-        if tier_val > 0 and wave_val > 0:
-            max_wave_crud.update_tier_record(db, tier=tier_val, wave=wave_val)
-    except Exception as e:
-        print(f"Global Max Wave Update Failed: {e}")

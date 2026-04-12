@@ -7,6 +7,24 @@ from sqlalchemy.orm import Session
 from models import BattleMainV2, BattleDetailV2
 
 
+def get_v2_report(db: Session, battle_date, user_id: int):
+    """
+    V2 전투 기록의 추가 데이터(BattleMainV2, BattleDetailV2)를 조회합니다.
+    V1 기록이거나 V2 데이터가 없으면 None 을 반환합니다.
+    """
+    v2_main = db.query(BattleMainV2).filter(
+        BattleMainV2.battle_date == battle_date,
+        BattleMainV2.owner_id == user_id
+    ).first()
+
+    v2_detail = db.query(BattleDetailV2).filter(
+        BattleDetailV2.battle_date == battle_date,
+        BattleDetailV2.owner_id == user_id
+    ).first()
+
+    return v2_main, v2_detail
+
+
 def create_battle_record_v2(db: Session, parsed_data: dict, user_id: int):
     """
     V2 파싱 데이터를 BattleMainV2, BattleDetailV2에 저장

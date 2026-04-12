@@ -12,11 +12,12 @@ from schemas import (
     FullReportV2Response,
     WeeklyStatsResponse,
     WeeklyTrendResponse,
+    MonthlyTrendResponse,
     HistoryViewResponse
 )
 import crud
 from crud import max_wave as max_wave_crud
-from crud.report_v2 import create_battle_record_v2
+from crud.report_v2 import create_battle_record_v2, get_v2_report
 from parser import parse_battle_report
 from parser_v2 import is_v2, parse_battle_report_v2
 from datetime import datetime
@@ -50,7 +51,8 @@ def create_report(
     """
     try:
         # 1. 버전 감지 및 파싱
-        if is_v2(report_text):
+        is_v2_report = is_v2(report_text)
+        if is_v2_report:
             parsed_data = parse_battle_report_v2(report_text)
             # V2는 main 데이터만 기존 create_battle_record에 넘김
             # BattleDetail은 생성하지 않도록 detail 키를 비워서 전달
@@ -73,7 +75,7 @@ def create_report(
             raise HTTPException(status_code=400, detail="Invalid data provided or data skipped")
 
         # 2. V2 전용 데이터 저장
-        if is_v2(report_text):
+        if is_v2_report:
             v2_result = create_battle_record_v2(db, parsed_data, current_user.id)
             if not v2_result:
                 print(f"⚠️ [User {current_user.id}] V2 data save failed.")
@@ -169,7 +171,7 @@ def get_weekly_trends_api(
     """주간 성장 트렌드 분석 데이터를 조회합니다."""
     return crud.get_weekly_trends(db, current_user.id)
 
-@router.get("/monthly-trends")
+@router.get("/monthly-trends", response_model=MonthlyTrendResponse)
 def get_monthly_trends_api(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -199,17 +201,7 @@ def get_report_detail(
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
 
-        # V2 데이터 조회 시도
-        from models import BattleMainV2, BattleDetailV2
-        v2_main = db.query(BattleMainV2).filter(
-            BattleMainV2.battle_date == date_obj,
-            BattleMainV2.owner_id == current_user.id
-        ).first()
-
-        v2_detail = db.query(BattleDetailV2).filter(
-            BattleDetailV2.battle_date == date_obj,
-            BattleDetailV2.owner_id == current_user.id
-        ).first()
+        v2_main, v2_detail = get_v2_report(db, date_obj, current_user.id)
 
         return {
             "main": report["main"],
