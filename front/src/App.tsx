@@ -46,9 +46,17 @@ const LoginRequired = ({ onOpenAuth }: { onOpenAuth: () => void }) => (
 /** 
  * URL 파라미터(date)를 추출하여 상세 페이지에 전달하는 래퍼
  */
-const ReportDetailWrapper = () => {
+const ReportDetailWrapper = ({ token }: { token: string | null }) => {
   const { date } = useParams();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!token) {
+      navigate('/', { replace: true });
+    }
+  }, [token, navigate]);
+
+  if (!token) return null;
   return <ReportDetail battleDate={date || ""} onBack={() => navigate(-1)} />;
 };
 
@@ -95,6 +103,8 @@ export default function App() {
     localStorage.removeItem('access_token');
     setToken(null);
     setRecentReports([]);
+    // 로그아웃 시 메인 페이지로 이동하며 페이지를 새로고침하여 상태를 완전히 초기화합니다.
+    window.location.href = '/';
   };
 
   /** 
@@ -148,7 +158,7 @@ export default function App() {
                 } />
 
                 {/* 리포트 상세 페이지 */}
-                <Route path="/report/:date" element={<ReportDetailWrapper />} />
+                <Route path="/report/:date" element={<ReportDetailWrapper token={token} />} />
               </Routes>
             </Suspense>
           </main>
