@@ -3,7 +3,7 @@
 용도: 데이터베이스 테이블 스키마 정의 (SQLAlchemy ORM)
 수정사항: V2 모델(BattleMainV2, BattleDetailV2)에 대한 연쇄 삭제(Cascade) 설정 추가
 """
-from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey, Text, Index, ForeignKeyConstraint
+from sqlalchemy import Column, String, Integer, DateTime, BigInteger, ForeignKey, Text, Index, ForeignKeyConstraint, Numeric
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql import JSONB
 from database import Base
@@ -60,19 +60,19 @@ class BattleMain(Base):
     game_time = Column(String)
     real_time = Column(String)
     
-    coin_earned = Column(BigInteger)
-    coins_per_hour = Column(BigInteger)
-    cells_earned = Column(Integer)
-    reroll_shards_earned = Column(Integer)
+    coin_earned = Column(Numeric)
+    coins_per_hour = Column(Numeric)
+    cells_earned = Column(Numeric)
+    reroll_shards_earned = Column(Numeric)
 
     killer = Column(String)
     damage_dealt = Column(String)
     damage_taken = Column(String)
 
-    total_enemies = Column(Integer, default=0)
-    death_wave_kills = Column(Integer, default=0)
-    spotlight_kills = Column(Integer, default=0)
-    golden_bot_kills = Column(Integer, default=0)
+    total_enemies = Column(Numeric, default=0)
+    death_wave_kills = Column(Numeric, default=0)
+    spotlight_kills = Column(Numeric, default=0)
+    golden_bot_kills = Column(Numeric, default=0)
     
     top_damages = Column(JSONB, default=[])
 
@@ -133,14 +133,14 @@ class BattleMainV2(Base):
         ),
     )
 
-    cells_per_hour = Column(BigInteger, nullable=True)
-    best_coins_per_minute = Column(BigInteger, nullable=True)
+    cells_per_hour = Column(Numeric, nullable=True)
+    best_coins_per_minute = Column(Numeric, nullable=True)
     max_wave_skip = Column(Integer, nullable=True)
-    best_skip_coins = Column(BigInteger, nullable=True)
-    best_skip_cells = Column(Integer, nullable=True)
+    best_skip_coins = Column(Numeric, nullable=True)
+    best_skip_cells = Column(Numeric, nullable=True)
     max_smart_missile_stack = Column(Integer, nullable=True)
     max_golden_combo = Column(Integer, nullable=True)
-    best_golden_combo_coins = Column(BigInteger, nullable=True)
+    best_golden_combo_coins = Column(Numeric, nullable=True)
     max_inner_mine_charge = Column(Integer, nullable=True)
 
     # [수정] backref 대신 back_populates 사용
