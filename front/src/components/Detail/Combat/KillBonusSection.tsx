@@ -1,3 +1,8 @@
+/**
+ * 파일명: thetower/front/src/components/Detail/Combat/KillBonusSection.tsx
+ * 용도: 전투 리포트 상세의 적 처치 보너스(킬 보너스) 데이터 시각화 섹션
+ * 기능: 특정 효과(데스웨이브 등) 활성 상태에서의 처치 수와 전체 적 대비 비율 표시
+ */
 import { Target } from 'lucide-react';
 import { parseGameNumber, formatNumber } from '../../../utils/format';
 import { T } from '../../../locales';
