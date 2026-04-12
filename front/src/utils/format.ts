@@ -5,29 +5,30 @@
  */
 
 /** 
- * 숫자를 게임 내 단위(K, M, B, T, ..., ac)가 포함된 문자열로 변환합니다.
+ * 숫자를 게임 내 단위(K, M, B, T, ..., az)가 포함된 문자열로 변환합니다.
  */
 export const formatNumber = (num: number): string => {
   if (num === 0) return '0';
-  
-  // The Tower 고단위 지원
-  if (num >= 1e42) return (num / 1e42).toFixed(2) + 'ac';
-  if (num >= 1e39) return (num / 1e39).toFixed(2) + 'ab';
-  if (num >= 1e36) return (num / 1e36).toFixed(2) + 'aa';
-  if (num >= 1e33) return (num / 1e33).toFixed(2) + 'D';
-  if (num >= 1e30) return (num / 1e30).toFixed(2) + 'N';
-  if (num >= 1e27) return (num / 1e27).toFixed(2) + 'O';
-  
-  // 기본 단위 지원
-  if (num >= 1e24) return (num / 1e24).toFixed(2) + 'S';
-  if (num >= 1e21) return (num / 1e21).toFixed(2) + 's';
-  if (num >= 1e18) return (num / 1e18).toFixed(2) + 'Q';
-  if (num >= 1e15) return (num / 1e15).toFixed(2) + 'q';
-  if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-  if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-  if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-  if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-  
+  if (num < 1000) return num.toString();
+
+  const units = [
+    { s: 'az', p: 111 }, { s: 'ay', p: 108 }, { s: 'ax', p: 105 }, { s: 'aw', p: 102 }, { s: 'av', p: 99 },
+    { s: 'au', p: 96 }, { s: 'at', p: 93 }, { s: 'as', p: 90 }, { s: 'ar', p: 87 }, { s: 'aq', p: 84 },
+    { s: 'ap', p: 81 }, { s: 'ao', p: 78 }, { s: 'an', p: 75 }, { s: 'am', p: 72 }, { s: 'al', p: 69 },
+    { s: 'ak', p: 66 }, { s: 'aj', p: 63 }, { s: 'ai', p: 60 }, { s: 'ah', p: 57 }, { s: 'ag', p: 54 },
+    { s: 'af', p: 51 }, { s: 'ae', p: 48 }, { s: 'ad', p: 45 }, { s: 'ac', p: 42 }, { s: 'ab', p: 39 },
+    { s: 'aa', p: 36 }, { s: 'D', p: 33 }, { s: 'N', p: 30 }, { s: 'O', p: 27 }, { s: 'S', p: 24 },
+    { s: 's', p: 21 }, { s: 'Q', p: 18 }, { s: 'q', p: 15 }, { s: 'T', p: 12 }, { s: 'B', p: 9 },
+    { s: 'M', p: 6 }, { s: 'K', p: 3 }
+  ];
+
+  for (const unit of units) {
+    const val = Math.pow(10, unit.p);
+    if (num >= val) {
+      return (num / val).toFixed(2) + unit.s;
+    }
+  }
+
   return num.toString();
 };
 
@@ -74,7 +75,7 @@ export const formatTimeOnly = (dateString: string): string => {
  */
 export const parseDurationToHours = (timeStr: string): number => {
   if (!timeStr) return 0;
-  
+
   let hours = 0;
   let minutes = 0;
   let seconds = 0;
@@ -96,20 +97,20 @@ export const parseDurationToHours = (timeStr: string): number => {
 export const parseGameNumber = (str: string | number): number => {
   if (typeof str === 'number') return str;
   if (!str) return 0;
-  
+
   const clean = str.replace(/[$,x]/g, '').trim();
   const match = clean.match(/^([\d.]+)([a-zA-Z]*)$/);
   if (!match) return 0;
-  
+
   const val = parseFloat(match[1]);
   const suffix = match[2];
 
   const powers: Record<string, number> = {
+    'az': 111, 'ay': 108, 'ax': 105, 'aw': 102, 'av': 99, 'au': 96, 'at': 93, 'as': 90, 'ar': 87, 'aq': 84, 'ap': 81, 'ao': 78, 'an': 75, 'am': 72, 'al': 69, 'ak': 66, 'aj': 63, 'ai': 60, 'ah': 57, 'ag': 54, 'af': 51, 'ae': 48, 'ad': 45,
     'ac': 42, 'ab': 39, 'aa': 36,
     'k': 3, 'K': 3, 'm': 6, 'M': 6, 'b': 9, 'B': 9, 't': 12, 'T': 12,
     'q': 15, 'Q': 18, 's': 21, 'S': 24, 'o': 27, 'O': 27, 'n': 30, 'N': 30, 'd': 33, 'D': 33,
-    'U': 36
   };
-  
+
   return val * Math.pow(10, powers[suffix] || 0);
 };
