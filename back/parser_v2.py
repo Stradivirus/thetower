@@ -6,6 +6,7 @@
 from mappings import (
     KEY_MAP,
     SECTION_MAP,
+    EXCLUDE_TOP_DAMAGE,
     V2_LINE_THRESHOLD,
     SECTION_MAP_V2,
     KEY_MAP_V2_REPORT,
@@ -199,15 +200,17 @@ def _calculate_top_damages_v2(damage_section: dict) -> list:
     V2는 '투사체 대미지' 형태가 아닌 '투사체' 형태로 키가 존재함
     '입힌 대미지'와 숫자가 아닌 항목은 제외
     """
-    EXCLUDE_KEYS = {'입힌 대미지', 'Damage Dealt', 'Damage dealt'}
-
+    import re
     candidates = []
     for key, val in damage_section.items():
-        if key in EXCLUDE_KEYS:
+        # 이름 정규화 (접미사 제거) 및 제외 목록 확인
+        clean_name = re.sub(r'( 대미지| Damage| damage)$', '', key, flags=re.IGNORECASE)
+        if clean_name in EXCLUDE_TOP_DAMAGE or key in EXCLUDE_TOP_DAMAGE:
             continue
+        
         raw_val = parse_number(str(val))
         if raw_val > 0:
-            candidates.append({'name': key, 'raw': raw_val})
+            candidates.append({'name': clean_name, 'raw': raw_val})
 
     candidates.sort(key=lambda x: x['raw'], reverse=True)
     return [item['name'] for item in candidates[:3]]

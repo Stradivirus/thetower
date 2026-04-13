@@ -72,11 +72,20 @@ export default function Dashboard({ reports }: Props) {
    */
   const topDamages = useMemo(() => {
     const damageCountMap: Record<string, number> = {};
-    const utilityKeywords = ['오브', '블랙홀', 'Orb', 'Black Hole']; // 유틸리티성 항목(오브, 블랙홀)만 순위에서 제외
+    // 유틸리티 및 전체 통계 항목(오브, 블랙홀, 입힌/받은 대미지 등)은 순위에서 제외
+    const excludeKeywords = [
+      '오브', '블랙홀', 'Orb', 'Black Hole', 
+      '입힌', '받은', 'Damage', 'Tower', '타워'
+    ]; 
 
     recentReports.forEach(r => {
       (r.top_damages || []).forEach((name: string) => {
-        if (utilityKeywords.includes(name)) return;
+        // 대소문자 무시 및 부분 일치 검사로 더 강력하게 필터링
+        const isExcluded = excludeKeywords.some(keyword => 
+          name.toLowerCase().includes(keyword.toLowerCase())
+        );
+        if (isExcluded) return;
+        
         damageCountMap[name] = (damageCountMap[name] || 0) + 1;
       });
     });
