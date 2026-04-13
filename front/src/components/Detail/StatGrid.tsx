@@ -1,7 +1,7 @@
 /**
  * 파일명: thetower/front/src/components/Detail/StatGrid.tsx
  * 용도: 전투 리포트 상세 데이터(Utility, Enemy, Bot)를 그리드 형태로 표시
- * 기능: 섹션별 데이터 필터링(0 제외) 및 정렬, 중요 스탯(적 합계 등) 강조, 접기/펼치기 및 다국어 지원
+ * 기능: 섹션별 데이터 필터링(0 제외) 및 정렬, 중요 스탯 강조, 접기/펼치기 및 다국어 지원
  * 특징: V2 전용 시각화 (막대 차트) 지원
  */
 import { useState } from 'react';
@@ -53,7 +53,6 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
 
   /** 
    * 표시할 유효한 데이터 엔트리 필터링
-   * - 내부 필드(_std_), 숨김 설정 필드, 값이 0인 데이터는 제외
    */
   const entries = Object.entries(displayData).filter(([key, value]) => {
     if (key.startsWith('_std_')) return false;
@@ -91,15 +90,10 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   let enemyRightItems: [string, GameValue][] = [];
 
   if (isEnemy) {
-    // 처치 관련 키워드 (제외할 항목들)
     const killKeywords = ['황금 타워', '죽음의 파동', '스포트라이트', '증폭 봇', '황금 봇', '사형 선고', '파괴', 'Destroyed', 'Killed'];
-    
-    // 순수 등장/히트 관련 스탯만 필터링
     const spawnItems = entries.filter(([key]) => {
         const lower = key.toLowerCase();
-        // 파괴 공작원(Saboteur)은 적 종류이므로 유지
         if (['파괴 공작원', 'Saboteur', 'Saboteurs'].includes(key)) return true;
-        // 그 외 처치 관련 키워드가 포함된 항목은 제외
         return !killKeywords.some(k => key.includes(k) || lower.includes(k.toLowerCase()));
     });
 
@@ -210,15 +204,18 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
         valueColor = "text-purple-300 font-bold";
         valueSize = "text-base";
     }
+    else if (['코인 획득', 'Coins Earned', 'Coins earned'].includes(key)) {
+        labelColor = "text-yellow-500 font-bold";
+        valueColor = "text-yellow-400 font-bold";
+        valueSize = "text-base";
+    }
 
-    // 이름 간소화
     let displayLabel = key;
     if (isUtility) {
       displayLabel = displayLabel.replace('코인 업그레이드로 얻은 코인', '코인 업그레이드로 획득');
       displayLabel = displayLabel.replace('획득한 코인', '획득');
     }
 
-    // 시각화 비율
     const percentage = totalValue > 0 ? (parseGameNumber(String(value)) / totalValue) * 100 : 0;
     const barColor = isDestroyedBy ? "bg-rose-500/10 border-rose-500/30" : "bg-emerald-500/10 border-emerald-500/30";
     const percentColor = isDestroyedBy ? "text-rose-500/60" : "text-emerald-500/60";
@@ -272,7 +269,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
               </div>
             </div>
           ) : 
-          /* 2. 적 통계 레이아웃 (순수 스폰/정보만 표시) */
+          /* 2. 적 통계 레이아웃 */
           isEnemy ? (
             <div className="grid grid-cols-2 gap-x-8">
                 <div className="flex flex-col">{enemyLeftItems.map(renderItem)}</div>
@@ -296,7 +293,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
                 </div>
                 {defenseRegenItems.length > 0 && (
                     <div className="mt-6">
-                        <div className="border-t border-slate-800 border-dashed my-2 relative">
+                        <div className="border-t border-slate-800 border-dashed my-4 relative">
                             <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-2 text-[10px] text-slate-600 font-bold uppercase tracking-wider">{Text.SUB_REGEN}</span>
                         </div>
                         <div className="mt-4 flex flex-col">{defenseRegenItems.map(renderItem)}</div>
@@ -309,7 +306,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
               </div>
             </div>
           ) : 
-          /* 5. 기본 그리드 레이아웃 (시각화 지원 포함) */
+          /* 5. 기본 그리드 레이아웃 */
           (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-y-4 gap-x-2">
               {showBar ? (
