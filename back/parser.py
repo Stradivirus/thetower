@@ -98,6 +98,9 @@ def calculate_top_damages(combat_json: dict):
     
     top_damages = []
     
+    # 제외 목록 소문화 (한 번만 수행)
+    exclude_list_lower = [ex.lower() for ex in EXCLUDE_TOP_DAMAGE]
+    
     for key, val in combat_json.items():
         # 대미지 항목 여부 확인
         is_damage_key = key.endswith(" 대미지") or key.lower().endswith(" damage")
@@ -106,7 +109,9 @@ def calculate_top_damages(combat_json: dict):
 
         # 이름 정규화 및 제외 목록 확인
         clean_name = re.sub(r'( 대미지| Damage| damage)$', '', key, flags=re.IGNORECASE)
-        if clean_name in EXCLUDE_TOP_DAMAGE:
+        
+        # 대소문자 무시 체크
+        if clean_name.lower() in exclude_list_lower or key.lower() in exclude_list_lower:
             continue
         
         raw_val = parse_number(str(val))

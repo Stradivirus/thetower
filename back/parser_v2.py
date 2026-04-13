@@ -202,10 +202,16 @@ def _calculate_top_damages_v2(damage_section: dict) -> list:
     """
     import re
     candidates = []
+    
+    # 제외 목록 소문화
+    exclude_list_lower = [ex.lower() for ex in EXCLUDE_TOP_DAMAGE]
+    
     for key, val in damage_section.items():
         # 이름 정규화 (접미사 제거) 및 제외 목록 확인
         clean_name = re.sub(r'( 대미지| Damage| damage)$', '', key, flags=re.IGNORECASE)
-        if clean_name in EXCLUDE_TOP_DAMAGE or key in EXCLUDE_TOP_DAMAGE:
+        
+        # 대소문자 무시 체크
+        if clean_name.lower() in exclude_list_lower or key.lower() in exclude_list_lower:
             continue
         
         raw_val = parse_number(str(val))

@@ -70,15 +70,21 @@ KEY_MAP = {
     '적 합계': 'total_enemies',
 }
 
-# 3. Top Damage 계산 시 제외할 키워드 (한글/영어 통합)
-EXCLUDE_TOP_DAMAGE = [
-    # Korean
+# 3. Top Damage 계산 시 제외할 키워드 (한글/영어 분리 관리)
+EXCLUDE_TOP_DAMAGE_KR = [
     "입힌", "받은", "장벽이 받은", "회복 패키지", "생명력 흡수", "죽음 저항", "오브", "블랙홀",
-    "타워",
-    # English
-    "Damage dealt", "Damage Taken", "Damage Taken Wall", "Recovery Packages", 
-    "Lifesteal", "Death Defy", "Orb", "Black Hole", "Tower"
+    "타워", "합계", "총합"
 ]
+
+EXCLUDE_TOP_DAMAGE_EN = [
+    "Damage Dealt", "Damage dealt", "Damage Taken", "Damage taken", 
+    "Damage Taken Wall", "Recovery Packages", 
+    "Lifesteal", "Death Defy", "Orb", "Orbs", "Black Hole", "Tower",
+    "Total", "Total Damage", "Total Damage Dealt"
+]
+
+# 파서에서 참조하는 최종 통합 리스트
+EXCLUDE_TOP_DAMAGE = EXCLUDE_TOP_DAMAGE_KR + EXCLUDE_TOP_DAMAGE_EN
 
 # V2 버전 감지 기준 줄 수 (data2는 100줄 이상)
 V2_LINE_THRESHOLD = 100

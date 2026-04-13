@@ -74,8 +74,9 @@ export default function Dashboard({ reports }: Props) {
     const damageCountMap: Record<string, number> = {};
     // 유틸리티 및 전체 통계 항목(오브, 블랙홀, 입힌/받은 대미지 등)은 순위에서 제외
     const excludeKeywords = [
-      '오브', '블랙홀', 'Orb', 'Black Hole', 
-      '입힌', '받은', 'Damage', 'Tower', '타워'
+      '오브', '블랙홀', 'Orb', 'Orbs', 'Black Hole', 
+      '입힌', '받은', 'Damage', 'Tower', '타워',
+      'Total', 'Dealt', 'Sum', '합계', '총합'
     ]; 
 
     recentReports.forEach(r => {
