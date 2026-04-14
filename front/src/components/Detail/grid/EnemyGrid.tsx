@@ -11,7 +11,6 @@ import type { GameValue } from '../../../types/report';
 
 interface EnemyGridProps {
   data: Record<string, GameValue | Record<string, GameValue> | undefined>;
-  order?: string[];
   defaultOpen?: boolean;
 }
 
@@ -33,7 +32,7 @@ const EFFECT_KEYS = [
   '사형 선고', 'Death Sentence'
 ];
 
-export default function EnemyGrid({ data, order, defaultOpen = false }: EnemyGridProps) {
+export default function EnemyGrid({ data, defaultOpen = false }: EnemyGridProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const Text = T.detail;
 
@@ -147,6 +146,7 @@ export default function EnemyGrid({ data, order, defaultOpen = false }: EnemyGri
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden transition-all shadow-md h-fit">
+      {/* 아코디언 헤더 버튼 */}
       <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-5 hover:bg-slate-800/50 transition-colors text-left">
         <h3 className="text-lg font-bold flex items-center gap-2 text-orange-500">
           <Skull size={20} /> {Text.SECTION_ENEMY}

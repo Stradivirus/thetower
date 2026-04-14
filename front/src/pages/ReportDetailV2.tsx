@@ -2,7 +2,7 @@
  * 파일명: thetower/front/src/pages/ReportDetailV2.tsx
  * 용도: V2 전용 전투 기록 상세 분석 페이지 (향상된 대시보드 및 시각화 포함)
  */
-import { ArrowLeft, Activity, Skull, Clock, FileText, Trash2, AlertTriangle, Trophy, Shield } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, FileText, Trash2, AlertTriangle, Trophy } from 'lucide-react';
 import type { FullReportV2 } from '../types/report';
 import { formatDate, formatNumber } from '../utils/format';
 import CombatAnalysis from '../components/Detail/CombatAnalysis';
