@@ -1,6 +1,6 @@
 /**
  * 파일명: thetower/front/src/components/Detail/StatGrid.tsx
- * 용도: 전투 리포트 상세 데이터(Utility, Enemy, Bot)를 그리드 형태로 표시
+ * 용도: 전투 리포트 상세 데이터(Utility, Bot)를 그리드 형태로 표시
  * 기능: 섹션별 데이터 필터링(0 제외) 및 정렬, 중요 스탯 강조, 접기/펼치기 및 다국어 지원
  * 특징: V2 전용 시각화 (막대 차트) 지원
  */
@@ -10,7 +10,7 @@ import { parseGameNumber } from '../../utils/format';
 import { T } from '../../locales';
 import type { GameValue } from '../../types/report';
 import {
-  HIDDEN_KEYS, ENEMY_LEFT_ORDER, ENEMY_RIGHT_ORDER, RESOURCE_ORDER
+  HIDDEN_KEYS, RESOURCE_ORDER
 } from '../../constants/reportRules';
 
 interface StatGridProps {
@@ -24,15 +24,22 @@ interface StatGridProps {
   totalEnemies?: number;                 // 신규: 비율 계산용 전체 적 수
 }
 
+// DefenseGrid로 이동된 생존/특수 기술 키 (중복 노출 방지)
+const SURVIVAL_KEYS = [
+  '죽음 저항', 'Death Defy',
+  '에너지 보호막으로 흡수한 타격 수', 'Energy Shield',
+  '핵무기', 'Nuke',
+  '세컨드 윈드', 'Second Wind',
+  '데몬 모드', 'Demon Mode'
+];
+
 export default function StatGrid({ data, icon: Icon, title, color, defaultOpen = false, v2Sections, order, totalEnemies }: StatGridProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const Text = T.detail; 
 
   // 섹션 타입 판별
   const isUtility = title === Text.SECTION_UTILITY;
-  const isEnemy = title === Text.SECTION_ENEMY; 
   const isBot = title === Text.SECTION_BOT; 
-  const isDefense = title === Text.HEADER_DEFENSE; 
   const isKillAnalysis = title === Text.DASH_KILL_BONUS; 
   const isDestroyedBy = title === "Destroyed By"; // V2 전용
 
@@ -57,12 +64,13 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
   const entries = Object.entries(displayData).filter(([key, value]) => {
     if (key.startsWith('_std_')) return false;
     if (HIDDEN_KEYS.includes(key)) return false;
+    if (SURVIVAL_KEYS.includes(key)) return false; 
     if (value === 0 || value === '0' || value === '0.00' || value === '$0') return false;
     return true;
   });
 
   // V2 신규 섹션들을 위한 커스텀 정렬
-  if (order && !isUtility && !isEnemy && !isBot && !isDefense && !isKillAnalysis) {
+  if (order && !isUtility && !isBot && !isKillAnalysis) {
     entries.sort((a, b) => {
         const idxA = order.indexOf(a[0]);
         const idxB = order.indexOf(b[0]);
@@ -83,36 +91,6 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     const otherItems = entries.filter(([key]) => !key.includes('코인') && !key.toLowerCase().includes('coin'));
     utilCoinItems = coinItems;
     utilMiscItems = otherItems;
-  }
-
-  // --- [B] 적 통계 섹션 분류 ---
-  let enemyLeftItems: [string, GameValue][] = [];
-  let enemyRightItems: [string, GameValue][] = [];
-
-  if (isEnemy) {
-    const killKeywords = ['황금 타워', '죽음의 파동', '스포트라이트', '증폭 봇', '황금 봇', '사형 선고', '파괴', 'Destroyed', 'Killed'];
-    const spawnItems = entries.filter(([key]) => {
-        const lower = key.toLowerCase();
-        if (['파괴 공작원', 'Saboteur', 'Saboteurs'].includes(key)) return true;
-        return !killKeywords.some(k => key.includes(k) || lower.includes(k.toLowerCase()));
-    });
-
-    spawnItems.forEach(item => {
-      if (ENEMY_LEFT_ORDER.includes(item[0])) enemyLeftItems.push(item);
-      else enemyRightItems.push(item);
-    });
-
-    const sortFn = (orderList: string[]) => (a: [string, GameValue], b: [string, GameValue]) => {
-      const idxA = orderList.indexOf(a[0]);
-      const idxB = orderList.indexOf(b[0]);
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      if (idxA !== -1) return -1;
-      if (idxB !== -1) return 1;
-      return 0;
-    };
-
-    enemyLeftItems.sort(sortFn(ENEMY_LEFT_ORDER));
-    enemyRightItems.sort(sortFn(ENEMY_RIGHT_ORDER));
   }
 
   // --- [C] 봇 & 가디언 섹션 분류 ---
@@ -147,39 +125,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
     });
   }
 
-  // --- [D] 방어 섹션 분류 ---
-  let defenseTakenItems: [string, GameValue][] = [];
-  let defenseRegenItems: [string, GameValue][] = [];
-  let defenseAbsorbedItems: [string, GameValue][] = [];
-
-  if (isDefense) {
-    const isAbsorbed = (key: string, val: GameValue) => {
-        const damageBlock = data['damage_block'];
-        if (v2Sections && damageBlock && typeof damageBlock === 'object' && (damageBlock as Record<string, GameValue>)[key] === val) return true;
-        const keywords = ['차단', 'Block', '방어 %', 'Defense %', '절대 방어', '필드', '천둥', '붕괴', '프로젝터'];
-        return keywords.some(k => key.includes(k));
-    };
-    const isRegen = (key: string) => {
-        const keywords = ['재생', '흡수', '체력', 'Regen', 'Lifesteal', 'Health', 'Bonus', '로부터'];
-        if (['타워', '장벽', 'Tower', 'Wall'].includes(key)) return false;
-        return keywords.some(k => key.includes(k));
-    };
-    entries.forEach(item => {
-        if (isAbsorbed(item[0], item[1])) defenseAbsorbedItems.push(item);
-        else if (isRegen(item[0])) defenseRegenItems.push(item);
-        else defenseTakenItems.push(item);
-    });
-    const uniqueItems = (arr: [string, GameValue][]) => {
-        const map = new Map();
-        arr.forEach(item => map.set(item[0], item[1]));
-        return Array.from(map.entries()) as [string, string | number][];
-    };
-    defenseTakenItems = uniqueItems(defenseTakenItems).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])));
-    defenseRegenItems = uniqueItems(defenseRegenItems).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])));
-    defenseAbsorbedItems = uniqueItems(defenseAbsorbedItems).sort((a, b) => parseGameNumber(String(b[1])) - parseGameNumber(String(a[1])));
-  }
-
-  // --- [E] 시각화 비율 계산 (V2 전용) ---
+  // --- 시각화 비율 계산 (V2 전용) ---
   const showBar = isDestroyedBy || isKillAnalysis;
   const totalValue = isDestroyedBy 
     ? entries.reduce((sum, [, val]) => sum + parseGameNumber(String(val)), 0)
@@ -269,13 +215,6 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
               </div>
             </div>
           ) : 
-          /* 2. 적 통계 레이아웃 */
-          isEnemy ? (
-            <div className="grid grid-cols-2 gap-x-8">
-                <div className="flex flex-col">{enemyLeftItems.map(renderItem)}</div>
-                <div className="flex flex-col">{enemyRightItems.map(renderItem)}</div>
-            </div>
-          ) : 
           /* 3. 봇 레이아웃 */
           isBot ? (
             <div className="grid grid-cols-2 gap-x-8">
@@ -283,30 +222,7 @@ export default function StatGrid({ data, icon: Icon, title, color, defaultOpen =
                <div className="flex flex-col">{botRightItems.map(renderItem)}</div>
             </div>
           ) : 
-          /* 4. 방어 레이아웃 */
-          isDefense ? (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
-              <div className="flex flex-col">
-                <div className="flex flex-col">
-                    {defenseTakenItems.length > 0 && <div className="mb-3 text-xs font-bold text-blue-400/70 uppercase tracking-wider border-b border-slate-800 pb-1">{Text.HEADER_TAKEN}</div>}
-                    {defenseTakenItems.map(renderItem)}
-                </div>
-                {defenseRegenItems.length > 0 && (
-                    <div className="mt-6">
-                        <div className="border-t border-slate-800 border-dashed my-4 relative">
-                            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-2 text-[10px] text-slate-600 font-bold uppercase tracking-wider">{Text.SUB_REGEN}</span>
-                        </div>
-                        <div className="mt-4 flex flex-col">{defenseRegenItems.map(renderItem)}</div>
-                    </div>
-                )}
-              </div>
-              <div className="flex flex-col">
-                 {defenseAbsorbedItems.length > 0 && <div className="mb-3 text-xs font-bold text-emerald-400/70 uppercase tracking-wider border-b border-slate-800 pb-1">{Text.HEADER_ABSORBED}</div>}
-                {defenseAbsorbedItems.map(renderItem)}
-              </div>
-            </div>
-          ) : 
-          /* 5. 기본 그리드 레이아웃 */
+          /* 4. 기본 그리드 레이아웃 */
           (
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-y-4 gap-x-2">
               {showBar ? (

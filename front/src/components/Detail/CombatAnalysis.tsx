@@ -79,12 +79,21 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
   });
 
   // B. 기타 전투 스탯
+  const SURVIVAL_KEYS = [
+    '죽음 저항', 'Death Defy',
+    '에너지 보호막으로 흡수한 타격 수', 'Energy Shield',
+    '핵무기', 'Nuke',
+    '세컨드 윈드', 'Second Wind',
+    '데몬 모드', 'Demon Mode'
+  ];
+
   const attackKeys = allAttackStats.map(([k]) => k);
   const miscStats = (damageJsonV2 ? Object.entries(combatJson || {}) : combatEntries)
     .filter(([key, val]) => {
         const lower = key.toLowerCase();
         if (key.startsWith('_std_') || key === '입힌 대미지' || lower === 'damage dealt') return false;
         if (DEFENSE_KEYS.some(dk => dk.toLowerCase() === lower) || attackKeys.includes(key)) return false;
+        if (SURVIVAL_KEYS.includes(key)) return false; // 방어 탭으로 이동된 항목 제외
         return isNotEmpty(val);
     })
     .sort(sortByValueDesc);

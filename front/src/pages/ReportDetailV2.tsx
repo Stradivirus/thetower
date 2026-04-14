@@ -9,8 +9,9 @@ import CombatAnalysis from '../components/Detail/CombatAnalysis';
 import HighlightDashboard from '../components/Detail/HighlightDashboard';
 import StatGrid from '../components/Detail/StatGrid';
 import ResourceGrid from '../components/Detail/grid/ResourceGrid';
+import DefenseGrid from '../components/Detail/grid/DefenseGrid';
+import EnemyGrid from '../components/Detail/grid/EnemyGrid';
 import { T } from '../locales'; 
-import { ENEMY_LEFT_ORDER, ENEMY_RIGHT_ORDER } from '../constants/reportRules';
 
 interface Props {
   data: FullReportV2;
@@ -111,20 +112,23 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
           <div className="space-y-6">
             <StatGrid title={Text.SECTION_RECORDS} icon={Trophy} color="text-yellow-500" data={recordsData || {}} defaultOpen={false} />
             <StatGrid title={Text.SECTION_UTILITY} icon={Activity} color="text-blue-500" data={v2_detail?.utility_json || {}} defaultOpen={false} />
-            <StatGrid title={Text.HEADER_DEFENSE} icon={Shield} color="text-blue-400" data={v2_detail?.damage_json || {}} v2Sections={['damage_taken', 'bonus_hp', 'hp_regen', 'damage_block']} defaultOpen={false} />
+            <DefenseGrid 
+                data={{ 
+                  ...(v2_detail?.damage_json || {}), 
+                  ...(v2_detail?.stats_json?.stats || {}) 
+                }} 
+                v2Sections={['damage_taken', 'bonus_hp', 'hp_regen', 'damage_block']} 
+                defaultOpen={false} 
+            />
           </div>
           <div className="space-y-6">
-            <StatGrid 
-                title={Text.SECTION_ENEMY} 
-                icon={Skull} 
-                color="text-orange-500" 
+            <EnemyGrid 
                 data={{ 
                         ...v2_detail?.enemy_json, 
                         ...(v2_detail?.stats_json?.stats || {}),
                         ...(v2_detail?.stats_json?.enemy_hits || {}),
                         ...(v2_detail?.stats_json?.kill_effects || {})
                       }} 
-                order={[...ENEMY_LEFT_ORDER, ...ENEMY_RIGHT_ORDER]}
                 defaultOpen={false} 
             />
           </div>
