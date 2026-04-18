@@ -12,6 +12,7 @@ import type { GameValue, DamageJson } from '../../types/report';
 import DamageDealerSection, { StatRow } from './Combat/DamageDealerSection';
 import KillSourceSection from './Combat/KillSourceSection';
 import KillBonusSection from './Combat/KillBonusSection';
+import DefenseSection from './Combat/DefenseSection';
 
 interface Props {
   combatJson?: Record<string, GameValue>;  // V1 전투 섹션 원본 JSON 데이터
@@ -20,6 +21,7 @@ interface Props {
   killEffects?: Record<string, GameValue>; // V2 처치 효과 데이터
   killSourceJson?: Record<string, GameValue>; // V2 처치 수단 데이터 (Destroyed By)
   totalEnemies?: number;                   // V2 전체 적 처치 수
+  stats?: Record<string, GameValue>;       // 추가: DefenseSection용 통계 데이터
 }
 
 /** 차트 및 리스트에서 사용할 색상 팔레트 */
@@ -28,7 +30,7 @@ const CHART_COLORS = [
   '#06b6d4', '#f43f5e', '#a855f7', '#14b8a6', '#f97316'
 ];
 
-export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, killEffects, killSourceJson, totalEnemies }: Props) {
+export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, killEffects, killSourceJson, totalEnemies, stats }: Props) {
   // --- 1. 데이터 파싱 및 초기화 ---
   let combatEntries: [string, any][] = [];
   let totalDamageStr = '0';
@@ -151,6 +153,15 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
           <StatRow items={miscStats} />
         </>
       )}
+
+      {/* 4. 방어 분석 통합 */}
+      <DefenseSection 
+        data={{ 
+          ...(damageJsonV2 || {}), 
+          ...(stats || {}) 
+        }} 
+        v2Sections={['damage_taken', 'bonus_hp', 'hp_regen', 'damage_block']} 
+      />
     </div>
   );
 }

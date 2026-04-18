@@ -2,14 +2,13 @@
  * 파일명: thetower/front/src/pages/ReportDetailV2.tsx
  * 용도: V2 전용 전투 기록 상세 분석 페이지 (향상된 대시보드 및 시각화 포함)
  */
-import { ArrowLeft, Activity, Clock, FileText, Trash2, AlertTriangle, Trophy } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react';
 import type { FullReportV2 } from '../types/report';
 import { formatDate, formatNumber } from '../utils/format';
 import CombatAnalysis from '../components/Detail/CombatAnalysis';
 import HighlightDashboard from '../components/Detail/HighlightDashboard';
-import StatGrid from '../components/Detail/StatGrid';
+import UtilityGrid from '../components/Detail/grid/UtilityGrid';
 import ResourceGrid from '../components/Detail/grid/ResourceGrid';
-import DefenseGrid from '../components/Detail/grid/DefenseGrid';
 import EnemyGrid from '../components/Detail/grid/EnemyGrid';
 import { T } from '../locales'; 
 
@@ -105,20 +104,21 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
                 killEffects={v2_detail?.stats_json?.kill_effects}
                 killSourceJson={v2_detail?.kill_source_json}
                 totalEnemies={main.total_enemies}
+                stats={v2_detail?.stats_json?.stats}
             />
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <div className="space-y-6">
-            <StatGrid title={Text.SECTION_RECORDS} icon={Trophy} color="text-yellow-500" data={recordsData || {}} defaultOpen={false} />
-            <StatGrid title={Text.SECTION_UTILITY} icon={Activity} color="text-blue-500" data={v2_detail?.utility_json || {}} defaultOpen={false} />
-            <DefenseGrid 
-                data={{ 
-                  ...(v2_detail?.damage_json || {}), 
-                  ...(v2_detail?.stats_json?.stats || {}) 
-                }} 
-                v2Sections={['damage_taken', 'bonus_hp', 'hp_regen', 'damage_block']} 
-                defaultOpen={false} 
+            <UtilityGrid 
+              title="RECORDS & UTILITY" 
+              icon={Activity} 
+              color="text-blue-500" 
+              data={{
+                ...(v2_detail?.utility_json || {}),
+                _records: recordsData || {}
+              }} 
+              defaultOpen={false} 
             />
           </div>
           <div className="space-y-6">
