@@ -6,20 +6,17 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, List } from 'lucide-react';
-import type { BattleMain } from '../types/report';
 import Dashboard from '../components/Main/Dashboard';
 import ReportList from '../components/Main/ReportList';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { useGameData } from '../contexts/GameDataContext';
+import { useReports } from '../contexts/ReportContext';
 import { T } from '../locales'; 
 
-interface MainPageProps {
-  reports: BattleMain[]; // 상위(App.tsx)에서 전달받은 최근 리포트 목록
-}
-
-export default function MainPage({ reports }: MainPageProps) {
+export default function MainPage() {
   const navigate = useNavigate();
   const { progress } = useGameData();
+  const { reports } = useReports();
   
   // 다국어 텍스트 매핑
   const Text = T.main.PAGE;

@@ -59,7 +59,7 @@ export default function Dashboard({ reports }: Props) {
   const recentKillers = useMemo(() => {
     const counts: Record<string, number> = {};
     recentReports.forEach(r => {
-      counts[r.killer] = (counts[r.killer] || 0) + 1;
+      if (r.killer && r.killer.trim() !== "" && r.killer !== "Unknown") { counts[r.killer] = (counts[r.killer] || 0) + 1; }
     });
     return Object.entries(counts)
       .sort(([, a], [, b]) => b - a)

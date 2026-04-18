@@ -1,10 +1,6 @@
-/**
- * 파일명: thetower/front/src/pages/ReportDetail.tsx
- * 용도: 개별 전투 기록의 상세 분석 정보 표시 페이지 (Switcher)
- * 기능: 데이터의 버전에 따라 V1 또는 V2 상세 페이지를 렌더링
- */
 import { useState, useEffect } from 'react';
-import { getFullReport, deleteReport } from '../api/reports';
+import { getFullReport } from '../api/reports';
+import { useReports } from '../contexts/ReportContext';
 import type { FullReportV2 } from '../types/report';
 import { T } from '../locales'; 
 import ReportDetailV1 from './V1/ReportDetailV1';
@@ -18,6 +14,7 @@ interface Props {
 export default function ReportDetailPage({ battleDate, onBack }: Props) {
   const [data, setData] = useState<FullReportV2 | null>(null);
   const [loading, setLoading] = useState(true);
+  const { deleteReportFromState } = useReports();
   
   // 삭제 확인 팝업 상태 (V1, V2 공통 사용을 위해 부모에서 관리)
   const [deletePopup, setDeletePopup] = useState<{isOpen: boolean; x: number; y: number;}>({ isOpen: false, x: 0, y: 0 });
@@ -41,7 +38,7 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
   /** 실제 삭제 수행 */
   const handleConfirmDelete = async () => {
     try {
-      await deleteReport(battleDate);
+      await deleteReportFromState(battleDate);
       onBack();
     } catch (err) {
       console.error(err);

@@ -6,18 +6,19 @@
 import { useState } from 'react';
 import { X, Save, FileText, Trophy, Zap, Beaker } from 'lucide-react';
 import { createReport } from '../../api/reports';
+import { useReports } from '../../contexts/ReportContext';
 import { T } from '../../locales';
 
 interface Props {
   onClose: () => void;
-  onSuccess: () => void;
 }
 
-export default function ReportInputModal({ onClose, onSuccess }: Props) {
+export default function ReportInputModal({ onClose }: Props) {
   const [text, setText] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { refreshReports } = useReports();
 
   const Text = T.detail;
   const Common = T.common;
@@ -43,7 +44,7 @@ export default function ReportInputModal({ onClose, onSuccess }: Props) {
     setError(null);
     try {
       await createReport(text, notes);
-      onSuccess();
+      await refreshReports();
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : Text.ERR_SAVE_FAIL);

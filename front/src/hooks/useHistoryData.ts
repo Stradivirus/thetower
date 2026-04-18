@@ -7,44 +7,43 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import type { BattleMain } from '../types/report';
 import type { MonthlyGroup, TournamentFilterMode } from '../types/history';
-import { getWeeklyStats, getAllReports } from '../api/reports';
+import { getWeeklyStats } from '../api/reports';
 import type { WeeklyStatsResponse } from '../api/reports';
+import { useReports } from '../contexts/ReportContext';
 
 export function useHistoryData() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const [allReports, setAllReports] = useState<BattleMain[]>([]);
+  const { reports: allReports, isLoading: reportsLoading } = useReports();
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStatsResponse | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
   
   // 상태 관리: 뷰 모드, 필터, 확장 여부
   const [viewMode, setViewMode] = useState<'group' | 'list'>('group');
   const [tournamentFilter, setTournamentFilter] = useState<TournamentFilterMode>('all');
   const [onlyMemo, setOnlyMemo] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
 
   const tierFilter = searchParams.get('tier');
 
   // 데이터 초기 로드
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
+    const loadStats = async () => {
+      setStatsLoading(true);
       try {
-        const [reportsData, statsData] = await Promise.all([
-          getAllReports(),
-          getWeeklyStats()
-        ]);
-        setAllReports(reportsData);
+        const statsData = await getWeeklyStats();
         setWeeklyStats(statsData);
       } catch (error) {
-        console.error("Failed to load history data:", error);
+        console.error("Failed to load history stats:", error);
       } finally {
-        setIsLoading(false);
+        setStatsLoading(false);
       }
     };
-    loadData();
+    loadStats();
   }, []);
+
+  const isLoading = reportsLoading || statsLoading;
 
   // 티어 필터 시 자동 리스트 모드 전환
   useEffect(() => {
