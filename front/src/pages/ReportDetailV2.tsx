@@ -1,6 +1,10 @@
 /**
  * 파일명: thetower/front/src/pages/ReportDetailV2.tsx
- * 용도: V2 전용 전투 기록 상세 분석 페이지 (향상된 대시보드 및 시각화 포함)
+ * 용도: V2 전용 전투 기록 상세 분석 페이지
+ * 특징: 
+ *   - V1보다 세분화된 데이터(v2_main, v2_detail)를 시각화
+ *   - 하이라이트 대시보드, 대미지 분석 차트, 자원 및 적군 통계 그리드 포함
+ *   - 반응형 레이아웃 (데스크탑 3열 그리드 / 모바일 1열 스택)
  */
 import { ArrowLeft, Activity, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react';
 import type { FullReportV2 } from '../types/report';
@@ -13,12 +17,12 @@ import EnemyGrid from '../components/Detail/grid/EnemyGrid';
 import { T } from '../locales'; 
 
 interface Props {
-  data: FullReportV2;
-  onBack: () => void;
-  onDelete: (e: React.MouseEvent) => void;
-  deletePopup: { isOpen: boolean; x: number; y: number };
-  onClosePopup: () => void;
-  handleConfirmDelete: () => void;
+  data: FullReportV2;                // API로부터 받아온 V2 통합 리포트 데이터
+  onBack: () => void;                 // 뒤로 가기 액션 핸들러
+  onDelete: (e: React.MouseEvent) => void; // 삭제 팝업 트리거
+  deletePopup: { isOpen: boolean; x: number; y: number }; // 삭제 팝업 상태 (부모 제어)
+  onClosePopup: () => void;           // 삭제 팝업 닫기
+  handleConfirmDelete: () => void;    // 최종 삭제 확인 핸들러
 }
 
 export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, onClosePopup, handleConfirmDelete }: Props) {
@@ -28,6 +32,10 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
 
   const closePopup = onClosePopup;
 
+  /** 
+   * V2 기록 섹션 데이터 가공
+   * - v2_main에 포함된 각종 최고 기록(CPM, 스킵 등)을 화면에 표시할 라벨-값 매핑으로 변환
+   */
   const getRecordData = () => {
     if (!v2_main) return null;
     const records: Record<string, string> = {};
@@ -46,7 +54,11 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
 
   return (
     <div className="max-w-7xl mx-auto pb-20 animate-fade-in px-4">
-      {/* 상단 헤더 */}
+      {/* 
+        [1] 상단 플로팅 헤더 
+        - 날짜, 티어, 리얼타임, 웨이브 정보 표시
+        - 삭제 버튼 및 작성된 메모 요약 포함
+      */}
       <div className="flex items-center justify-between mb-8 sticky top-0 bg-slate-950/90 backdrop-blur-md py-4 z-10 border-b border-slate-800">
         <div className="flex items-center gap-5">
           <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors">
@@ -94,8 +106,10 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
       </div>
 
       <div className="space-y-6">
+        {/* [2] 핵심 지표 대시보드 (코인, 셀, 리롤, 킬러 정보) */}
         <HighlightDashboard main={main} v2_main={v2_main} />
         
+        {/* [3] 전투 상세 분석 (대미지 딜러, 처치 수단, 방어 통계 등) */}
         <div className="w-full">
             <CombatAnalysis 
                 combatJson={detail?.combat_json} 
@@ -108,7 +122,9 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
             />
         </div>
         
+        {/* [4] 상세 통계 그리드 영역 (기록/유틸, 적군, 자원) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* 기록 및 유틸리티 (V2 기록 데이터 병합하여 전달) */}
           <div className="space-y-6">
             <UtilityGrid 
               title="RECORDS & UTILITY" 
@@ -121,6 +137,8 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
               defaultOpen={false} 
             />
           </div>
+          
+          {/* 적군 분석 통계 (타격 수, 처치 효과, 출현 수 병합) */}
           <div className="space-y-6">
             <EnemyGrid 
                 data={{ 
@@ -132,6 +150,8 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
                 defaultOpen={false} 
             />
           </div>
+          
+          {/* 자원 및 화폐 획득 통계 */}
           <div className="space-y-6">
             <ResourceGrid 
                 coinData={v2_detail?.coin_json} 
@@ -141,6 +161,7 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
         </div>
       </div>
 
+      {/* [5] 삭제 확인 팝업 (Overlay) */}
       {deletePopup.isOpen && (
         <div 
           className="fixed z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-xl p-4 w-64 animate-fade-in"

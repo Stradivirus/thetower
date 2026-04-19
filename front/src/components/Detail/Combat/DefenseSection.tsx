@@ -23,7 +23,7 @@ export default function DefenseSection({ data, v2Sections, defaultOpen = false }
   // --- 1. 생존 및 특수 기술 필터링 ---
   const SURVIVAL_KEYS = [
     '죽음 저항', 'Death Defy',
-    '에너지 보호막으로 흡수한 타격 수', 'Energy Shield',
+    '에너지 보호막으로 흡수한 타격 수', 'Hits Absorbed By Energy Shield',
     '핵무기', 'Nuke',
     '세컨드 윈드', 'Second Wind',
     '데몬 모드', 'Demon Mode'
@@ -100,6 +100,7 @@ export default function DefenseSection({ data, v2Sections, defaultOpen = false }
   const renderItem = ([key, value]: [string, GameValue], isSurvival = false) => {
     let displayLabel = key;
     if (key === '에너지 보호막으로 흡수한 타격 수') displayLabel = '에너지 보호막';
+    if (key === 'Hits Absorbed By Energy Shield') displayLabel = 'Energy Shield';
     
     let labelColor = isSurvival ? "text-rose-400/80" : "text-slate-500";
     let valueColor = isSurvival ? "text-rose-200" : "text-slate-200";

@@ -83,7 +83,7 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
   // B. 기타 전투 스탯
   const SURVIVAL_KEYS = [
     '죽음 저항', 'Death Defy',
-    '에너지 보호막으로 흡수한 타격 수', 'Energy Shield',
+    '에너지 보호막으로 흡수한 타격 수', 'Hits Absorbed By Energy Shield',
     '핵무기', 'Nuke',
     '세컨드 윈드', 'Second Wind',
     '데몬 모드', 'Demon Mode'
