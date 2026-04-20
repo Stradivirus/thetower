@@ -17,7 +17,6 @@ export default function HistoryPage() {
   // 모든 데이터 처리 로직을 커스텀 훅으로 위임
   const {
     isLoading,
-    weeklyStats,
     viewMode, setViewMode,
     tournamentFilter, cycleTournamentFilter,
     onlyMemo, setOnlyMemo,
@@ -56,10 +55,10 @@ export default function HistoryPage() {
         />
       </div>
 
-      {/* 성장 분석 차트 (필터 미적용 및 그룹 뷰일 때만 표시) */}
+      {/* 성장 분석 차트 (필터 미적용 및 그룹 뷰일 때만 표시, 데스크톱 전용) */}
       {!isFilterActive && viewMode === 'group' && (
-        <div className="mb-6">
-           <WeeklyStatsChart data={weeklyStats} loading={isLoading} />
+        <div className="mb-6 hidden md:block">
+           <WeeklyStatsChart />
         </div>
       )}
 

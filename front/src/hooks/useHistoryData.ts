@@ -1,14 +1,12 @@
 /**
  * 파일명: thetower/front/src/hooks/useHistoryData.ts
  * 용도: 히스토리 페이지의 데이터 로딩, 필터링 및 통계 계산 로직 관리 (커스텀 훅)
- * 기능: 전체 리포트/주간 통계 로드, 월별 및 최근 7일 데이터 그룹화, 다양한 필터 상태 관리
+ * 기능: 전체 리포트 로드, 월별 및 최근 7일 데이터 그룹화, 다양한 필터 상태 관리
  */
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import type { BattleMain } from '../types/report';
 import type { MonthlyGroup, TournamentFilterMode } from '../types/history';
-import { getWeeklyStats } from '../api/reports';
-import type { WeeklyStatsResponse } from '../api/reports';
 import { useReports } from '../contexts/ReportContext';
 
 export function useHistoryData() {
@@ -16,8 +14,6 @@ export function useHistoryData() {
   const [searchParams, setSearchParams] = useSearchParams();
   
   const { reports: allReports, isLoading: reportsLoading } = useReports();
-  const [weeklyStats, setWeeklyStats] = useState<WeeklyStatsResponse | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
   
   // 상태 관리: 뷰 모드, 필터, 확장 여부
   const [viewMode, setViewMode] = useState<'group' | 'list'>('group');
@@ -27,23 +23,7 @@ export function useHistoryData() {
 
   const tierFilter = searchParams.get('tier');
 
-  // 데이터 초기 로드
-  useEffect(() => {
-    const loadStats = async () => {
-      setStatsLoading(true);
-      try {
-        const statsData = await getWeeklyStats();
-        setWeeklyStats(statsData);
-      } catch (error) {
-        console.error("Failed to load history stats:", error);
-      } finally {
-        setStatsLoading(false);
-      }
-    };
-    loadStats();
-  }, []);
-
-  const isLoading = reportsLoading || statsLoading;
+  const isLoading = reportsLoading;
 
   // 티어 필터 시 자동 리스트 모드 전환
   useEffect(() => {
@@ -159,7 +139,6 @@ export function useHistoryData() {
 
   return {
     isLoading,
-    weeklyStats,
     viewMode, setViewMode,
     tournamentFilter, cycleTournamentFilter,
     onlyMemo, setOnlyMemo,

@@ -89,28 +89,28 @@ export const getAllReports = async (): Promise<BattleMain[]> => {
 };
 
 /**
- * 최근 7일간의 일간 통계 데이터를 조회합니다.
+ * 최근 N일간의 일간 통계 데이터를 조회합니다.
  */
-export const getWeeklyStats = async (): Promise<WeeklyStatsResponse> => {
-  const response = await fetchWithAuth(`${REPORTS_URL}/weekly-stats`);
+export const getWeeklyStats = async (limit: number = 7): Promise<WeeklyStatsResponse> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/weekly-stats?limit=${limit}`);
   if (!response.ok) throw new Error('Failed to fetch weekly stats');
   return response.json();
 };
 
 /**
- * 최근 8주간의 주간 트렌드 데이터를 조회합니다.
+ * 최근 N주간의 주간 트렌드 데이터를 조회합니다.
  */
-export const getWeeklyTrends = async (): Promise<WeeklyTrendResponse> => {
-  const response = await fetchWithAuth(`${REPORTS_URL}/weekly-trends`);
+export const getWeeklyTrends = async (limit: number = 8): Promise<WeeklyTrendResponse> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/weekly-trends?limit=${limit}`);
   if (!response.ok) throw new Error('Failed to fetch weekly trends');
   return response.json();
 };
 
 /**
- * 최근 6개월간의 월간 트렌드 데이터를 조회합니다.
+ * 최근 N개월간의 월간 트렌드 데이터를 조회합니다.
  */
-export const getMonthlyTrends = async (): Promise<MonthlyTrendResponse> => {
-  const response = await fetchWithAuth(`${REPORTS_URL}/monthly-trends`);
+export const getMonthlyTrends = async (limit: number = 6): Promise<MonthlyTrendResponse> => {
+  const response = await fetchWithAuth(`${REPORTS_URL}/monthly-trends?limit=${limit}`);
   if (!response.ok) throw new Error('Failed to fetch monthly trends');
   return response.json();
 };

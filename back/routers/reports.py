@@ -156,27 +156,30 @@ def get_history_reports(
 
 @router.get("/weekly-stats", response_model=WeeklyStatsResponse)
 def get_weekly_stats_api(
+    limit: int = 7,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """최근 일주일간의 자원 획득량 및 성장률 통계를 조회합니다."""
-    return crud.get_weekly_stats(db, current_user.id)
+    """최근 N일간의 일간 통계 데이터를 조회합니다. (기본 7일)"""
+    return crud.get_weekly_stats(db, current_user.id, limit=limit)
 
 @router.get("/weekly-trends", response_model=WeeklyTrendResponse)
 def get_weekly_trends_api(
+    limit: int = 8,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """주간 성장 트렌드 분석 데이터를 조회합니다."""
-    return crud.get_weekly_trends(db, current_user.id)
+    """최근 N주간의 주간 트렌드 데이터를 조회합니다. (기본 8주)"""
+    return crud.get_weekly_trends(db, current_user.id, limit=limit)
 
 @router.get("/monthly-trends", response_model=MonthlyTrendResponse)
 def get_monthly_trends_api(
+    limit: int = 6,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """월간 성장 트렌드 분석 데이터를 조회합니다."""
-    return crud.get_monthly_trends(db, current_user.id)
+    """최근 N개월간의 월간 트렌드 데이터를 조회합니다. (기본 6개월)"""
+    return crud.get_monthly_trends(db, current_user.id, limit=limit)
 
 # =================================================================
 # 3. 상세 조회 및 삭제
