@@ -5,7 +5,9 @@
 """
 import fcntl
 import os
-from fastapi import FastAPI
+import time
+import asyncio
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, engine_read, Base
 from routers import reports, auth, progress, modules, support
@@ -15,6 +17,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from cron_jobs import report_monthly_stats, report_ghost_users
+from slack import send_slack_notification
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -95,6 +98,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    """
+    API 응답 시간을 측정하고 1초(1000ms) 초과 시 슬랙 알림을 보냅니다.
+    """
+    start_time = time.perf_counter()
+    response = await call_next(request)
+    process_time = (time.perf_counter() - start_time) * 1000  # 밀리초 단위
+    
+    # 응답 헤더에 소요 시간 추가 (디버깅용)
+    response.headers["X-Process-Time"] = f"{process_time:.2f}ms"
+
+    # 1000ms 초과 시 슬랙 알림 (비동기 처리로 API 응답에 영향 없음)
+    if process_time > 1000:
+        path = request.url.path
+        method = request.method
+        msg = f"⏱️ *Slow API Alert*\n- *Path*: {method} {path}\n- *Duration*: {process_time:.2f}ms (Limit: 1000ms)"
+        asyncio.create_task(asyncio.to_thread(send_slack_notification, msg))
+        
+    return response
+
 # 기능별 라우터 등록
 app.include_router(auth.router)
 app.include_router(reports.router)
@@ -102,6 +126,12 @@ app.include_router(progress.router)
 app.include_router(modules.router)
 app.include_router(support.router)
 app.include_router(max_wave_router.router)
+
+@app.get("/api/test-slow")
+async def test_slow():
+    """테스트용: 1.5초 지연을 발생시켜 슬랙 알림을 유도합니다."""
+    await asyncio.sleep(1.5)
+    return {"message": "This was a slow request (1.5s delay)", "duration": "1500ms"}
 
 @app.get("/")
 def root():
