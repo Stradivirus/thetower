@@ -75,59 +75,84 @@ def get_weekly_trends(db: Session, user_id: int, limit: int = 8):
     """주간 트렌드 분석 데이터를 조회합니다 (N주)."""
     today_utc = get_today_utc()
     target_date = today_utc.date() - timedelta(days=1)
-    # 시작일 계산: 오늘 기준 (limit-1)주 전의 월요일 혹은 일요일로 잡기 위해 넉넉히 계산
-    display_start_date = target_date - timedelta(days=(limit * 7) - 1)
-    utc_start_limit = datetime.now(timezone.utc) - timedelta(days=(limit * 7) + 14)
-    
+    # 전일 기준으로 7일씩 끊어 최근 N개 구간(rolling 7-day windows)을 계산합니다.
+    # 가장 오래된 표시 구간보다 한 구간 더 과거 데이터까지 가져와 최초 성장률 계산에 사용합니다.
+    earliest_returned_start = target_date - timedelta(days=(limit * 7) - 1)
+    query_start_date = earliest_returned_start - timedelta(days=7)
+
     sql = text("""
-        WITH weekly_raw AS (
-            SELECT 
-                TO_CHAR(DATE_TRUNC('week', battle_date), 'YYYY-MM-DD') as week_start_date,
-                SUM(coin_earned) as total_coins,
-                SUM(cells_earned) as total_cells
-            FROM battle_mains
-            WHERE owner_id = :user_id
-              AND battle_date >= :utc_start_limit
-              AND battle_date::date <= :target_date
-            GROUP BY 1
-        ),
-        with_prev AS (
-            SELECT 
-                week_start_date,
-                total_coins,
-                total_cells,
-                LAG(total_coins) OVER (ORDER BY week_start_date ASC) as prev_coins,
-                LAG(total_cells) OVER (ORDER BY week_start_date ASC) as prev_cells
-            FROM weekly_raw
-        )
-        SELECT 
-            week_start_date, total_coins, total_cells,
-            CASE WHEN prev_coins > 0 THEN ROUND(((total_coins - prev_coins)::numeric / prev_coins * 100)::numeric, 1) ELSE 0 END as coin_growth,
-            CASE WHEN prev_cells > 0 THEN ROUND(((total_cells - prev_cells)::numeric / prev_cells * 100)::numeric, 1) ELSE 0 END as cell_growth
-        FROM with_prev
-        ORDER BY week_start_date DESC
+        SELECT
+            TO_CHAR(battle_date::date, 'YYYY-MM-DD') as date_str,
+            SUM(coin_earned) as total_coins,
+            SUM(cells_earned) as total_cells
+        FROM battle_mains
+        WHERE owner_id = :user_id
+          AND battle_date::date >= :query_start_date
+          AND battle_date::date <= :target_date
+        GROUP BY 1
+        ORDER BY 1 ASC
     """)
-    
-    results = db.execute(sql, {"user_id": user_id, "utc_start_limit": utc_start_limit, "target_date": target_date}).fetchall()
-    result_map = {row.week_start_date: row for row in results}
-    
-    # 0으로 채우기
+
+    results = db.execute(sql, {
+        "user_id": user_id,
+        "query_start_date": query_start_date,
+        "target_date": target_date,
+    }).fetchall()
+
+    daily_map = {
+        row.date_str: {
+            "coins": row.total_coins or 0,
+            "cells": row.total_cells or 0,
+        }
+        for row in results
+    }
+
+    windows = []
+    for i in range(limit, 0, -1):
+        w_start = target_date - timedelta(days=(i * 7) - 1)
+
+        total_coins = 0
+        total_cells = 0
+        for d in range(7):
+            date_key = (w_start + timedelta(days=d)).strftime("%Y-%m-%d")
+            day_data = daily_map.get(date_key)
+            if day_data:
+                total_coins += day_data["coins"]
+                total_cells += day_data["cells"]
+
+        windows.append({
+            "week_start_date": w_start.strftime("%Y-%m-%d"),
+            "total_coins": total_coins,
+            "total_cells": total_cells,
+        })
+
     trend_stats = []
-    # 가장 최근 주의 월요일 찾기
-    last_monday = target_date - timedelta(days=target_date.weekday())
-    for i in range(limit):
-        w_start = (last_monday - timedelta(weeks=i)).strftime("%Y-%m-%d")
-        if w_start in result_map:
-            row = result_map[w_start]
-            trend_stats.append({
-                "week_start_date": w_start,
-                "total_coins": row.total_coins or 0, "total_cells": row.total_cells or 0,
-                "coin_growth": float(row.coin_growth or 0), "cell_growth": float(row.cell_growth or 0)
-            })
-        else:
-            trend_stats.append({"week_start_date": w_start, "total_coins": 0, "total_cells": 0, "coin_growth": 0.0, "cell_growth": 0.0})
-    
-    return {"weekly_stats": trend_stats[::-1]}
+    prev_coins = None
+    prev_cells = None
+    for window in windows:
+        coins = window["total_coins"]
+        cells = window["total_cells"]
+
+        coin_growth = 0.0
+        cell_growth = 0.0
+
+        if prev_coins and prev_coins > 0:
+            coin_growth = round(((coins - prev_coins) / prev_coins) * 100, 1)
+        if prev_cells and prev_cells > 0:
+            cell_growth = round(((cells - prev_cells) / prev_cells) * 100, 1)
+
+        trend_stats.append({
+            "week_start_date": window["week_start_date"],
+            "total_coins": coins,
+            "total_cells": cells,
+            "coin_growth": float(coin_growth),
+            "cell_growth": float(cell_growth),
+        })
+
+        prev_coins = coins
+        prev_cells = cells
+
+    return {"weekly_stats": trend_stats}
 
 def get_monthly_trends(db: Session, user_id: int, limit: int = 6):
     """월간 트렌드 분석 데이터를 조회합니다 (N개월)."""
