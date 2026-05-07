@@ -33,7 +33,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
   ] as const;
 
   /** 현재 선택된 모듈의 슬롯이 해금(Unlock)되었는지 여부를 확인합니다. */
-  const isUnlocked = progress[`module_unlock_${selectedType}`] === 1;
+  const isUnlocked = progress[`module_unlock_${selectedType}`] >= 1;
 
   // 현재 선택된 탭의 진행도 키 생성
   const currentKey = `module_${selectedType}_${selectedStat}`;
@@ -54,7 +54,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
       {/* 1. 모듈 종류 선택 섹션 (4개 슬롯) */}
       <div className="flex flex-wrap justify-center gap-3 mb-4 w-full max-w-3xl">
         {moduleTypes.map((type) => {
-          const typeUnlocked = progress[`module_unlock_${type.id}`] === 1;
+          const typeUnlocked = progress[`module_unlock_${type.id}`] >= 1;
           
           return (
             <button
