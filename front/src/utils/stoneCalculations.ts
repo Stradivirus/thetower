@@ -23,7 +23,7 @@ allUwKeys.forEach(uwKey => {
 });
 
 /** 
- * 비용 배열에서 특정 레벨까지의 누적 합계를 계산합니다.
+ * 비용 배열에서 특정 레벨까지의 누적 합계를 계산
  */
 const sumCostsUpToLevel = (costs: number[], targetLevel: number) => {
     let sum = 0;
@@ -39,7 +39,7 @@ const MODULE_SLOTS = ['attack', 'defense', 'generator', 'core'];
 const efficiencyCosts = moduleCosts.common_efficiency.levels.map((l: any) => l.cost);
 
 /** 
- * [커스텀 훅] 현재 사용자의 진행 상황(progress)을 기반으로 총 사용된 스톤량을 계산합니다.
+ * [커스텀 훅] 현재 사용자의 진행 상황(progress)을 기반으로 총 사용된 스톤량을 계산
  * @param progress 사용자의 게임 진행 데이터 객체
  * @returns 총 사용 스톤량 (number)
  */
