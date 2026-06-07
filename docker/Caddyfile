@@ -1,32 +1,16 @@
-# 파일명: thetower/docker/Caddyfile
-# 용도: Caddy 웹 서버 설정 (HTTPS 자동화, 리버스 프록시, 캐싱 및 보안 헤더)
-# 특징: Let's Encrypt를 통한 자동 SSL 적용 및 SPA 라우팅 지원
-
 towerreport.o-r.kr, origin.towerreport.o-r.kr {
-    # [보안] 기본 보안 헤더 설정
     header {
-        # 클릭재킹 방지 (SAMEORIGIN)
         X-Frame-Options "SAMEORIGIN"
-        
-        # MIME 타입 스니핑 차단
         X-Content-Type-Options "nosniff"
-        
-        # HTTPS 강제 (HSTS 설정: 1년 적용)
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        
-        # 리퍼러 정보 최소화
         Referrer-Policy "strict-origin-when-cross-origin"
-        
-        # Caddy 버전 정보 노출 제한
         -Server
     }
 
-    # 1. API 요청 처리: 백엔드 컨테이너(8000번 포트)로 프록시 전달
     handle /api/* {
         reverse_proxy backend:8000
     }
 
-    # 2. 정적 자원 처리 (JS, CSS, 이미지 등): 브라우저 캐싱 최적화 (1년 적용)
     @static_assets {
         path /assets/*
         path *.js *.css *.png *.jpg *.jpeg *.svg *.ico *.woff *.woff2
@@ -37,13 +21,10 @@ towerreport.o-r.kr, origin.towerreport.o-r.kr {
         header Cache-Control "public, max-age=31536000, immutable"
     }
 
-    # 3. SPA 라우팅 및 일반 요청 처리: index.html로 폴백 설정
     handle {
         root * /usr/share/caddy/html
         try_files {path} /index.html
         file_server
-
-        # index.html은 새 버전 배포 시 즉시 반영되도록 캐싱 비활성화
         header Cache-Control "no-cache"
     }
 }
