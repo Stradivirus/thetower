@@ -66,6 +66,13 @@ export default function App() {
   // 로컬 스토리지에서 토큰 로드
   const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
 
+  // [수정] 초기 로드 시 로그인되어 있지 않으면 로그인 모달을 자동으로 엽니다.
+  useEffect(() => {
+    if (!token) {
+      setIsAuthModalOpen(true);
+    }
+  }, []);
+
   // 인증 만료 이벤트 리스너 등록
   useEffect(() => {
     const handleAuthExpired = () => {
@@ -82,8 +89,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     setToken(null);
-    // 로그아웃 시 메인 페이지로 이동하며 페이지를 새로고침하여 상태를 완전히 초기화합니다.
-    window.location.href = '/';
+    // [수정] 페이지 새로고침 대신 상태만 초기화하여 모달이 유지되도록 합니다.
   };
 
   /** 
