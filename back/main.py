@@ -110,11 +110,11 @@ async def add_process_time_header(request: Request, call_next):
     # 응답 헤더에 소요 시간 추가 (디버깅용)
     response.headers["X-Process-Time"] = f"{process_time:.2f}ms"
 
-    # 1000ms 초과 시 슬랙 알림 (비동기 처리로 API 응답에 영향 없음)
-    if process_time > 1000:
+    # 2000ms 초과 시 슬랙 알림 (비동기 처리로 API 응답에 영향 없음)
+    if process_time > 2000:
         path = request.url.path
         method = request.method
-        msg = f"⏱️ *Slow API Alert*\n- *Path*: {method} {path}\n- *Duration*: {process_time:.2f}ms (Limit: 1000ms)"
+        msg = f"⏱️ *Slow API Alert*\n- *Path*: {method} {path}\n- *Duration*: {process_time:.2f}ms (Limit: 2000ms)"
         asyncio.create_task(asyncio.to_thread(send_slack_notification, msg))
         
     return response
