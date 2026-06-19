@@ -26,6 +26,7 @@ export interface BattleMain {
   notes?: string;
   
   total_enemies?: number; // 추가: 전체 적 처치 수
+  best_coins_per_minute?: number; // 추가: 분당 최고 코인 수
   
   // 상위 딜러 리스트 (문자열 배열)
   top_damages: string[];

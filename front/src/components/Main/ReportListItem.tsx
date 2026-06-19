@@ -4,7 +4,7 @@
  * 기능: 모바일/데스크탑 반응형 뷰 제공, 주요 자원 및 킬 비율, 딜 순위, 처치자 요약 정보 표시
  */
 import React from 'react';
-import { Zap, RefreshCw, Skull, Layers, Coins } from 'lucide-react';
+import { Zap, Skull, Coins } from 'lucide-react';
 import type { BattleMain } from '../../types/report'; 
 import { formatNumber, formatTimeOnly, parseDurationToHours } from '../../utils/format';
 import { T } from '../../locales'; 
@@ -36,17 +36,17 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
       {/* 1행: 시간, 티어, 웨이브 정보 */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-800/50">
         <div className="flex items-center gap-2">
-            <span className="text-slate-500 text-xs font-mono">{formatTimeOnly(report.battle_date)}</span>
-            <span className="text-slate-700">|</span>
-            <span className="text-white font-bold text-sm">{report.real_time}</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-bold">T{report.tier}</span>
+            <span className="text-cyan-300 text-base font-bold">Wave {report.wave}</span>
         </div>
         <div className="flex items-center gap-2">
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-bold">T{report.tier}</span>
-            <span className="text-slate-300 text-sm font-bold">Wave {report.wave}</span>
+            <span className="text-slate-500 text-xs font-mono">{formatTimeOnly(report.battle_date)}</span>
+            <span className="text-slate-700">|</span>
+            <span className="text-white font-bold text-xs">{report.real_time}</span>
         </div>
       </div>
 
-      {/* 2행: 코인, 셀, 리롤 파편 획득량 */}
+      {/* 2행: 코인, 셀 획득량 */}
       <div className="grid grid-cols-1 gap-2 mb-3">
         {/* 코인 정보 */}
         <div className="flex items-center justify-between">
@@ -58,8 +58,13 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
                     {formatNumber(report.coin_earned)}
                 </span>
             </div>
-            <div className="text-slate-500 font-mono text-xs">
-                {formatNumber(report.coins_per_hour)}/h
+            <div className="flex items-center gap-2">
+                <div className="text-orange-400 font-mono text-xs font-bold">
+                    {report.best_coins_per_minute ? formatNumber(report.best_coins_per_minute) : '-'}
+                </div>
+                <div className="text-slate-500 font-mono text-xs">
+                    {formatNumber(report.coins_per_hour)}/h
+                </div>
             </div>
         </div>
 
@@ -76,17 +81,6 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
             <div className="text-cyan-600/70 font-mono text-xs font-bold">
                 {formatNumber(Math.round(cellsPerHour))}/h
             </div>
-        </div>
-
-        {/* 리롤 파편 정보 */}
-        <div className="flex items-center gap-2">
-             <div className="p-1 bg-green-500/10 rounded border border-green-500/20">
-                <RefreshCw size={12} className="text-green-400"/>
-             </div>
-             <span className="text-green-400 font-bold font-mono text-base">
-                 {formatNumber(report.reroll_shards_earned)}
-             </span>
-             <span className="text-slate-600 text-xs ml-auto">{Text.SHARDS}</span>
         </div>
       </div>
 
@@ -155,24 +149,24 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
     </div>
   );
 
-  /** 
+  /**
    * [2. Desktop View] 12그리드 가로 레이아웃
    */
   const DesktopView = () => (
-    <div 
+    <div
       onClick={() => onSelectReport(report.battle_date)}
       className="hidden md:grid group bg-slate-900/40 border border-slate-800/60 hover:border-blue-500/30 hover:bg-slate-800 py-3 px-4 rounded-xl cursor-pointer transition-all grid-cols-12 gap-2 items-center mb-2"
     >
       {/* 시간 및 웨이브 정보 (col-2) */}
       <div className="col-span-2 flex flex-col items-center justify-center">
         <div className="flex items-center gap-2">
-           <span className="text-white font-bold text-sm">{report.real_time}</span>
            <span className="text--[10px] px-1 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 leading-none">T{report.tier}</span>
+           <span className="text-cyan-300 text-sm font-bold">W {report.wave}</span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
            <span className="text-slate-500 text-xs">{formatTimeOnly(report.battle_date)}</span>
            <span className="text-slate-600 text-[10px]">・</span>
-           <span className="text-slate-400 text-xs">W {report.wave}</span>
+           <span className="text-white font-bold text-xs">{report.real_time}</span>
         </div>
       </div>
 
@@ -181,27 +175,27 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
         <div className="text-yellow-400 font-bold font-mono text-lg truncate">{formatNumber(report.coin_earned)}</div>
       </div>
 
+      {/* Coin/Best (col-1) */}
+      <div className="col-span-1 text-center">
+          <div className="text-orange-400 font-mono font-bold text-sm truncate">
+            {report.best_coins_per_minute ? formatNumber(report.best_coins_per_minute) : '-'}
+          </div>
+      </div>
+
       {/* 시간당 코인 (col-1) */}
       <div className="col-span-1 text-center">
           <div className="text-slate-300 font-mono font-medium text-sm truncate">{formatNumber(report.coins_per_hour)}/h</div>
       </div>
 
-      {/* 시간당 셀 (col-1) */}
-      <div className="col-span-1 text-center">
-          <div className="text-cyan-300 font-mono font-bold text-sm truncate">
-            {formatNumber(Math.round(cellsPerHour))}/h
-          </div>
-      </div>
-
-      {/* 획득 자원 상세 (col-1) */}
+      {/* 셀 정보 (col-1) - 셀 총량 먼저 표시, 글씨 크기 키움 */}
       <div className="col-span-1 flex flex-col items-center gap-0.5 overflow-hidden">
         <div className="flex items-center gap-1.5" title="Cells">
-           <span className="text-cyan-400 font-mono font-medium text-xs truncate">{formatNumber(report.cells_earned)}</span>
+           <span className="text-cyan-400 font-mono font-bold text-sm truncate">{formatNumber(report.cells_earned)}</span>
            <Zap size={10} className="text-slate-600 flex-shrink-0"/>
         </div>
-        <div className="flex items-center gap-1.5" title={Text.SHARDS}>
-           <span className="text-green-400 font-mono font-medium text-xs truncate">{formatNumber(report.reroll_shards_earned)}</span>
-           <Layers size={10} className="text-slate-600 flex-shrink-0"/>
+        <div className="flex items-center gap-1.5" title="Cells/h">
+           <span className="text-cyan-300 font-mono font-medium text-sm truncate">{formatNumber(Math.round(cellsPerHour))}/h</span>
+           <Zap size={10} className="text-slate-600 flex-shrink-0"/>
         </div>
       </div>
 

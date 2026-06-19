@@ -28,10 +28,14 @@ export function SummaryCards({ progress }: Props) {
         </h3>
       </div>
 
-      {/* 카드 리스트: 배지 형태의 가로 나열 레이아웃 */}
-      <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50 flex flex-wrap gap-2">
+      {/* 카드 리스트: 배지 형태의 세로 나열 레이아웃 */}
+      <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-800/50 flex flex-col gap-2">
         {completedCards.map((card) => (
-          <div key={card.name} className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-300 rounded-full text-xs font-medium shadow-sm">
+          <div
+            key={card.name}
+            className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 text-purple-300 rounded-full text-xs font-medium shadow-sm cursor-help hover:bg-purple-500/20 transition-colors"
+            title={(T.data.CARDS as any)[card.name]?.desc || card.name}
+          >
             {card.name}
           </div>
         ))}

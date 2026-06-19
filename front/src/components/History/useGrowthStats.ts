@@ -14,21 +14,21 @@ interface BaseStat {
 export function useGrowthStats() {
   const [viewMode, setViewMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [resourceType, setResourceType] = useState<'coin' | 'cell'>('coin');
-  
-  // 기간 제한 상태
-  const [dailyLimit, setDailyLimit] = useState<number>(7);
-  const [weeklyLimit, setWeeklyLimit] = useState<number>(8);
-  const [monthlyLimit, setMonthlyLimit] = useState<number>(6);
-  
+
+  // 기간 제한 (기본값으로 고정)
+  const dailyLimit = 7;
+  const weeklyLimit = 8;
+  const monthlyLimit = 6;
+
   const [dailyData, setDailyData] = useState<WeeklyStatsResponse | null>(null);
   const [weeklyData, setWeeklyData] = useState<WeeklyTrendResponse | null>(null);
   const [monthlyData, setMonthlyData] = useState<MonthlyTrendResponse | null>(null);
-  
+
   const [dailyLoading, setDailyLoading] = useState(false);
   const [weeklyLoading, setWeeklyLoading] = useState(false);
   const [monthlyLoading, setMonthlyLoading] = useState(false);
 
-  // 1. 데이터 페칭 로직 (Limit이 바뀔 때마다 재호출)
+  // 1. 데이터 페칭 로직 (viewMode가 바뀔 때만 재호출)
   useEffect(() => {
     if (viewMode === 'daily') {
         const fetchDaily = async () => {
@@ -40,7 +40,7 @@ export function useGrowthStats() {
         };
         fetchDaily();
     }
-  }, [viewMode, dailyLimit]);
+  }, [viewMode]);
 
   useEffect(() => {
     if (viewMode === 'weekly') {
@@ -53,7 +53,7 @@ export function useGrowthStats() {
       };
       fetchWeekly();
     }
-  }, [viewMode, weeklyLimit]);
+  }, [viewMode]);
 
   useEffect(() => {
     if (viewMode === 'monthly') {
@@ -66,7 +66,7 @@ export function useGrowthStats() {
       };
       fetchMonthly();
     }
-  }, [viewMode, monthlyLimit]);
+  }, [viewMode]);
 
   const isLoading = viewMode === 'daily' ? dailyLoading 
                   : viewMode === 'weekly' ? weeklyLoading 
@@ -174,9 +174,9 @@ export function useGrowthStats() {
   return {
     viewMode, setViewMode,
     resourceType, setResourceType,
-    dailyLimit, setDailyLimit,
-    weeklyLimit, setWeeklyLimit,
-    monthlyLimit, setMonthlyLimit,
+    dailyLimit,
+    weeklyLimit,
+    monthlyLimit,
     chartData, summary, isLoading, gradientOffset
   };
 }

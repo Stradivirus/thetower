@@ -41,9 +41,11 @@ QUERY_REPORTS_WITH_RATIOS = """
             ELSE 0
         END as golden_bot_ratio,
 
-        m.top_damages
+        m.top_damages,
+        v2.best_coins_per_minute
         
     FROM battle_mains m
+    LEFT JOIN battle_mains_v2 v2 ON m.battle_date = v2.battle_date AND m.owner_id = v2.owner_id
     WHERE m.owner_id = :user_id
       {date_filter}
     ORDER BY m.battle_date DESC

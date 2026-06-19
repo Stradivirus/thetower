@@ -34,6 +34,7 @@ def row_to_report_dict(row):
         
         # 존재하지 않을 수 있는 컬럼들은 getattr로 기본값 처리
         "top_damages": getattr(row, "top_damages", []), 
+        "best_coins_per_minute": getattr(row, "best_coins_per_minute", None),
         
         "death_wave_ratio": format_ratio(getattr(row, "death_wave_ratio", None)),
         "spotlight_ratio": format_ratio(getattr(row, "spotlight_ratio", None)),

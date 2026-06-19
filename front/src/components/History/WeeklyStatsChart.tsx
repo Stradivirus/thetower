@@ -13,12 +13,9 @@ import { useGrowthStats } from './useGrowthStats';
 import { T } from '../../locales'; 
 
 export default function WeeklyStatsChart() {
-  const { 
+  const {
     viewMode, setViewMode,
     resourceType, setResourceType,
-    dailyLimit, setDailyLimit,
-    weeklyLimit, setWeeklyLimit,
-    monthlyLimit, setMonthlyLimit,
     chartData,
     summary,
     isLoading,
@@ -45,27 +42,6 @@ export default function WeeklyStatsChart() {
     if (summary.avgGrowth <= -1.0) return COLORS.trendDown;
     return COLORS.trendFlat;
   }, [summary.avgGrowth]);
-
-  const renderLimitSelector = () => {
-    const limits = viewMode === 'daily' ? [7, 10, 14] : (viewMode === 'weekly' ? [8, 12, 16] : [6, 9, 12]);
-    const currentLimit = viewMode === 'daily' ? dailyLimit : (viewMode === 'weekly' ? weeklyLimit : monthlyLimit);
-    const setLimit = viewMode === 'daily' ? setDailyLimit : (viewMode === 'weekly' ? setWeeklyLimit : setMonthlyLimit);
-    const suffix = viewMode === 'daily' ? 'd' : (viewMode === 'weekly' ? 'w' : 'm');
-
-    return (
-      <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 w-full">
-        {limits.map(l => (
-          <button 
-            key={l}
-            onClick={() => setLimit(l)}
-            className={`flex-1 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${currentLimit === l ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-          >
-            {viewMode === 'monthly' && l === 12 ? '1y' : `${l}${suffix}`}
-          </button>
-        ))}
-      </div>
-    );
-  };
 
   const renderCustomLegend = () => {
     const isPositive = summary.avgGrowth >= 0;
@@ -129,36 +105,27 @@ export default function WeeklyStatsChart() {
         </div>
         
         <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-           {/* 리소스 전환 (Coin/Cell) - 2행 구조 */}
-           <div className="flex flex-col gap-2 flex-shrink-0">
-              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 min-w-[100px]">
-                <button onClick={() => setResourceType('coin')} className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isCoin ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
-                  <CircleDollarSign size={14} /> Coins
-                </button>
-              </div>
-              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 min-w-[100px]">
-                <button onClick={() => setResourceType('cell')} className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isCoin ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
-                  <Zap size={14} /> Cells
-                </button>
-              </div>
+           {/* 리소스 전환 (Coin/Cell) - 1행 구조 */}
+           <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 min-w-[100px]">
+             <button onClick={() => setResourceType('coin')} className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${isCoin ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
+               <CircleDollarSign size={14} /> Coins
+             </button>
+             <button onClick={() => setResourceType('cell')} className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${!isCoin ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' : 'text-slate-500 hover:text-white border border-transparent'}`}>
+               <Zap size={14} /> Cells
+             </button>
            </div>
 
-           {/* 뷰 모드 및 기간 선택 통합 컨트롤러 - 2행 구조 */}
-           <div className="flex flex-col gap-2 flex-shrink-0">
-              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit">
-                <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
-                  <CalendarDays size={14} /> {Text.TAB_DAILY}
-                </button>
-                <button onClick={() => setViewMode('weekly')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
-                  <CalendarRange size={14} /> {Text.TAB_WEEKLY}
-                </button>
-                <button onClick={() => setViewMode('monthly')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'monthly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
-                  <Calendar size={14} /> {Text.TAB_MONTHLY}
-                </button>
-              </div>
-              
-              {/* 기간 선택 버튼 (ViewMode 버튼 아래에 같은 크기로 배치) */}
-              {renderLimitSelector()}
+           {/* 뷰 모드 컨트롤러 */}
+           <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 h-fit">
+             <button onClick={() => setViewMode('daily')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'daily' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
+               <CalendarDays size={14} /> {Text.TAB_DAILY}
+             </button>
+             <button onClick={() => setViewMode('weekly')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'weekly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
+               <CalendarRange size={14} /> {Text.TAB_WEEKLY}
+             </button>
+             <button onClick={() => setViewMode('monthly')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${viewMode === 'monthly' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
+               <Calendar size={14} /> {Text.TAB_MONTHLY}
+             </button>
            </div>
         </div>
       </div>
@@ -188,7 +155,7 @@ export default function WeeklyStatsChart() {
               }}
             />
             <Legend content={renderCustomLegend} />
-            <Bar yAxisId="left" dataKey="amount" barSize={viewMode === 'daily' ? (dailyLimit > 10 ? 16 : 24) : 32} radius={[6, 6, 0, 0]}>
+            <Bar yAxisId="left" dataKey="amount" barSize={viewMode === 'daily' ? 24 : 32} radius={[6, 6, 0, 0]}>
                 {chartData.map((entry, index) => (
                     <Cell 
                         key={`cell-${index}`} 

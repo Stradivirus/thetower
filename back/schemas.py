@@ -108,6 +108,7 @@ class BattleMainResponse(BaseModel):
     damage_taken: str
     
     total_enemies: Optional[int] = 0 # 추가: 전체 적 처치 수
+    best_coins_per_minute: Optional[int] = None # 추가: 분당 최고 코인 수
     
     notes: Optional[str] = None
     top_damages: List[str] = [] 

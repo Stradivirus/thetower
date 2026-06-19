@@ -53,16 +53,16 @@ export default function UwSummaryModal({ isOpen, onClose, progress }: Props) {
         <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           
           <div className="flex gap-6 items-start">
-            
+
             {/* 왼쪽 섹션: 장착 중인 모듈 정보 (고정 너비) */}
             <div className="w-[480px] shrink-0">
                <SummaryModules />
             </div>
-            
+
             {/* 오른쪽 섹션: 마스터리 카드 및 궁극 무기 현황 */}
-            <div className="flex flex-col gap-4 min-w-0">
-              <SummaryCards progress={progress} />
+            <div className="flex flex-row gap-4 min-w-0">
               <SummaryWeapons progress={progress} />
+              <SummaryCards progress={progress} />
             </div>
 
           </div>
