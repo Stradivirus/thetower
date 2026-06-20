@@ -6,7 +6,7 @@
  *   - 하이라이트 대시보드, 대미지 분석 차트, 자원 및 적군 통계 그리드 포함
  *   - 반응형 레이아웃 (데스크탑 3열 그리드 / 모바일 1열 스택)
  */
-import { ArrowLeft, Activity, Clock, FileText, Trash2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Activity, Clock, FileText, Trash2, AlertTriangle, Edit2, Check, X } from 'lucide-react';
 import type { FullReportV2 } from '../types/report';
 import { formatDate, formatNumber } from '../utils/format';
 import CombatAnalysis from '../components/Detail/CombatAnalysis';
@@ -14,7 +14,9 @@ import HighlightDashboard from '../components/Detail/HighlightDashboard';
 import UtilityGrid from '../components/Detail/grid/UtilityGrid';
 import ResourceGrid from '../components/Detail/grid/ResourceGrid';
 import EnemyGrid from '../components/Detail/grid/EnemyGrid';
-import { T } from '../locales'; 
+import { T } from '../locales';
+import { updateMemo } from '../api/reports';
+import { useState } from 'react'; 
 
 interface Props {
   data: FullReportV2;                // API로부터 받아온 V2 통합 리포트 데이터
@@ -31,6 +33,26 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
   const Common = T.common;
 
   const closePopup = onClosePopup;
+
+  // 메모 편집 상태
+  const [isEditing, setIsEditing] = useState(false);
+  const [memoText, setMemoText] = useState(main.notes || '');
+
+  const handleSaveMemo = async () => {
+    try {
+      await updateMemo(main.battle_date, memoText);
+      setIsEditing(false);
+      // 부모 컴포넌트에서 데이터를 다시 로드하도록 처리 필요
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to update memo:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setMemoText(main.notes || '');
+    setIsEditing(false);
+  };
 
   /** 
    * V2 기록 섹션 데이터 가공
@@ -91,13 +113,36 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
         </div>
 
         <div className="flex items-center gap-4">
-          {main.notes && (
-            <div className="hidden md:block max-w-md">
-               <div className="flex items-start gap-2 bg-slate-900/60 border border-slate-800 px-4 py-2.5 rounded-xl text-base text-slate-300">
-                  <FileText size={18} className="text-slate-500 mt-0.5 flex-shrink-0" />
-                  <p className="whitespace-pre-wrap leading-tight">{main.notes}</p>
-               </div>
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <textarea
+                value={memoText}
+                onChange={(e) => setMemoText(e.target.value)}
+                className="w-64 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 resize-none focus:outline-none focus:border-blue-500"
+                rows={2}
+                placeholder="메모를 입력하세요..."
+              />
+              <button onClick={handleSaveMemo} className="p-2 bg-blue-600 rounded-lg text-white hover:bg-blue-700 transition-colors">
+                <Check size={16} />
+              </button>
+              <button onClick={handleCancelEdit} className="p-2 bg-slate-700 rounded-lg text-slate-300 hover:bg-slate-600 transition-colors">
+                <X size={16} />
+              </button>
             </div>
+          ) : (
+            <>
+              {main.notes && (
+                <div className="hidden md:block max-w-md">
+                   <div className="flex items-start gap-2 bg-slate-900/60 border border-slate-800 px-4 py-2.5 rounded-xl text-base text-slate-300">
+                      <FileText size={18} className="text-slate-500 mt-0.5 flex-shrink-0" />
+                      <p className="whitespace-pre-wrap leading-tight">{main.notes}</p>
+                   </div>
+                </div>
+              )}
+              <button onClick={() => setIsEditing(true)} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-blue-500 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all shadow-lg group">
+                <Edit2 size={20} className="group-hover:scale-110 transition-transform" />
+              </button>
+            </>
           )}
           <button onClick={onDelete} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all shadow-lg group">
             <Trash2 size={20} className="group-hover:scale-110 transition-transform" />

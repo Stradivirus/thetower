@@ -230,3 +230,20 @@ def delete_report(
         return {"status": "success", "message": "Record deleted successfully"}
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format")
+
+@router.put("/{battle_date}/memo")
+def update_memo(
+    battle_date: str,
+    notes: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """특정 전투 기록의 메모를 수정합니다."""
+    try:
+        date_obj = datetime.fromisoformat(battle_date)
+        success = crud.update_battle_memo(db, date_obj, current_user.id, notes)
+        if not success:
+            raise HTTPException(status_code=404, detail="Report not found")
+        return {"status": "success", "message": "Memo updated successfully"}
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format")

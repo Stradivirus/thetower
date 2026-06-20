@@ -18,7 +18,8 @@ from .report import (
     get_history_view,
     get_reports_by_month,
     get_full_report,
-    delete_battle_record
+    delete_battle_record,
+    update_battle_memo
 )
 from .stats import (
     get_weekly_stats,

@@ -146,3 +146,21 @@ export const deleteReport = async (battleDate: string): Promise<void> => {
     throw new Error(errorData.detail || 'Failed to delete report');
   }
 };
+
+/**
+ * 특정 전투 기록의 메모를 수정합니다.
+ */
+export const updateMemo = async (battleDate: string, notes: string): Promise<void> => {
+  const formData = new FormData();
+  formData.append('notes', notes);
+
+  const response = await fetchWithAuth(`${REPORTS_URL}/${battleDate}/memo`, {
+    method: 'PUT',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to update memo');
+  }
+};

@@ -152,3 +152,17 @@ def delete_battle_record(db: Session, battle_date: datetime, user_id: int) -> bo
         db.rollback()
         print(f"❌ [Delete Error] 삭제 트랜잭션 롤백됨: {e}")
         return False
+
+def update_battle_memo(db: Session, battle_date: datetime, user_id: int, notes: str) -> bool:
+    """특정 전투 기록의 메모를 수정합니다."""
+    try:
+        record = db.query(BattleMain).filter(BattleMain.battle_date == battle_date, BattleMain.owner_id == user_id).first()
+        if record:
+            record.notes = notes
+            db.commit()
+            return True
+        return False
+    except Exception as e:
+        db.rollback()
+        print(f"❌ [Memo Update Error] 메모 수정 트랜잭션 롤백됨: {e}")
+        return False
