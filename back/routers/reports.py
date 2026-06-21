@@ -1,10 +1,10 @@
 """
 파일명: thetower/back/routers/reports.py
-용도: 전투 기록(Battle Report) 관련 API 라우터
+용도: 전투 기록(Battle Report) 관련 API 라우터 (비동기 리팩토링)
 기능: 리포트 생성(텍스트 파싱), 조회(최근/목록/통계/상세), 최고 기록 연동 및 삭제
 """
 from fastapi import APIRouter, Depends, HTTPException, Form, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db, get_db_replica
 from schemas import (
     BattleMainResponse,
@@ -34,11 +34,11 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 # =================================================================
 
 @router.post("/", response_model=BattleMainResponse)
-def create_report(
+async def create_report(
     report_text: str = Form(...),
     notes: Optional[str] = Form(None),
     background_tasks: BackgroundTasks = None,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -68,14 +68,14 @@ def create_report(
             'detail': None  # None을 전달하여 Detail 생성을 건너뜀
         }
         
-        result = crud.create_battle_record(db, v1_compatible, current_user.id, notes)
+        result = await crud.create_battle_record(db, v1_compatible, current_user.id, notes)
 
         if not result:
             print(f"⚠️ [User {current_user.id}] Invalid data, skipping save.")
             raise HTTPException(status_code=400, detail="Invalid data provided or data skipped")
 
         # 2. V2 전용 데이터 저장 (BattleMainV2, BattleDetailV2)
-        v2_result = create_battle_record_v2(db, parsed_data, current_user.id)
+        v2_result = await create_battle_record_v2(db, parsed_data, current_user.id)
         if not v2_result:
             print(f"⚠️ [User {current_user.id}] V2 data save failed.")
 
@@ -88,14 +88,14 @@ def create_report(
             wave_val = int(main_data.get('wave', 0))
 
             if tier_val > 0 and wave_val > 0:
-                max_wave_crud.update_tier_record(db, tier=tier_val, wave=wave_val)
+                await max_wave_crud.update_tier_record(db, tier=tier_val, wave=wave_val)
         except Exception as e:
             print(f"Max Wave Update Skipped: {e}")
 
         # 4. 알림 전송 (50건 단위)
         if background_tasks:
             try:
-                total_count = crud.count_reports(db)
+                total_count = await crud.count_reports(db)
                 if total_count > 0 and total_count % 50 == 0:
                     msg = f"⚔️ [New Record] {total_count}번째 전투 기록이 등록되었습니다!"
                     background_tasks.add_task(slack.send_slack_notification, msg)
@@ -115,17 +115,17 @@ def create_report(
 # =================================================================
 
 @router.get("/view", response_model=HistoryViewResponse)
-def get_history_view_api(
-    db: Session = Depends(get_db),
+async def get_history_view_api(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """기록실 메인 화면을 위한 최근 기록 및 월별 요약 데이터를 조회합니다."""
-    return crud.get_history_view(db, current_user.id)
+    return await crud.get_history_view(db, current_user.id)
 
 @router.get("/month/{month_key}", response_model=List[BattleMainResponse])
-def get_reports_by_month_api(
+async def get_reports_by_month_api(
     month_key: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """특정 월에 해당하는 전투 기록 목록을 조회합니다."""
@@ -134,61 +134,61 @@ def get_reports_by_month_api(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid month format. Use YYYY-MM")
 
-    return crud.get_reports_by_month(db, current_user.id, month_key)
+    return await crud.get_reports_by_month(db, current_user.id, month_key)
 
 @router.get("/recent", response_model=List[BattleMainResponse])
-def get_recent_reports(
-    db: Session = Depends(get_db),
+async def get_recent_reports(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """최근 7일간의 전투 기록 목록을 조회합니다."""
-    return crud.get_recent_reports(db, current_user.id)
+    return await crud.get_recent_reports(db, current_user.id)
 
 @router.get("/history", response_model=List[BattleMainResponse])
-def get_history_reports(
+async def get_history_reports(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """사용자의 전체 전투 기록을 페이징하여 조회합니다."""
-    return crud.get_history_reports(db, current_user.id, skip=skip, limit=limit)
+    return await crud.get_history_reports(db, current_user.id, skip=skip, limit=limit)
 
 @router.get("/weekly-stats", response_model=WeeklyStatsResponse)
-def get_weekly_stats_api(
+async def get_weekly_stats_api(
     limit: int = 7,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """최근 N일간의 일간 통계 데이터를 조회합니다. (기본 7일)"""
-    return crud.get_weekly_stats(db, current_user.id, limit=limit)
+    return await crud.get_weekly_stats(db, current_user.id, limit=limit)
 
 @router.get("/weekly-trends", response_model=WeeklyTrendResponse)
-def get_weekly_trends_api(
+async def get_weekly_trends_api(
     limit: int = 8,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """최근 N주간의 주간 트렌드 데이터를 조회합니다. (기본 8주)"""
-    return crud.get_weekly_trends(db, current_user.id, limit=limit)
+    return await crud.get_weekly_trends(db, current_user.id, limit=limit)
 
 @router.get("/monthly-trends", response_model=MonthlyTrendResponse)
-def get_monthly_trends_api(
+async def get_monthly_trends_api(
     limit: int = 6,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """최근 N개월간의 월간 트렌드 데이터를 조회합니다. (기본 6개월)"""
-    return crud.get_monthly_trends(db, current_user.id, limit=limit)
+    return await crud.get_monthly_trends(db, current_user.id, limit=limit)
 
 # =================================================================
 # 3. 상세 조회 및 삭제
 # =================================================================
 
 @router.get("/{battle_date}", response_model=FullReportV2Response)
-def get_report_detail(
+async def get_report_detail(
     battle_date: str,
-    db: Session = Depends(get_db_replica),
+    db: AsyncSession = Depends(get_db_replica),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -199,11 +199,11 @@ def get_report_detail(
     """
     try:
         date_obj = datetime.fromisoformat(battle_date)
-        report = crud.get_full_report(db, date_obj, current_user.id)
+        report = await crud.get_full_report(db, date_obj, current_user.id)
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
 
-        v2_main, v2_detail = get_v2_report(db, date_obj, current_user.id)
+        v2_main, v2_detail = await get_v2_report(db, date_obj, current_user.id)
 
         return {
             "main": report["main"],
@@ -216,15 +216,15 @@ def get_report_detail(
         raise HTTPException(status_code=400, detail="Invalid date format")
 
 @router.delete("/{battle_date}")
-def delete_report(
+async def delete_report(
     battle_date: str,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """전투 기록을 삭제합니다. (V2 데이터는 CASCADE로 자동 삭제)"""
     try:
         date_obj = datetime.fromisoformat(battle_date)
-        success = crud.delete_battle_record(db, date_obj, current_user.id)
+        success = await crud.delete_battle_record(db, date_obj, current_user.id)
         if not success:
             raise HTTPException(status_code=404, detail="Report not found")
         return {"status": "success", "message": "Record deleted successfully"}
@@ -232,16 +232,16 @@ def delete_report(
         raise HTTPException(status_code=400, detail="Invalid date format")
 
 @router.put("/{battle_date}/memo")
-def update_memo(
+async def update_memo(
     battle_date: str,
     notes: str = Form(...),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """특정 전투 기록의 메모를 수정합니다."""
     try:
         date_obj = datetime.fromisoformat(battle_date)
-        success = crud.update_battle_memo(db, date_obj, current_user.id, notes)
+        success = await crud.update_battle_memo(db, date_obj, current_user.id, notes)
         if not success:
             raise HTTPException(status_code=404, detail="Report not found")
         return {"status": "success", "message": "Memo updated successfully"}

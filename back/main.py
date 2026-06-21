@@ -13,7 +13,7 @@ from database import engine, engine_read, Base
 from routers import reports, auth, progress, modules, support
 from routers import max_wave as max_wave_router
 from contextlib import asynccontextmanager
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
 from cron_jobs import report_monthly_stats, report_ghost_users
@@ -29,19 +29,24 @@ limiter = Limiter(
     default_limits=["600/minute"]
 )
 
-# 테이블 생성 (Main DB에서 실행)
-Base.metadata.create_all(bind=engine)
+# 테이블 생성 함수 (비동기)
+async def init_models():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-# 백그라운드 스케줄러 인스턴스
-scheduler = BackgroundScheduler()
+# 백그라운드 스케줄러 인스턴스 (비동기)
+scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     FastAPI 애플리케이션 수명 주기 관리
-    - 서버 시작 시: 스케줄러 잠금 획득 및 작업 등록
+    - 서버 시작 시: 스케줄러 잠금 획득 및 작업 등록, 테이블 생성
     - 서버 종료 시: 스케줄러 및 DB 커넥션 풀 정리
     """
+    # 비동기로 테이블 생성
+    await init_models()
+
     # 1. 파일 잠금 (Lock) - 워커가 여러 개여도 1명만 실행하도록 보장
     lock_file = open("scheduler.lock", "w")
     try:
@@ -73,8 +78,8 @@ async def lifespan(app: FastAPI):
         scheduler.shutdown()
     lock_file.close()
 
-    engine.dispose()
-    engine_read.dispose()
+    await engine.dispose()
+    await engine_read.dispose()
     print("[System] DB Connection Pools Disposed")
 
 # FastAPI 앱 객체 생성
@@ -110,11 +115,11 @@ async def add_process_time_header(request: Request, call_next):
     # 응답 헤더에 소요 시간 추가 (디버깅용)
     response.headers["X-Process-Time"] = f"{process_time:.2f}ms"
 
-    # 2000ms 초과 시 슬랙 알림 (비동기 처리로 API 응답에 영향 없음)
-    if process_time > 2000:
+    # 5000ms 초과 시 슬랙 알림 (비동기 처리로 API 응답에 영향 없음)
+    if process_time > 5000:
         path = request.url.path
         method = request.method
-        msg = f"⏱️ *Slow API Alert*\n- *Path*: {method} {path}\n- *Duration*: {process_time:.2f}ms (Limit: 2000ms)"
+        msg = f"⏱️ *Slow API Alert*\n- *Path*: {method} {path}\n- *Duration*: {process_time:.2f}ms (Limit: 5000ms)"
         asyncio.create_task(asyncio.to_thread(send_slack_notification, msg))
         
     return response

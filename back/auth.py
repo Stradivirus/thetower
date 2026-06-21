@@ -1,6 +1,6 @@
 """
 파일명: thetower/back/auth.py
-용도: JWT 기반 인증 처리 및 비밀번호 해싱 설정
+용도: JWT 기반 인증 처리 및 비밀번호 해싱 설정 (비동기 리팩토링)
 기능: 토큰 생성, 비밀번호 검증, 현재 사용자 식별 미들웨어
 """
 import os
@@ -10,7 +10,7 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from dotenv import load_dotenv
 
 import crud
@@ -54,7 +54,10 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_current_user(
+    token: str = Depends(oauth2_scheme), 
+    db: AsyncSession = Depends(get_db)
+):
     """
     액세스 토큰을 검증하여 현재 로그인한 사용자 객체를 반환하는 의존성 함수
     :param token: 요청 헤더에서 추출된 JWT 토큰
@@ -76,8 +79,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     except JWTError:
         raise credentials_exception
     
-    # DB에서 사용자 조회
-    user = crud.get_user_by_username(db, username=username)
+    # DB에서 사용자 조회 (비동기 await 추가 및 AsyncSession 적용)
+    user = await crud.get_user_by_username(db, username=username)
     if user is None:
         raise credentials_exception
     return user

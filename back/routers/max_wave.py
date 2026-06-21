@@ -1,12 +1,12 @@
 """
 파일명: thetower/back/routers/max_wave.py
-용도: 티어별 최고 웨이브 기록 조회 API 라우터
+용도: 티어별 최고 웨이브 기록 조회 API 라우터 (비동기 리팩토링)
 기능: 전 서버 최고 기록과 내 최고 기록을 병합하여 반환
 """
 from typing import List
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
 import database, schemas, models
 from crud import max_wave
 from auth import get_current_user 
@@ -17,8 +17,8 @@ router = APIRouter(
 )
 
 @router.get("/max-waves", response_model=List[schemas.TierRecordSchema])
-def get_max_waves(
-    db: Session = Depends(database.get_db),
+async def get_max_waves(
+    db: AsyncSession = Depends(database.get_db),
     current_user: models.User = Depends(get_current_user)
 ):
     """
@@ -28,18 +28,20 @@ def get_max_waves(
     """
     
     # 1. 서버 전체 최고 기록 조회
-    global_records = max_wave.get_all_tier_records(db)
+    global_records = await max_wave.get_all_tier_records(db)
     global_map = {r.tier: r.max_wave for r in global_records}
 
-    # 2. 내 개인 최고 기록 집계 (Raw SQL 스타일 쿼리)
-    my_records_query = db.query(
-        models.BattleMain.tier,
-        func.max(models.BattleMain.wave)
-    ).filter(
-        models.BattleMain.owner_id == current_user.id
-    ).group_by(
-        models.BattleMain.tier
-    ).all()
+    # 2. 내 개인 최고 기록 집계 (SQLAlchemy 2.0 비동기 쿼리)
+    stmt = (
+        select(
+            models.BattleMain.tier,
+            func.max(models.BattleMain.wave)
+        )
+        .filter(models.BattleMain.owner_id == current_user.id)
+        .group_by(models.BattleMain.tier)
+    )
+    result = await db.execute(stmt)
+    my_records_query = result.all()
 
     my_map = {}
     for tier_str, wave_val in my_records_query:

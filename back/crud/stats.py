@@ -3,7 +3,7 @@
 용도: 통계 데이터 집계 및 차트 데이터 생성 로직
 기능: 일간/주간/월간 자원 획득 통계 조회 및 성장률 계산 (SQL Window 함수 활용)
 """
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, text
 from models import BattleMain
 from datetime import datetime, timedelta, timezone
@@ -13,12 +13,12 @@ def get_today_utc():
     """UTC 기준 오늘 자정 날짜를 반환합니다."""
     return datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
 
-def get_weekly_stats(db: Session, user_id: int, limit: int = 7):
+async def get_weekly_stats(db: AsyncSession, user_id: int, limit: int = 7):
     """일간 성장 분석 데이터를 조회합니다 (N일)."""
     today_utc = get_today_utc()
     target_date = today_utc.date() - timedelta(days=1)
     display_start_date = target_date - timedelta(days=limit - 1)
-    utc_start_limit = datetime.now(timezone.utc) - timedelta(days=limit + 7)
+    utc_start_limit = (datetime.now(timezone.utc) - timedelta(days=limit + 7)).replace(tzinfo=None)
 
     sql = text("""
         WITH raw_daily AS (
@@ -29,7 +29,7 @@ def get_weekly_stats(db: Session, user_id: int, limit: int = 7):
             FROM battle_mains
             WHERE owner_id = :user_id
               AND battle_date >= :utc_start_limit 
-              AND battle_date::date <= :target_date
+              AND battle_date < :next_date
             GROUP BY 1
         ),
         with_prev AS (
@@ -52,7 +52,12 @@ def get_weekly_stats(db: Session, user_id: int, limit: int = 7):
         ORDER BY date_str ASC
     """)
     
-    results = db.execute(sql, {"user_id": user_id, "utc_start_limit": utc_start_limit, "target_date": target_date, "display_start_date": display_start_date.strftime("%Y-%m-%d")}).fetchall()
+    results = (await db.execute(sql, {
+        "user_id": user_id, 
+        "utc_start_limit": utc_start_limit, 
+        "next_date": target_date + timedelta(days=1), 
+        "display_start_date": display_start_date.strftime("%Y-%m-%d")
+    })).fetchall()
     result_map = {row.date_str: row for row in results}
     
     daily_stats = []
@@ -71,7 +76,7 @@ def get_weekly_stats(db: Session, user_id: int, limit: int = 7):
             daily_stats.append({"date": d_str, "total_coins": 0, "total_cells": 0, "coin_growth": 0.0, "cell_growth": 0.0})
     return {"daily_stats": daily_stats}
 
-def get_weekly_trends(db: Session, user_id: int, limit: int = 8):
+async def get_weekly_trends(db: AsyncSession, user_id: int, limit: int = 8):
     """주간 트렌드 분석 데이터를 조회합니다 (N주)."""
     today_utc = get_today_utc()
     target_date = today_utc.date() - timedelta(days=1)
@@ -82,22 +87,22 @@ def get_weekly_trends(db: Session, user_id: int, limit: int = 8):
 
     sql = text("""
         SELECT
-            TO_CHAR(battle_date::date, 'YYYY-MM-DD') as date_str,
+            TO_CHAR(battle_date, 'YYYY-MM-DD') as date_str,
             SUM(coin_earned) as total_coins,
             SUM(cells_earned) as total_cells
         FROM battle_mains
         WHERE owner_id = :user_id
-          AND battle_date::date >= :query_start_date
-          AND battle_date::date <= :target_date
+          AND battle_date >= :query_start_date
+          AND battle_date < :next_date
         GROUP BY 1
         ORDER BY 1 ASC
     """)
 
-    results = db.execute(sql, {
+    results = (await db.execute(sql, {
         "user_id": user_id,
         "query_start_date": query_start_date,
-        "target_date": target_date,
-    }).fetchall()
+        "next_date": target_date + timedelta(days=1),
+    })).fetchall()
 
     daily_map = {
         row.date_str: {
@@ -154,11 +159,11 @@ def get_weekly_trends(db: Session, user_id: int, limit: int = 8):
 
     return {"weekly_stats": trend_stats}
 
-def get_monthly_trends(db: Session, user_id: int, limit: int = 6):
+async def get_monthly_trends(db: AsyncSession, user_id: int, limit: int = 6):
     """월간 트렌드 분석 데이터를 조회합니다 (N개월)."""
     today_utc = get_today_utc()
     this_month_str = today_utc.strftime("%Y-%m")
-    utc_start_limit = datetime.now(timezone.utc) - timedelta(days=(limit + 3) * 30)
+    utc_start_limit = (datetime.now(timezone.utc) - timedelta(days=(limit + 3) * 30)).replace(tzinfo=None)
     
     sql = text("""
         WITH monthly_raw AS (
@@ -187,7 +192,7 @@ def get_monthly_trends(db: Session, user_id: int, limit: int = 6):
         ORDER BY month_str DESC
     """)
     
-    results = db.execute(sql, {"user_id": user_id, "utc_start_limit": utc_start_limit, "this_month": this_month_str}).fetchall()
+    results = (await db.execute(sql, {"user_id": user_id, "utc_start_limit": utc_start_limit, "this_month": this_month_str})).fetchall()
     result_map = {row.month: row for row in results}
     
     # 0으로 채우기

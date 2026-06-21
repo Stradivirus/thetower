@@ -1,31 +1,34 @@
 """
 파일명: thetower/back/crud/report_v2.py
-용도: V2 포맷 전투 기록 저장 로직
+용도: V2 포맷 전투 기록 저장 로직 (비동기 리팩토링)
 기능: BattleMainV2, BattleDetailV2 생성/업데이트
 """
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from models import BattleMainV2, BattleDetailV2
 
-
-def get_v2_report(db: Session, battle_date, user_id: int):
+async def get_v2_report(db: AsyncSession, battle_date, user_id: int):
     """
     V2 전투 기록의 추가 데이터(BattleMainV2, BattleDetailV2)를 조회합니다.
     V1 기록이거나 V2 데이터가 없으면 None 을 반환합니다.
     """
-    v2_main = db.query(BattleMainV2).filter(
+    stmt_main = select(BattleMainV2).filter(
         BattleMainV2.battle_date == battle_date,
         BattleMainV2.owner_id == user_id
-    ).first()
+    )
+    result_main = await db.execute(stmt_main)
+    v2_main = result_main.scalars().first()
 
-    v2_detail = db.query(BattleDetailV2).filter(
+    stmt_detail = select(BattleDetailV2).filter(
         BattleDetailV2.battle_date == battle_date,
         BattleDetailV2.owner_id == user_id
-    ).first()
+    )
+    result_detail = await db.execute(stmt_detail)
+    v2_detail = result_detail.scalars().first()
 
     return v2_main, v2_detail
 
-
-def create_battle_record_v2(db: Session, parsed_data: dict, user_id: int):
+async def create_battle_record_v2(db: AsyncSession, parsed_data: dict, user_id: int):
     """
     V2 파싱 데이터를 BattleMainV2, BattleDetailV2에 저장
     - BattleMain은 기존 create_battle_record()에서 이미 저장된 상태
@@ -50,13 +53,15 @@ def create_battle_record_v2(db: Session, parsed_data: dict, user_id: int):
             best_golden_combo_coins=main_v2_data.get('best_golden_combo_coins'),
             max_inner_mine_charge=main_v2_data.get('max_inner_mine_charge'),
         )
-        db.merge(main_v2)
+        await db.merge(main_v2)
 
         # BattleDetailV2 저장 (있으면 업데이트, 없으면 생성)
-        existing = db.query(BattleDetailV2).filter(
+        stmt_existing = select(BattleDetailV2).filter(
             BattleDetailV2.battle_date == battle_date,
             BattleDetailV2.owner_id == user_id
-        ).first()
+        )
+        result_existing = await db.execute(stmt_existing)
+        existing = result_existing.scalars().first()
 
         if existing:
             existing.damage_json = detail_v2_data.get('damage_json', {})
@@ -80,10 +85,10 @@ def create_battle_record_v2(db: Session, parsed_data: dict, user_id: int):
             )
             db.add(detail_v2)
 
-        db.commit()
+        await db.commit()
         return main_v2
 
     except Exception as e:
-        db.rollback()
+        await db.rollback()
         print(f"❌ [V2 Save Error] 트랜잭션 롤백됨: {e}")
         return None
