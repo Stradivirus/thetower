@@ -26,7 +26,7 @@ class UserProgress(Base):
     __tablename__ = "user_progress"
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     progress_json = Column(JSONB) 
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     user = relationship("User", back_populates="progress")
 
 class UserModules(Base):
@@ -35,7 +35,7 @@ class UserModules(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     inventory_json = Column(JSONB, default={}) 
     equipped_json = Column(JSONB, default={})
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     user = relationship("User", back_populates="modules")
 
 class BattleMain(Base):
@@ -51,7 +51,7 @@ class BattleMain(Base):
     
     battle_date = Column(DateTime, primary_key=True, index=True)
     owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
     owner = relationship("User", back_populates="reports")
 
