@@ -29,10 +29,34 @@ limiter = Limiter(
     default_limits=["600/minute"]
 )
 
+from sqlalchemy import text
+
 # 테이블 생성 함수 (비동기)
 async def init_models():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+# 기존 데이터 월별 요약 테이블 마이그레이션
+async def sync_monthly_summaries():
+    async with engine.begin() as conn:
+        # 먼저 테이블이 비어 있는지 확인
+        result = await conn.execute(text("SELECT COUNT(*) FROM monthly_summaries"))
+        count = result.scalar() or 0
+        if count == 0:
+            print("[System] 🔄 monthly_summaries 테이블 마이그레이션 집계 시작...")
+            await conn.execute(text("""
+                INSERT INTO monthly_summaries (owner_id, month_key, count, total_coins, total_cells, total_shards)
+                SELECT 
+                    owner_id,
+                    TO_CHAR(battle_date, 'YYYY-MM') as month_key,
+                    COUNT(*) as count,
+                    COALESCE(SUM(coin_earned), 0) as total_coins,
+                    COALESCE(SUM(cells_earned), 0) as total_cells,
+                    COALESCE(SUM(reroll_shards_earned), 0) as total_shards
+                FROM battle_mains
+                GROUP BY owner_id, TO_CHAR(battle_date, 'YYYY-MM')
+            """))
+            print("[System] 🔄 monthly_summaries 테이블 마이그레이션 완료!")
 
 # 백그라운드 스케줄러 인스턴스 (비동기)
 scheduler = AsyncIOScheduler()
@@ -41,11 +65,13 @@ scheduler = AsyncIOScheduler()
 async def lifespan(app: FastAPI):
     """
     FastAPI 애플리케이션 수명 주기 관리
-    - 서버 시작 시: 스케줄러 잠금 획득 및 작업 등록, 테이블 생성
+    - 서버 시작 시: 스케줄러 잠금 획득 및 작업 등록, 테이블 생성, 요약 테이블 초기화
     - 서버 종료 시: 스케줄러 및 DB 커넥션 풀 정리
     """
     # 비동기로 테이블 생성
     await init_models()
+    # 요약 테이블 마이그레이션 초기화
+    await sync_monthly_summaries()
 
     # 1. 파일 잠금 (Lock) - 워커가 여러 개여도 1명만 실행하도록 보장
     lock_file = open("scheduler.lock", "w")

@@ -181,3 +181,15 @@ class BattleDetailV2(Base):
         primaryjoin="and_(BattleDetailV2.battle_date==BattleMain.battle_date, BattleDetailV2.owner_id==BattleMain.owner_id)",
         back_populates="v2_detail"
     )
+
+class MonthlySummary(Base):
+    """사용자별 월간 전투 기록 요약 통계 테이블"""
+    __tablename__ = "monthly_summaries"
+
+    month_key = Column(String, primary_key=True)  # 'YYYY-MM' 포맷
+    owner_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    count = Column(Integer, default=0, nullable=False)
+    total_coins = Column(Numeric, default=0, nullable=False)
+    total_cells = Column(Numeric, default=0, nullable=False)
+    total_shards = Column(Numeric, default=0, nullable=False)
+
