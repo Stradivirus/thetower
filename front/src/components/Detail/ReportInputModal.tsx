@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { X, Save, FileText, Trophy, Zap, Beaker } from 'lucide-react';
 import { createReport } from '../../api/reports';
 import { useReports } from '../../contexts/ReportContext';
+import { useStatsCache } from '../../contexts/StatsCacheContext';
 import { T } from '../../locales';
 
 interface Props {
@@ -19,6 +20,7 @@ export default function ReportInputModal({ onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { refreshReports } = useReports();
+  const { invalidateStatsCache } = useStatsCache();
 
   const Text = T.detail;
   const Common = T.common;
@@ -44,6 +46,7 @@ export default function ReportInputModal({ onClose }: Props) {
     setError(null);
     try {
       await createReport(text, notes);
+      invalidateStatsCache(); // 통계 전역 캐시 무효화
       await refreshReports();
       onClose();
     } catch (err) {

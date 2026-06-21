@@ -5,8 +5,8 @@
  */
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getGlobalMaxWaves, type TierRecord } from '../../api/stats';
-import { getWeeklyStats, getWeeklyTrends, getMonthlyTrends } from '../../api/reports';
+import { type TierRecord } from '../../api/stats';
+import { useStatsCache } from '../../contexts/StatsCacheContext';
 import { ChevronDown, ChevronUp, Settings, X, Trophy, Info, ExternalLink, TrendingUp, CalendarDays, CalendarRange, Calendar } from 'lucide-react'; 
 import { T } from '../../locales'; 
 import { formatNumber } from '../../utils/format';
@@ -19,6 +19,13 @@ const STORAGE_KEY_MAX_TIER = 'tier_widget_max_tier';
 const TierRecordWidget: React.FC = () => {
   const navigate = useNavigate();
   const [records, setRecords] = useState<TierRecord[]>([]);
+  const {
+    getGlobalMaxWavesCached,
+    getWeeklyStatsCached,
+    getWeeklyTrendsCached,
+    getMonthlyTrendsCached
+  } = useStatsCache();
+
   const [isVisible, setIsVisible] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
   const [minTier, setMinTier] = useState(1);
@@ -43,7 +50,7 @@ const TierRecordWidget: React.FC = () => {
     const loadData = async () => {
       try {
         // 1. 최고 기록 로드
-        const data = await getGlobalMaxWaves();
+        const data = await getGlobalMaxWavesCached();
         if (Array.isArray(data)) {
           setRecords(data);
         } else {
@@ -52,21 +59,21 @@ const TierRecordWidget: React.FC = () => {
 
         // 2. 평균 통계 로드
         const [dailyRes, weeklyRes, monthlyRes] = await Promise.all([
-          getWeeklyStats(),
-          getWeeklyTrends(),
-          getMonthlyTrends()
+          getWeeklyStatsCached(),
+          getWeeklyTrendsCached(),
+          getMonthlyTrendsCached()
         ]);
 
         // 일평균 계산 (최근 7일 코인 합계 / 데이터 개수)
         const dailyData = dailyRes.daily_stats || [];
         const dailyAvg = dailyData.length > 0 
-          ? dailyData.reduce((acc, cur) => acc + cur.total_coins, 0) / dailyData.length 
+          ? dailyData.reduce((acc: number, cur: any) => acc + cur.total_coins, 0) / dailyData.length 
           : 0;
 
         // 주간 평균 계산 (최근 8주 코인 합계 / 데이터 개수)
         const weeklyData = weeklyRes.weekly_stats || [];
         const weeklyAvg = weeklyData.length > 0
-          ? weeklyData.reduce((acc, cur) => acc + cur.total_coins, 0) / weeklyData.length
+          ? weeklyData.reduce((acc: number, cur: any) => acc + cur.total_coins, 0) / weeklyData.length
           : 0;
 
         // 월간 평균 계산 (최근 6개월 코인 합계 / 데이터 개수)
@@ -74,7 +81,7 @@ const TierRecordWidget: React.FC = () => {
         // 진행 중인 달을 제외할지 여부: useGrowthStats와 동일하게 데이터가 1개보다 많으면 마지막(진행중) 제외
         const dataToSummarize = monthlyData.length > 1 ? monthlyData.slice(0, -1) : monthlyData;
         const monthlyAvg = dataToSummarize.length > 0
-          ? dataToSummarize.reduce((acc, cur) => acc + cur.total_coins, 0) / dataToSummarize.length
+          ? dataToSummarize.reduce((acc: number, cur: any) => acc + cur.total_coins, 0) / dataToSummarize.length
           : 0;
 
         setAvgStats({ daily: dailyAvg, weekly: weeklyAvg, monthly: monthlyAvg });

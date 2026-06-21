@@ -22,4 +22,4 @@ WORKDIR $APP_HOME/back
 # Gunicorn을 사용하여 FastAPI 애플리케이션 실행
 # - workers 4: 동시 요청 처리를 위한 워커 수 설정
 # - uvicorn.workers.UvicornWorker: ASGI 지원을 위한 워커 클래스 사용
-CMD ["gunicorn", "main:app", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--max-requests", "1000", "--max-requests-jitter", "100", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "main:app", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--max-requests", "1000", "--max-requests-jitter", "100", "--bind", "0.0.0.0:8000"]
