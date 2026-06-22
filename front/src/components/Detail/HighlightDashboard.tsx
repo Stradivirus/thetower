@@ -7,9 +7,9 @@ interface Props {
     coin_earned: number;
     coins_per_hour: number;
     cells_earned: number;
+    best_coins_per_minute?: number;
   };
   v2_main?: {
-    best_coins_per_minute?: number;
     cells_per_hour?: number;
     max_golden_combo?: number;
   } | null;
@@ -41,7 +41,7 @@ export default function HighlightDashboard({ main, v2_main }: Props) {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[11px] text-slate-500 font-bold uppercase pl-5">{Text.DASH_PEAK_CPM}</span>
-          <div className="text-base font-mono font-bold text-slate-300">{formatNumber(v2_main.best_coins_per_minute || 0)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">/m</span></div>
+          <div className="text-base font-mono font-bold text-slate-300">{formatNumber(main.best_coins_per_minute || 0)}<span className="text-[10px] text-slate-500 font-normal ml-0.5">/m</span></div>
         </div>
       </div>
 
