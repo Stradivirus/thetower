@@ -61,7 +61,7 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
   const getRecordData = () => {
     if (!v2_main) return null;
     const records: Record<string, string> = {};
-    records[Text.REC_BEST_CPM] = formatNumber(v2_main.best_coins_per_minute || 0);
+    records[Text.REC_BEST_CPM] = formatNumber(main.best_coins_per_minute || 0);
     records[Text.REC_MAX_WAVE_SKIP] = String(v2_main.max_wave_skip || 0);
     records[Text.REC_SKIP_COINS] = formatNumber(v2_main.best_skip_coins || 0);
     records[Text.REC_SKIP_CELLS] = formatNumber(v2_main.best_skip_cells || 0);
