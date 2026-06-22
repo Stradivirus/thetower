@@ -44,7 +44,6 @@ async def create_battle_record_v2(db: AsyncSession, parsed_data: dict, user_id: 
             battle_date=battle_date,
             owner_id=user_id,
             cells_per_hour=main_v2_data.get('cells_per_hour'),
-            best_coins_per_minute=main_v2_data.get('best_coins_per_minute'),
             max_wave_skip=main_v2_data.get('max_wave_skip'),
             best_skip_coins=main_v2_data.get('best_skip_coins'),
             best_skip_cells=main_v2_data.get('best_skip_cells'),

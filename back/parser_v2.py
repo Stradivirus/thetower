@@ -127,6 +127,7 @@ def parse_battle_report_v2(text: str) -> dict:
         'real_time': get_repo('실시간', 'Real Time', default=''),
         'coin_earned': parse_number(get_repo('코인 획득', 'Coins Earned', 'Coins earned')),
         'coins_per_hour': parse_number(get_repo('시간당 코인', 'Coins Per Hour', 'Coins per hour')),
+        'best_coins_per_minute': parse_number(_get_val_robust(sections['records'], '분당 최고 코인 수', 'Best Coins Per Minute', 'Highest Coins / Minute', default='0')),
         'cells_earned': parse_number(
             _get_val_robust(sections['currency'], '획득한 셀', 'Cells Earned',
             default=get_repo('획득한 셀', 'Cells Earned', default='0'))
@@ -162,7 +163,6 @@ def parse_battle_report_v2(text: str) -> dict:
     main_v2_data = {
         'battle_date': battle_date,
         'cells_per_hour': parse_number(get_repo('시간당 셀', 'Cells Per Hour', 'Cells per hour')),
-        'best_coins_per_minute': parse_number(get_rec('분당 최고 코인 수', 'Best Coins Per Minute', 'Highest Coins / Minute')),
         'max_wave_skip': parse_number(get_rec('최대 웨이브 건너뛰기', 'Max Wave Skip', 'Largest Wave Skip', default='0')),
         'best_skip_coins': parse_number(get_rec('웨이브 스킵에서 얻은 대부분의 코인', 'Most Coins From Wave Skip')),
         'best_skip_cells': parse_number(get_rec('웨이브 스킵에서 나온 대부분의 세포', 'Most Cells From Wave Skip', default='0')),

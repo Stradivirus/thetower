@@ -64,6 +64,7 @@ class BattleMain(Base):
     coins_per_hour = Column(Numeric)
     cells_earned = Column(Numeric)
     reroll_shards_earned = Column(Numeric)
+    best_coins_per_minute = Column(Numeric, nullable=True)
 
     killer = Column(String)
     damage_dealt = Column(String)
@@ -134,7 +135,6 @@ class BattleMainV2(Base):
     )
 
     cells_per_hour = Column(Numeric, nullable=True)
-    best_coins_per_minute = Column(Numeric, nullable=True)
     max_wave_skip = Column(Integer, nullable=True)
     best_skip_coins = Column(Numeric, nullable=True)
     best_skip_cells = Column(Numeric, nullable=True)
