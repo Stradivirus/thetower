@@ -3,6 +3,7 @@
 용도: data2 포맷 전투 리포트 텍스트 파싱 엔진
 기능: V2 섹션 구조 파싱, BattleMainV2 / BattleDetailV2 데이터 생성
 """
+import re
 from mappings import (
     KEY_MAP,
     SECTION_MAP,
@@ -109,6 +110,7 @@ def parse_battle_report_v2(text: str) -> dict:
                     key, val = parts[0].strip(), parts[1].strip()
 
         if key and val is not None:
+            val = re.sub(r'\[.*?\]', '', val).strip()
             sections[current_section][key] = val
 
     # ── BattleMain 데이터 구성 ──

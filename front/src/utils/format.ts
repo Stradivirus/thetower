@@ -98,7 +98,8 @@ export const parseGameNumber = (str: string | number): number => {
   if (typeof str === 'number') return str;
   if (!str) return 0;
 
-  const clean = str.replace(/[$,x]/g, '').trim();
+  // 대괄호 및 백분율 정보 제거 (예: "358.72K [90.6%]" -> "358.72K")
+  const clean = str.toString().replace(/\[.*?\]/g, '').replace(/[$,x]/g, '').trim();
   const match = clean.match(/^([\d.]+)([a-zA-Z]*)$/);
   if (!match) return 0;
 

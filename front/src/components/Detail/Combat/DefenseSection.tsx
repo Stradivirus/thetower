@@ -73,7 +73,7 @@ export default function DefenseSection({ data, v2Sections, defaultOpen = false }
   };
 
   const isRegen = (key: string) => {
-    const keywords = ['재생', '흡수', '체력', 'Regen', 'Lifesteal', 'Health', 'Bonus', '로부터'];
+    const keywords = ['재생', '흡수', '체력', '회복', 'Regen', 'Lifesteal', 'Health', 'Bonus', '로부터', 'Package'];
     if (['타워', '장벽', 'Tower', 'Wall'].includes(key)) return false;
     return keywords.some(k => key.includes(k));
   };
