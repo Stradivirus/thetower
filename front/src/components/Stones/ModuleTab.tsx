@@ -39,8 +39,12 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
   const currentKey = `module_${selectedType}_${selectedStat}`;
   const currentLevel = progress[currentKey] || 0;
 
+  // 서브 스탯의 경우 최대 70레벨까지만 제한 (displayLevel 69에 대응)
+  const maxAllowedLevel = selectedStat === 'sub' ? 70 : 100;
+
   /** 아직 도달하지 않은 레벨의 비용 데이터만 필터링합니다. */
   const remainingLevels = moduleCosts.common_efficiency.levels
+    .slice(0, maxAllowedLevel)
     .map((lv, idx) => ({ ...lv, displayLevel: idx === 0 ? 'Base' : idx }))
     .filter(lv => lv.level > currentLevel);
 

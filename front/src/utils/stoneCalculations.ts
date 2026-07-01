@@ -89,11 +89,29 @@ export function useTotalStones(progress: Record<string, any>): number {
         }
     });
 
+    // 4.5. 신규 Bot+ 해금 및 동기화 비용 합산
+    const botsList = ['golden', 'amplify', 'thunder', 'flame', 'bot'];
+    let unlockedBotsCount = 0;
+    botsList.forEach(botId => {
+        if (progress[`bot_plus_${botId}`] === 1) {
+            total += 1250;
+            unlockedBotsCount++;
+        }
+    });
+    if (unlockedBotsCount === botsList.length) {
+        const synchLevel = progress['bot_synchronicity'] || 0;
+        total += synchLevel * 1500;
+    }
+
     // 5. 모듈 효율 강화(Main/Sub) 비용 합산
     const efficiencyKeys = Object.keys(progress).filter(key => key.startsWith('module_') && !key.startsWith('module_unlock_'));
     
     efficiencyKeys.forEach(key => {
-        const level = progress[key] || 0;
+        let level = progress[key] || 0;
+        const isSub = key.endsWith('_sub');
+        if (isSub && level > 70) {
+            level = 70; // 서브 스탯 계산 상한선 적용 (displayLevel 69에 대응)
+        }
         total += sumCostsUpToLevel(efficiencyCosts, level);
     });
 

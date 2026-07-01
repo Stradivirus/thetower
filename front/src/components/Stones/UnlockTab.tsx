@@ -10,6 +10,7 @@ import plusStats from '../../data/uw_plus_stats.json';
 import WeaponSelectModal from './Unlock/WeaponSelectModal';
 import UwCostTable from './Unlock/UwCostTable';       
 import ModuleUnlockTable from './Unlock/ModuleUnlockTable'; 
+import BotUnlockTable from './Unlock/BotUnlockTable'; 
 
 interface Props {
   progress: Record<string, any>;
@@ -146,12 +147,19 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
           onReset={handleReset}
         />
 
-        {/* 3. 모듈 슬롯 등급(해금) 테이블 */}
-        <ModuleUnlockTable 
-          progress={progress}
-          onUpgrade={handleModuleUpgrade}
-          onReset={resetModules}
-        />
+        {/* 3. 모듈 슬롯 등급(해금) 및 Bot+ 테이블 */}
+        <div className="flex flex-col gap-6">
+          <ModuleUnlockTable 
+            progress={progress}
+            onUpgrade={handleModuleUpgrade}
+            onReset={resetModules}
+          />
+          <BotUnlockTable
+            progress={progress}
+            updateProgress={updateProgress}
+            updateBatch={updateBatch}
+          />
+        </div>
       </div>
 
       {/* 무기 선택용 팝업 모달 */}
