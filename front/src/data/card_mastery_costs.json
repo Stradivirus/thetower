@@ -19,6 +19,7 @@
   { "name": "Intro Sprint", "cost": 1250 },
   { "name": "Land Mine Stun", "cost": 1000 },
   { "name": "Recovery Package Chance", "cost": 1000 },
+  { "name": "Cell", "cost": 1000 },
   { "name": "Death Ray", "cost": 750 },
   { "name": "Energy Net", "cost": 750 },
   { "name": "Super Tower", "cost": 1000 },

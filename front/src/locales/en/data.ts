@@ -20,6 +20,7 @@ export const DATA = {
     "Intro Sprint": { name: "Intro Sprint", desc: "Dramatically increase how many waves intro sprint stays active" },
     "Land Mine Stun": { name: "Land Mine Stun", desc: "Unlocks Flashbang which causes enemies stunned by a Land Mine to have a chance to miss their attacks" },
     "Recovery Package Chance": { name: "Recovery Package Chance", desc: "Unlock Care Package which gives packages a chance to deliver a common module" },
+    "Cell": { name: "Cell", desc: "Multiplies Cells earned, and unlocks Cells+ Mastery research" },
     "Death Ray": { name: "Death Ray", desc: "Allows Death Ray to partially pierce a protector's shields" },
     "Energy Net": { name: "Energy Net", desc: "Adds a damage multiplier to enemies while they are trapped by the net and lingers for 10 seconds after" },
     "Super Tower": { name: "Super Tower", desc: "Causes 35% of cards multiplier effect to increase all Ultimate Weapon damage and decreases Super Tower cooldown" },
