@@ -129,7 +129,7 @@ def parse_battle_report_v2(text: str) -> dict:
         'real_time': get_repo('실시간', 'Real Time', default=''),
         'coin_earned': parse_number(get_repo('코인 획득', 'Coins Earned', 'Coins earned')),
         'coins_per_hour': parse_number(get_repo('시간당 코인', 'Coins Per Hour', 'Coins per hour')),
-        'best_coins_per_minute': parse_number(_get_val_robust(sections['records'], '분당 최고 코인 수', 'Best Coins Per Minute', 'Highest Coins / Minute', default='0')),
+        'best_coins_per_minute': parse_number(_get_val_robust(sections['records'], '분당 최고 코인 수', '분당 최고 코인', 'Best Coins Per Minute', 'Highest Coins / Minute', default='0')),
         'cells_earned': parse_number(
             _get_val_robust(sections['currency'], '획득한 셀', 'Cells Earned',
             default=get_repo('획득한 셀', 'Cells Earned', default='0'))
@@ -166,11 +166,11 @@ def parse_battle_report_v2(text: str) -> dict:
         'battle_date': battle_date,
         'cells_per_hour': parse_number(get_repo('시간당 셀', 'Cells Per Hour', 'Cells per hour')),
         'max_wave_skip': parse_number(get_rec('최대 웨이브 건너뛰기', 'Max Wave Skip', 'Largest Wave Skip', default='0')),
-        'best_skip_coins': parse_number(get_rec('웨이브 스킵에서 얻은 대부분의 코인', 'Most Coins From Wave Skip')),
-        'best_skip_cells': parse_number(get_rec('웨이브 스킵에서 나온 대부분의 세포', 'Most Cells From Wave Skip', default='0')),
+        'best_skip_coins': parse_number(get_rec('웨이브 스킵에서 얻은 대부분의 코인', '웨이브 건너뛰기로 획득한 최대 코인', 'Most Coins From Wave Skip')),
+        'best_skip_cells': parse_number(get_rec('웨이브 스킵에서 나온 대부분의 세포', '웨이브 건너뛰기로 획득한 최대 셀', 'Most Cells From Wave Skip', default='0')),
         'max_smart_missile_stack': parse_number(get_rec('최대 스마트 미사일 중첩', 'Max Smart Missile Stack', 'Largest Smart Missile Stack', default='0')),
         'max_golden_combo': parse_number(get_rec('최대 골든 콤보', 'Max Golden Combo', 'Largest Golden Combo', default='0')),
-        'best_golden_combo_coins': parse_number(get_rec('골든 콤보에서 얻는 대부분의 코인', 'Most Coins From Golden Combo')),
+        'best_golden_combo_coins': parse_number(get_rec('골든 콤보에서 얻는 대부분의 코인', '골든 콤보로 획득한 최대 코인', 'Most Coins From Golden Combo')),
         'max_inner_mine_charge': parse_number(get_rec('최대 내부 지뢰 충전', 'Max Inner Mine Charge', 'Largest Inner Landmine Charge', default='0')),
     }
 

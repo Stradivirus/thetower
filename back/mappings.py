@@ -158,6 +158,7 @@ KEY_MAP_V2_REPORT = {
 # V2 기록 섹션 Key 매핑 -> DB 컬럼명
 KEY_MAP_V2_RECORDS = {
     '분당 최고 코인 수': 'best_coins_per_minute',
+    '분당 최고 코인': 'best_coins_per_minute',
     'Best Coins Per Minute': 'best_coins_per_minute',
     'Highest Coins / Minute': 'best_coins_per_minute', # English V2 Mapping
 
@@ -166,9 +167,11 @@ KEY_MAP_V2_RECORDS = {
     'Largest Wave Skip': 'max_wave_skip', # English V2 Mapping
 
     '웨이브 스킵에서 얻은 대부분의 코인': 'best_skip_coins',
+    '웨이브 건너뛰기로 획득한 최대 코인': 'best_skip_coins',
     'Most Coins From Wave Skip': 'best_skip_coins',
 
     '웨이브 스킵에서 나온 대부분의 세포': 'best_skip_cells',
+    '웨이브 건너뛰기로 획득한 최대 셀': 'best_skip_cells',
     'Most Cells From Wave Skip': 'best_skip_cells',
 
     '최대 스마트 미사일 중첩': 'max_smart_missile_stack',
@@ -180,6 +183,7 @@ KEY_MAP_V2_RECORDS = {
     'Largest Golden Combo': 'max_golden_combo', # English V2 Mapping
 
     '골든 콤보에서 얻는 대부분의 코인': 'best_golden_combo_coins',
+    '골든 콤보로 획득한 최대 코인': 'best_golden_combo_coins',
     'Most Coins From Golden Combo': 'best_golden_combo_coins',
 
     '최대 내부 지뢰 충전': 'max_inner_mine_charge',
