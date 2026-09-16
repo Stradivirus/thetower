@@ -149,11 +149,13 @@ export default function ModulesInfoPage() {
     type: string;
     name: string;
     data: any;
+    instanceId?: number;
   }>({
     isOpen: false,
     type: '',
     name: '',
-    data: null
+    data: null,
+    instanceId: 1
   });
 
   const { modules, progress, setModules } = useGameData();
@@ -241,8 +243,9 @@ export default function ModulesInfoPage() {
   /** 
    * [프리셋 전환] 다른 프리셋으로 전환합니다. 
    * 현재 활성 프리셋의 슬롯들을 저장하고, 대상 프리셋의 슬롯들을 적용합니다.
+   * 프리셋만 바꾸는 경우 별도의 저장 경고(*)를 띄우지 않고 조용히 동기화합니다.
    */
-  const handleSelectPreset = (targetId: number) => {
+  const handleSelectPreset = async (targetId: number) => {
     if (targetId === activePresetId) return;
 
     // 1. 현재 슬롯 백업
@@ -278,7 +281,20 @@ export default function ModulesInfoPage() {
     setModules(newState);
     setActivePresetId(targetId);
     setPresets(updatedPresets);
-    setIsChanged(true);
+    
+    // 프리셋만 전환하는 경우 저장하라는 알림(*)을 띄우지 않음
+    setIsChanged(false);
+    localStorage.setItem('thetower_modules', JSON.stringify(newState));
+
+    // 로그인된 사용자라면 조용히 백그라운드로 서버와 동기화
+    if (token) {
+      try {
+        const payload = generateSavePayload(newState, targetId, updatedPresets);
+        await saveModules(payload);
+      } catch (e) {
+        console.error("Silent preset save failed:", e);
+      }
+    }
   };
 
   /** 
@@ -304,52 +320,86 @@ export default function ModulesInfoPage() {
 
   /** 
    * 모듈 카드 클릭 시 상세 설정 모달을 엽니다.
-   * 전달된 data에 부옵션이 비어있으면 기존에 다른 곳에서 맞춰둔 부옵션을 자동으로 복원합니다.
+   * 인스턴스(1호기, 2호기) 정보 및 장착된 호기 번호를 함께 전달합니다.
    */
   const handleModuleClick = (type: string, name: string, data: any) => {
+    const mainKey = `equipped_${type}_main`;
+    const subKey = `equipped_${type}_sub`;
+    let equippedInstId = 1;
+    if (modules[mainKey]?.name === name) {
+      equippedInstId = modules[mainKey]?.instanceId || 1;
+    } else if (modules[subKey]?.name === name) {
+      equippedInstId = modules[subKey]?.instanceId || 1;
+    }
+
     const existing = getExistingModuleData(name, modules, presets);
 
-    let finalData = data;
-    if (!finalData || (typeof finalData === 'object' && (!finalData.effects || finalData.effects.length === 0))) {
-      if (existing) {
-        finalData = existing;
-      }
+    let finalData = data || existing || {};
+    const owned = modules[`owned_${name}`];
+    if (owned && typeof owned === 'object') {
+      finalData = {
+        ...finalData,
+        instances: owned.instances || finalData.instances
+      };
     }
 
     setDetailModal({
       isOpen: true,
       type,
       name,
-      data: finalData 
+      data: finalData,
+      instanceId: equippedInstId
     });
   };
 
   /** 
-   * 상세 모달에서 수정한 내용을 DB에 즉시 저장합니다. (낙관적 업데이트 적용)
+   * 상세 모달에서 수정한 내용을 DB에 즉시 저장합니다. (특정 호기 기준)
    */
-  const handleModalSave = async (newData: { rarity: number; effects: string[] }) => {
+  const handleModalSave = async (newData: { 
+    rarity: number; 
+    effects: string[]; 
+    instanceId: number; 
+    instances: Record<string, any>; 
+  }) => {
     if (!token) { alert("Login Required"); return; }
 
     const { name, type } = detailModal;
+    const { instanceId, instances: newInstances } = newData;
     const newState = { ...modules };
 
-    // 1. 상태 업데이트 준비
-    newState[`owned_${name}`] = newData;
+    // 1. owned_ 상태 업데이트
+    const currentOwned = (typeof newState[`owned_${name}`] === 'object' && newState[`owned_${name}`] !== null)
+      ? newState[`owned_${name}`]
+      : {};
+
+    const updatedOwned = {
+      ...currentOwned,
+      instances: newInstances,
+      ...(instanceId === 1 ? { rarity: newData.rarity, effects: newData.effects } : {})
+    };
+    newState[`owned_${name}`] = updatedOwned;
+
+    // 2. 현재 장착 슬롯 업데이트 (동일한 instanceId를 장착 중인 슬롯만)
     const mainKey = `equipped_${type}_main`;
     const subKey = `equipped_${type}_sub`;
 
-    if (modules[mainKey]?.name === name) newState[mainKey] = { name, ...newData };
-    if (modules[subKey]?.name === name) newState[subKey] = { name, ...newData };
+    if (modules[mainKey]?.name === name && (modules[mainKey]?.instanceId || 1) === instanceId) {
+      newState[mainKey] = { name, instanceId, rarity: newData.rarity, effects: newData.effects };
+    }
+    if (modules[subKey]?.name === name && (modules[subKey]?.instanceId || 1) === instanceId) {
+      newState[subKey] = { name, instanceId, rarity: newData.rarity, effects: newData.effects };
+    }
 
-    // 프리셋 내부 슬롯들에서도 해당 모듈 정보 최신화
+    // 3. 모든 프리셋의 슬롯 중 동일 호기를 장착한 슬롯들만 업데이트
     const updatedPresets = { ...presets };
     Object.keys(updatedPresets).forEach(pId => {
       const p = updatedPresets[pId];
       if (p?.slots) {
         const newSlots = { ...p.slots };
         Object.keys(newSlots).forEach(sKey => {
-          if (newSlots[sKey]?.name === name) {
-            newSlots[sKey] = { name, ...newData };
+          const slotData = newSlots[sKey];
+          if (slotData?.name === name && (slotData.instanceId || 1) === instanceId) {
+            newSlots[sKey] = { name, instanceId, rarity: newData.rarity, effects: newData.effects };
           }
         });
         updatedPresets[pId] = { ...p, slots: newSlots };
@@ -359,17 +409,16 @@ export default function ModulesInfoPage() {
     newState.presets = updatedPresets;
     newState.active_preset = activePresetId;
 
-    // 2. 서버 저장 시도
+    // 4. 서버 저장 시도
     try {
       setIsSaving(true);
       const payload = generateSavePayload(newState, activePresetId, updatedPresets);
       await saveModules(payload);
 
-      // 3. 성공 시 상태 확정
       setModules(newState);
       setPresets(updatedPresets);
       localStorage.setItem('thetower_modules', JSON.stringify(newState));
-      setDetailModal(prev => ({ ...prev, data: newData, isOpen: false }));
+      setDetailModal(prev => ({ ...prev, data: updatedOwned, isOpen: false }));
       
     } catch (e) {
       console.error("Modal Instant Save Failed", e);
@@ -416,8 +465,8 @@ export default function ModulesInfoPage() {
     setDetailModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  /** 모듈을 특정 슬롯(Main/Sub)에 장착합니다. */
-  const handleModalEquip = (slot: 'main' | 'sub') => {
+  /** 모듈을 특정 슬롯(Main/Sub)에 장착합니다. (호기 지정 장착) */
+  const handleModalEquip = (slot: 'main' | 'sub', instanceId: number = 1, instanceData?: { rarity: number; effects: string[] }) => {
     const { name, type, data } = detailModal;
     
     // Sub 슬롯 장착 시 연구 해금 여부 체크
@@ -438,22 +487,33 @@ export default function ModulesInfoPage() {
     // 다른 슬롯에 같은 모듈이 있으면 해제
     if (newState[otherKey]?.name === name) delete newState[otherKey];
 
-    // 기존 부옵션 및 등급 탐색 (subeffect 보존)
-    const existing = getExistingModuleData(name, modules, presets);
-    const targetEffects = (data?.effects && data.effects.length > 0) 
-      ? data.effects 
-      : (existing?.effects && existing.effects.length > 0 ? existing.effects : []);
-    const targetRarity = (data && typeof data.rarity === 'number') 
-      ? data.rarity 
-      : (existing?.rarity ?? 5);
+    const targetEffects = instanceData?.effects || (data?.effects && data.effects.length > 0 ? data.effects : []);
+    const targetRarity = instanceData?.rarity ?? (data?.rarity ?? 5);
 
-    const moduleDataToEquip = { name, rarity: targetRarity, effects: targetEffects };
-    newState[targetKey] = moduleDataToEquip;
-    
-    // 보유 목록(owned_)에도 항상 최신 등급과 부옵션으로 동기화
-    newState[`owned_${name}`] = { 
+    const moduleDataToEquip = { 
+      name, 
+      instanceId, 
       rarity: targetRarity, 
       effects: targetEffects 
+    };
+    newState[targetKey] = moduleDataToEquip;
+    
+    // owned_ 갱신
+    const currentOwned = (typeof newState[`owned_${name}`] === 'object' && newState[`owned_${name}`] !== null)
+      ? newState[`owned_${name}`]
+      : {};
+    const currentInstances = currentOwned.instances || {};
+    const updatedInstances = {
+      ...currentInstances,
+      [instanceId.toString()]: {
+        rarity: targetRarity,
+        effects: targetEffects
+      }
+    };
+    newState[`owned_${name}`] = { 
+      ...currentOwned,
+      instances: updatedInstances,
+      ...(instanceId === 1 ? { rarity: targetRarity, effects: targetEffects } : {})
     };
 
     // 현재 활성 프리셋의 슬롯에도 동기화
@@ -476,6 +536,7 @@ export default function ModulesInfoPage() {
     setPresets(updatedPresets);
     setModules(newState);
     setIsChanged(true);
+    setDetailModal(prev => ({ ...prev, isOpen: false }));
   };
 
   /** 모듈 장착을 해제합니다. */
@@ -509,6 +570,7 @@ export default function ModulesInfoPage() {
     setPresets(updatedPresets);
     setModules(newState);
     setIsChanged(true);
+    setDetailModal(prev => ({ ...prev, isOpen: false }));
   };
 
   /** 현재 선택된 모듈의 장착 상태를 확인합니다. */
@@ -521,6 +583,18 @@ export default function ModulesInfoPage() {
     if (modules[mainKey]?.name === name) return 'main';
     if (modules[subKey]?.name === name) return 'sub';
     return null;
+  };
+
+  /** 현재 선택된 모듈의 장착 호기 번호를 확인합니다. */
+  const getEquippedInstanceId = () => {
+    if (!detailModal.isOpen) return 1;
+    const { name, type } = detailModal;
+    const mainKey = `equipped_${type}_main`;
+    const subKey = `equipped_${type}_sub`;
+
+    if (modules[mainKey]?.name === name) return modules[mainKey]?.instanceId || 1;
+    if (modules[subKey]?.name === name) return modules[subKey]?.instanceId || 1;
+    return 1;
   };
 
   return (
@@ -595,6 +669,7 @@ export default function ModulesInfoPage() {
         onEquip={handleModalEquip}
         onUnequip={handleModalUnequip}
         equipStatus={getEquipStatus()}
+        equippedInstanceId={getEquippedInstanceId()}
         isSaving={isSaving} 
       />
     </div>

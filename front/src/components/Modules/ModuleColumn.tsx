@@ -141,25 +141,29 @@ export default function ModuleColumn({ moduleType, modules, progress, onModuleCl
       <div className="p-3 space-y-3">
         {visibleModules.length === 0 && viewMode === 'equipped' && <div className="text-center py-4 text-xs text-slate-600">No module equipped</div>}
         {visibleModules.map((module: any) => {
-          const isMain = modules[`equipped_${moduleType.id}_main`]?.name === module.id;
-          const isSub = modules[`equipped_${moduleType.id}_sub`]?.name === module.id;
-          const isSelected = isMain || isSub || (viewMode === 'inventory' && getRarity(modules[`owned_${module.id}`]) !== -1);
+          const mainModule = modules[`equipped_${moduleType.id}_main`];
+          const subModule = modules[`equipped_${moduleType.id}_sub`];
+          const isMain = mainModule?.name === module.id;
+          const isSub = subModule?.name === module.id;
+          const ownedData = modules[`owned_${module.id}`];
+          const isSelected = isMain || isSub || (viewMode === 'inventory' && getRarity(ownedData) !== -1);
+          const hasSecondInstance = !!ownedData?.instances?.["2"];
           
           let displayRarityIdx = 2; // 기본 표시용 등급 (Epic)
           let realRarityIdx = 0;    // 실제 계산용 등급
           let activeEffects = [];
           
           if (isMain) {
-            displayRarityIdx = realRarityIdx = modules[`equipped_${moduleType.id}_main`].rarity;
-            activeEffects = modules[`equipped_${moduleType.id}_main`].effects;
+            displayRarityIdx = realRarityIdx = mainModule.rarity;
+            activeEffects = mainModule.effects;
           } else if (isSub) {
             // 어시스트 슬롯은 연구 등급에 따라 시각적 등급이 보정됨
             const unlockLevel = progress[`module_unlock_${slotId}`] || 0;
-            displayRarityIdx = Math.min(modules[`equipped_${moduleType.id}_sub`].rarity, unlockLevel > 0 ? Math.min(5, unlockLevel + 1) : 0);
-            realRarityIdx = modules[`equipped_${moduleType.id}_sub`].rarity;
-            activeEffects = modules[`equipped_${moduleType.id}_sub`].effects;
+            displayRarityIdx = Math.min(subModule.rarity, unlockLevel > 0 ? Math.min(5, unlockLevel + 1) : 0);
+            realRarityIdx = subModule.rarity;
+            activeEffects = subModule.effects;
           } else if (viewMode === 'inventory') {
-            const ownedRarity = getRarity(modules[`owned_${module.id}`]);
+            const ownedRarity = getRarity(ownedData);
             if (ownedRarity !== -1) displayRarityIdx = realRarityIdx = ownedRarity;
           }
 
@@ -168,15 +172,28 @@ export default function ModuleColumn({ moduleType, modules, progress, onModuleCl
           return (
             <div 
               key={module.id}
-              onClick={() => onModuleClick(moduleType.id, module.id, isMain ? modules[`equipped_${moduleType.id}_main`] : (isSub ? modules[`equipped_${moduleType.id}_sub`] : modules[`owned_${module.id}`]))}
+              onClick={() => onModuleClick(moduleType.id, module.id, isMain ? mainModule : (isSub ? subModule : ownedData))}
               className={`relative flex flex-col p-4 rounded-xl border-2 transition-all cursor-pointer group h-fit min-h-[100px] ${isSelected ? `bg-slate-800 ${activeRarity.border.replace('/50', '')} shadow-lg z-10` : 'bg-slate-900 border-slate-800 hover:border-slate-600 opacity-60 hover:opacity-100'}`}
             >
               {/* 모듈 이름 및 장착 상태 태그 */}
               <div className="flex justify-between items-start mb-2 gap-2">
                 <h4 className={`font-bold text-sm leading-tight mt-0.5 ${isSelected ? 'text-white' : 'text-slate-400'}`}>{module.name}</h4>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  {isMain && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500 text-slate-900 leading-none border border-yellow-600">MAIN</span>}
-                  {isSub && <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white leading-none border border-blue-600">ASSIST</span>}
+                  {viewMode === 'inventory' && hasSecondInstance && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40 leading-none" title="1호기 및 2호기 보유">
+                      #1·#2
+                    </span>
+                  )}
+                  {isMain && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500 text-slate-900 leading-none border border-yellow-600">
+                      MAIN{mainModule?.instanceId === 2 ? ' #2' : ''}
+                    </span>
+                  )}
+                  {isSub && (
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-blue-500 text-white leading-none border border-blue-600">
+                      ASSIST{subModule?.instanceId === 2 ? ' #2' : ''}
+                    </span>
+                  )}
                   {isSelected && <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border leading-none ${activeRarity.color} ${activeRarity.border} ${activeRarity.bg}`}>{activeRarity.short}</span>}
                 </div>
               </div>
