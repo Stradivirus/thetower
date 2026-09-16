@@ -3,85 +3,64 @@
  * 용도: 요약 모달 내에서 장착 중인 모듈들의 상세 정보 표시
  * 기능: 타입별(Cannon, Armor 등) 메인/어시스트 모듈 렌더링, 연구 등급에 따른 등급 보정 및 효율(%) 계산 표시
  */
-import { useState } from 'react';
-import { Bookmark, Loader2 } from 'lucide-react';
+import { Bookmark } from 'lucide-react';
 import { useGameData } from '../../contexts/GameDataContext';
 import { 
   MODULE_TYPES, 
   RARITIES, 
   DISPLAY_ORDER, 
   type EquippedModule,
-  EQUIPPED_SLOT_KEYS,
-  generateSavePayload
+  EQUIPPED_SLOT_KEYS
 } from '../Modules/ModuleConstants';
 import { MODULE_TYPES as REROLL_DATA } from '../../data/module_reroll_data';
 import moduleCosts from '../../data/module_costs.json';
 import { T } from '../../locales'; 
-import { saveModules } from '../../api/modules';
 
 export default function SummaryModules() {
   const { modules, progress, setModules } = useGameData();
-  const [isSwitching, setIsSwitching] = useState(false);
 
   const activePresetId = modules.active_preset || 1;
   const presets = modules.presets || {};
-  const token = localStorage.getItem('access_token');
 
   /** 
-   * [프리셋 전환] 요약 창에서 다른 프리셋으로 전환합니다.
-   * 현재 슬롯을 백업하고 대상 프리셋 슬롯을 적용하여 전역 상태 및 서버에 저장합니다.
+   * [프리셋 조회/전환] 요약 창에서 다른 프리셋의 장착 현황을 조회합니다.
+   * 현재 슬롯을 백업하고 대상 프리셋 슬롯을 적용합니다. (조회용이므로 서버 저장은 수행하지 않음)
    */
-  const handleSelectPreset = async (targetId: number) => {
-    if (targetId === activePresetId || isSwitching) return;
+  const handleSelectPreset = (targetId: number) => {
+    if (targetId === activePresetId) return;
 
-    try {
-      setIsSwitching(true);
-
-      // 1. 현재 슬롯 백업
-      const currentSlots: Record<string, any> = {};
-      EQUIPPED_SLOT_KEYS.forEach(key => {
-        if (modules[key]) {
-          currentSlots[key] = modules[key];
-        }
-      });
-
-      const targetPreset = presets[targetId.toString()] || { id: targetId, name: `Preset ${targetId}`, slots: {} };
-      const updatedPresets = {
-        ...presets,
-        [activePresetId.toString()]: {
-          ...(presets[activePresetId.toString()] || { id: activePresetId, name: `Preset ${activePresetId}`, slots: {} }),
-          slots: currentSlots
-        }
-      };
-
-      // 2. 새로운 modules 상태 구성
-      const newState = { ...modules };
-      EQUIPPED_SLOT_KEYS.forEach(key => {
-        delete newState[key];
-      });
-
-      Object.entries(targetPreset.slots || {}).forEach(([key, val]) => {
-        newState[key] = val;
-      });
-
-      newState.active_preset = targetId;
-      newState.presets = updatedPresets;
-
-      setModules(newState);
-      localStorage.setItem('thetower_modules', JSON.stringify(newState));
-
-      // 로그인된 사용자라면 조용히 백그라운드로 서버 동기화
-      if (token) {
-        try {
-          const payload = generateSavePayload(newState, targetId, updatedPresets);
-          await saveModules(payload);
-        } catch (e) {
-          console.error("Silent preset save failed in summary:", e);
-        }
+    // 1. 현재 슬롯 백업
+    const currentSlots: Record<string, any> = {};
+    EQUIPPED_SLOT_KEYS.forEach(key => {
+      if (modules[key]) {
+        currentSlots[key] = modules[key];
       }
-    } finally {
-      setIsSwitching(false);
-    }
+    });
+
+    const targetPreset = presets[targetId.toString()] || { id: targetId, name: `Preset ${targetId}`, slots: {} };
+    const updatedPresets = {
+      ...presets,
+      [activePresetId.toString()]: {
+        ...(presets[activePresetId.toString()] || { id: activePresetId, name: `Preset ${activePresetId}`, slots: {} }),
+        slots: currentSlots
+      }
+    };
+
+    // 2. 새로운 modules 상태 구성
+    const newState = { ...modules };
+    EQUIPPED_SLOT_KEYS.forEach(key => {
+      delete newState[key];
+    });
+
+    Object.entries(targetPreset.slots || {}).forEach(([key, val]) => {
+      newState[key] = val;
+    });
+
+    newState.active_preset = targetId;
+    newState.presets = updatedPresets;
+
+    setModules(newState);
+    localStorage.setItem('thetower_modules', JSON.stringify(newState));
   };
 
   // 슬롯 ID와 연구 키 매핑 테이블
@@ -236,11 +215,7 @@ export default function SummaryModules() {
       {/* 프리셋 전환 바 (번호 전용 콤팩트 디자인) */}
       <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border border-slate-800 rounded-xl">
         <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 select-none">
-          {isSwitching ? (
-            <Loader2 size={14} className="text-blue-400 animate-spin" />
-          ) : (
-            <Bookmark size={14} className="text-blue-400" />
-          )}
+          <Bookmark size={14} className="text-blue-400" />
           <span>Preset</span>
         </div>
 
@@ -254,15 +229,13 @@ export default function SummaryModules() {
                 key={id}
                 type="button"
                 onClick={() => handleSelectPreset(id)}
-                disabled={isSwitching}
                 title={preset.name ? `${id}: ${preset.name}` : `Preset ${id}`}
                 className={`
-                  w-7 h-7 rounded-lg text-xs font-mono font-bold transition-all border flex items-center justify-center select-none
+                  w-7 h-7 rounded-lg text-xs font-mono font-bold transition-all border flex items-center justify-center select-none cursor-pointer
                   ${isActive
                     ? 'bg-blue-600 text-white border-blue-400 shadow-sm shadow-blue-500/30 ring-1 ring-blue-400'
-                    : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200 cursor-pointer'
+                    : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200'
                   }
-                  ${isSwitching ? 'opacity-70 cursor-wait' : ''}
                 `}
               >
                 {id}

@@ -38,6 +38,7 @@ export const saveModules = async (data: ModulesData): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error('모듈 데이터 저장 실패');
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || '모듈 데이터 저장 실패');
   }
 };

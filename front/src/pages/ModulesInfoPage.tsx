@@ -282,19 +282,9 @@ export default function ModulesInfoPage() {
     setActivePresetId(targetId);
     setPresets(updatedPresets);
     
-    // 프리셋만 전환하는 경우 저장하라는 알림(*)을 띄우지 않음
+    // 프리셋만 전환하는 경우 별도의 저장 경고(*)를 띄우지 않고 로컬 상태만 갱신
     setIsChanged(false);
     localStorage.setItem('thetower_modules', JSON.stringify(newState));
-
-    // 로그인된 사용자라면 조용히 백그라운드로 서버와 동기화
-    if (token) {
-      try {
-        const payload = generateSavePayload(newState, targetId, updatedPresets);
-        await saveModules(payload);
-      } catch (e) {
-        console.error("Silent preset save failed:", e);
-      }
-    }
   };
 
   /** 
@@ -420,16 +410,16 @@ export default function ModulesInfoPage() {
       localStorage.setItem('thetower_modules', JSON.stringify(newState));
       setDetailModal(prev => ({ ...prev, data: updatedOwned, isOpen: false }));
       
-    } catch (e) {
+    } catch (e: any) {
       console.error("Modal Instant Save Failed", e);
-      alert("Save failed due to an error.");
+      alert(e?.message || "Save failed due to an error.");
     } finally {
       setIsSaving(false);
     }
   };
 
   /** 모듈을 목록에서 삭제합니다. */
-  const handleModalDelete = () => {
+  const handleModalDelete = async () => {
     const { name, type } = detailModal;
     const newState = { ...modules };
 
@@ -459,14 +449,33 @@ export default function ModulesInfoPage() {
     newState.presets = updatedPresets;
     newState.active_preset = activePresetId;
 
-    setPresets(updatedPresets);
-    setModules(newState);
-    setIsChanged(true);
-    setDetailModal(prev => ({ ...prev, isOpen: false }));
+    if (token) {
+      try {
+        setIsSaving(true);
+        const payload = generateSavePayload(newState, activePresetId, updatedPresets);
+        await saveModules(payload);
+
+        setPresets(updatedPresets);
+        setModules(newState);
+        localStorage.setItem('thetower_modules', JSON.stringify(newState));
+        setIsChanged(false);
+        setDetailModal(prev => ({ ...prev, isOpen: false }));
+      } catch (e: any) {
+        console.error("Modal Delete Save Failed", e);
+        alert(e?.message || "Save failed due to an error.");
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      setPresets(updatedPresets);
+      setModules(newState);
+      setIsChanged(true);
+      setDetailModal(prev => ({ ...prev, isOpen: false }));
+    }
   };
 
   /** 모듈을 특정 슬롯(Main/Sub)에 장착합니다. (호기 지정 장착) */
-  const handleModalEquip = (slot: 'main' | 'sub', instanceId: number = 1, instanceData?: { rarity: number; effects: string[] }) => {
+  const handleModalEquip = async (slot: 'main' | 'sub', instanceId: number = 1, instanceData?: { rarity: number; effects: string[] }) => {
     const { name, type, data } = detailModal;
     
     // Sub 슬롯 장착 시 연구 해금 여부 체크
@@ -533,14 +542,33 @@ export default function ModulesInfoPage() {
     newState.presets = updatedPresets;
     newState.active_preset = activePresetId;
 
-    setPresets(updatedPresets);
-    setModules(newState);
-    setIsChanged(true);
-    setDetailModal(prev => ({ ...prev, isOpen: false }));
+    if (token) {
+      try {
+        setIsSaving(true);
+        const payload = generateSavePayload(newState, activePresetId, updatedPresets);
+        await saveModules(payload);
+
+        setPresets(updatedPresets);
+        setModules(newState);
+        localStorage.setItem('thetower_modules', JSON.stringify(newState));
+        setIsChanged(false);
+        setDetailModal(prev => ({ ...prev, isOpen: false }));
+      } catch (e: any) {
+        console.error("Modal Equip Save Failed", e);
+        alert(e?.message || "Save failed due to an error.");
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      setPresets(updatedPresets);
+      setModules(newState);
+      setIsChanged(true);
+      setDetailModal(prev => ({ ...prev, isOpen: false }));
+    }
   };
 
   /** 모듈 장착을 해제합니다. */
-  const handleModalUnequip = () => {
+  const handleModalUnequip = async () => {
     const { name, type } = detailModal;
     const newState = { ...modules };
 
@@ -567,10 +595,29 @@ export default function ModulesInfoPage() {
     newState.presets = updatedPresets;
     newState.active_preset = activePresetId;
 
-    setPresets(updatedPresets);
-    setModules(newState);
-    setIsChanged(true);
-    setDetailModal(prev => ({ ...prev, isOpen: false }));
+    if (token) {
+      try {
+        setIsSaving(true);
+        const payload = generateSavePayload(newState, activePresetId, updatedPresets);
+        await saveModules(payload);
+
+        setPresets(updatedPresets);
+        setModules(newState);
+        localStorage.setItem('thetower_modules', JSON.stringify(newState));
+        setIsChanged(false);
+        setDetailModal(prev => ({ ...prev, isOpen: false }));
+      } catch (e: any) {
+        console.error("Modal Unequip Save Failed", e);
+        alert(e?.message || "Save failed due to an error.");
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      setPresets(updatedPresets);
+      setModules(newState);
+      setIsChanged(true);
+      setDetailModal(prev => ({ ...prev, isOpen: false }));
+    }
   };
 
   /** 현재 선택된 모듈의 장착 상태를 확인합니다. */
