@@ -3,19 +3,86 @@
  * 용도: 요약 모달 내에서 장착 중인 모듈들의 상세 정보 표시
  * 기능: 타입별(Cannon, Armor 등) 메인/어시스트 모듈 렌더링, 연구 등급에 따른 등급 보정 및 효율(%) 계산 표시
  */
+import { useState } from 'react';
+import { Bookmark, Loader2 } from 'lucide-react';
 import { useGameData } from '../../contexts/GameDataContext';
 import { 
   MODULE_TYPES, 
   RARITIES, 
   DISPLAY_ORDER, 
-  type EquippedModule 
+  type EquippedModule,
+  EQUIPPED_SLOT_KEYS,
+  generateSavePayload
 } from '../Modules/ModuleConstants';
 import { MODULE_TYPES as REROLL_DATA } from '../../data/module_reroll_data';
 import moduleCosts from '../../data/module_costs.json';
 import { T } from '../../locales'; 
+import { saveModules } from '../../api/modules';
 
 export default function SummaryModules() {
-  const { modules, progress } = useGameData();
+  const { modules, progress, setModules } = useGameData();
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  const activePresetId = modules.active_preset || 1;
+  const presets = modules.presets || {};
+  const token = localStorage.getItem('access_token');
+
+  /** 
+   * [프리셋 전환] 요약 창에서 다른 프리셋으로 전환합니다.
+   * 현재 슬롯을 백업하고 대상 프리셋 슬롯을 적용하여 전역 상태 및 서버에 저장합니다.
+   */
+  const handleSelectPreset = async (targetId: number) => {
+    if (targetId === activePresetId || isSwitching) return;
+
+    try {
+      setIsSwitching(true);
+
+      // 1. 현재 슬롯 백업
+      const currentSlots: Record<string, any> = {};
+      EQUIPPED_SLOT_KEYS.forEach(key => {
+        if (modules[key]) {
+          currentSlots[key] = modules[key];
+        }
+      });
+
+      const targetPreset = presets[targetId.toString()] || { id: targetId, name: `Preset ${targetId}`, slots: {} };
+      const updatedPresets = {
+        ...presets,
+        [activePresetId.toString()]: {
+          ...(presets[activePresetId.toString()] || { id: activePresetId, name: `Preset ${activePresetId}`, slots: {} }),
+          slots: currentSlots
+        }
+      };
+
+      // 2. 새로운 modules 상태 구성
+      const newState = { ...modules };
+      EQUIPPED_SLOT_KEYS.forEach(key => {
+        delete newState[key];
+      });
+
+      Object.entries(targetPreset.slots || {}).forEach(([key, val]) => {
+        newState[key] = val;
+      });
+
+      newState.active_preset = targetId;
+      newState.presets = updatedPresets;
+
+      setModules(newState);
+      localStorage.setItem('thetower_modules', JSON.stringify(newState));
+
+      // 로그인된 사용자라면 조용히 백그라운드로 서버 동기화
+      if (token) {
+        try {
+          const payload = generateSavePayload(newState, targetId, updatedPresets);
+          await saveModules(payload);
+        } catch (e) {
+          console.error("Silent preset save failed in summary:", e);
+        }
+      }
+    } finally {
+      setIsSwitching(false);
+    }
+  };
 
   // 슬롯 ID와 연구 키 매핑 테이블
   const slotIdMap: Record<string, string> = {
@@ -165,64 +232,105 @@ export default function SummaryModules() {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4 content-start">
-      {DISPLAY_ORDER.map((typeId) => {
-        const typeConfig = MODULE_TYPES.find(t => t.id === typeId);
-        if (!typeConfig) return null;
+    <div className="flex flex-col gap-3">
+      {/* 프리셋 전환 바 (번호 전용 콤팩트 디자인) */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/90 border border-slate-800 rounded-xl">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-400 select-none">
+          {isSwitching ? (
+            <Loader2 size={14} className="text-blue-400 animate-spin" />
+          ) : (
+            <Bookmark size={14} className="text-blue-400" />
+          )}
+          <span>Preset</span>
+        </div>
 
-        const mainKey = `equipped_${typeId}_main`;
-        const subKey = `equipped_${typeId}_sub`;
+        <div className="flex items-center gap-1.5">
+          {[1, 2, 3, 4, 5].map((id) => {
+            const preset = presets[id.toString()] || { id, name: `Preset ${id}`, slots: {} };
+            const isActive = activePresetId === id;
 
-        const mainModule = modules[mainKey] as EquippedModule | undefined;
-        const subModule = modules[subKey] as EquippedModule | undefined;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => handleSelectPreset(id)}
+                disabled={isSwitching}
+                title={preset.name ? `${id}: ${preset.name}` : `Preset ${id}`}
+                className={`
+                  w-7 h-7 rounded-lg text-xs font-mono font-bold transition-all border flex items-center justify-center select-none
+                  ${isActive
+                    ? 'bg-blue-600 text-white border-blue-400 shadow-sm shadow-blue-500/30 ring-1 ring-blue-400'
+                    : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200 cursor-pointer'
+                  }
+                  ${isSwitching ? 'opacity-70 cursor-wait' : ''}
+                `}
+              >
+                {id}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        // 관련 연구 데이터 로드
-        const mappedId = slotIdMap[typeId];
-        const unlockKey = `module_unlock_${mappedId}`;
-        const unlockLevel = progress[unlockKey] || 0;
-        
-        const subEffLevel = progress[`module_${mappedId}_sub`] || 0;
-        const subEfficiency = getEfficiencyPercent(subEffLevel);
+      <div className="grid grid-cols-2 gap-4 content-start">
+        {DISPLAY_ORDER.map((typeId) => {
+          const typeConfig = MODULE_TYPES.find(t => t.id === typeId);
+          if (!typeConfig) return null;
 
-        const colors = typeColors[typeId] || typeColors['cannon'];
+          const mainKey = `equipped_${typeId}_main`;
+          const subKey = `equipped_${typeId}_sub`;
 
-        return (
-          <div 
-            key={typeId} 
-            className={`bg-slate-900 border-2 ${colors.border} ${colors.shadow} hover:${colors.glow} rounded-xl overflow-hidden h-fit transition-all duration-300`}
-          >
-            {/* 슬롯 타입 헤더 */}
-            <div className={`px-4 py-3 border-b-2 ${colors.border} flex items-center justify-between ${typeConfig.bg}`}>
-              <div className="flex items-center gap-2">
-                <typeConfig.icon size={18} className={typeConfig.color} />
-                <span className="font-bold text-slate-200 text-sm uppercase tracking-wider">
-                  {typeConfig.label}
-                </span>
+          const mainModule = modules[mainKey] as EquippedModule | undefined;
+          const subModule = modules[subKey] as EquippedModule | undefined;
+
+          // 관련 연구 데이터 로드
+          const mappedId = slotIdMap[typeId];
+          const unlockKey = `module_unlock_${mappedId}`;
+          const unlockLevel = progress[unlockKey] || 0;
+          
+          const subEffLevel = progress[`module_${mappedId}_sub`] || 0;
+          const subEfficiency = getEfficiencyPercent(subEffLevel);
+
+          const colors = typeColors[typeId] || typeColors['cannon'];
+
+          return (
+            <div 
+              key={typeId} 
+              className={`bg-slate-900 border-2 ${colors.border} ${colors.shadow} hover:${colors.glow} rounded-xl overflow-hidden h-fit transition-all duration-300`}
+            >
+              {/* 슬롯 타입 헤더 */}
+              <div className={`px-4 py-3 border-b-2 ${colors.border} flex items-center justify-between ${typeConfig.bg}`}>
+                <div className="flex items-center gap-2">
+                  <typeConfig.icon size={18} className={typeConfig.color} />
+                  <span className="font-bold text-slate-200 text-sm uppercase tracking-wider">
+                    {typeConfig.label}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3">
+                {/* 메인 슬롯 */}
+                {mainModule ? (
+                  renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100)
+                ) : (
+                  <div className="text-center py-4 text-xs text-slate-600 italic border-b-2 border-slate-700/50">
+                    {T.summary.MODULES.NO_MAIN}
+                  </div>
+                )}
+
+                {/* 어시스트 슬롯 */}
+                {subModule ? (
+                  renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, subEfficiency)
+                ) : (
+                  <div className="text-center py-4 text-xs text-slate-600 italic mt-2">
+                    {T.summary.MODULES.NO_ASSIST}
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="p-3">
-              {/* 메인 슬롯 */}
-              {mainModule ? (
-                renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100)
-              ) : (
-                <div className="text-center py-4 text-xs text-slate-600 italic border-b-2 border-slate-700/50">
-                  {T.summary.MODULES.NO_MAIN}
-                </div>
-              )}
-
-              {/* 어시스트 슬롯 */}
-              {subModule ? (
-                renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, subEfficiency)
-              ) : (
-                <div className="text-center py-4 text-xs text-slate-600 italic mt-2">
-                  {T.summary.MODULES.NO_ASSIST}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

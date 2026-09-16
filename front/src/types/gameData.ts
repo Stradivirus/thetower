@@ -51,3 +51,14 @@ export interface UserModules {
   // 보유 중인 인벤토리 모듈들 (동적 키)
   [key: string]: any;
 }
+
+/**
+ * 모듈 장착 프리셋 인터페이스
+ */
+export interface ModulePreset {
+  id: number;
+  name: string;
+  slots: Record<string, any>;
+}
+
+export type ModulePresetsMap = Record<string, ModulePreset>;

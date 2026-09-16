@@ -3,7 +3,7 @@
  * 용도: 게임 재화인 '스톤(Stones)'의 총 사용량 계산 및 관리 페이지
  * 기능: UW 해금/스탯, 카드, 모듈 등 각 카테고리별 스톤 소모량 계산 및 서버 동기화
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Triangle, Lock, Zap, PlusCircle, Layers, Box, List, RotateCcw } from 'lucide-react';
 import UnlockTab from '../components/Stones/UnlockTab';
@@ -13,6 +13,7 @@ import ModuleTab from '../components/Stones/ModuleTab';
 import UwSummaryModal from '../components/Modal/SummaryModal';
 import { formatNum } from '../components/Stones/StoneShared';
 import { useStonesData } from '../hooks/useStonesData'; 
+import baseStats from '../data/uw_base_stats.json';
 
 interface Props {
   token: string | null;
@@ -39,6 +40,17 @@ export default function StonesPage({ token }: Props) {
     resetAll,
     saveToServer
   } = useStonesData(token);
+
+  const allWeaponKeys = Object.keys(baseStats);
+  const unlockedBaseCount = Array.isArray(progress['unlocked_weapons']) ? progress['unlocked_weapons'].length : 0;
+  const isAllBaseUnlocked = unlockedBaseCount === allWeaponKeys.length;
+
+  // 기본 무기가 9종 미만으로 초기화되면 UW+ Stats 탭에서 자동으로 Unlock 탭으로 전환
+  useEffect(() => {
+    if (activeTab === 'plus' && !isAllBaseUnlocked) {
+      setActiveTab('unlock');
+    }
+  }, [activeTab, isAllBaseUnlocked]);
 
   /** 
    * [저장 및 요약] 변경 사항이 있으면 서버에 저장하고 요약 모달을 엽니다.
@@ -111,10 +123,20 @@ export default function StonesPage({ token }: Props) {
                 <Zap size={14}/> Base Stats
               </button>
               <button 
-                onClick={() => setActiveTab('plus')} 
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'plus' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+                onClick={() => {
+                  if (isAllBaseUnlocked) setActiveTab('plus');
+                }} 
+                disabled={!isAllBaseUnlocked}
+                title={!isAllBaseUnlocked ? `Requires all Ultimate Weapons (${unlockedBaseCount}/${allWeaponKeys.length})` : undefined}
+                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  !isAllBaseUnlocked
+                    ? 'opacity-40 cursor-not-allowed text-slate-600 border border-slate-800/80'
+                    : activeTab === 'plus' 
+                      ? 'bg-slate-800 text-white shadow-sm border border-slate-700' 
+                      : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <PlusCircle size={14}/> UW+ Stats
+                {!isAllBaseUnlocked ? <Lock size={14} /> : <PlusCircle size={14}/>} UW+ Stats
               </button>
             </div>
             {/* 3행: Cards, Modules */}
@@ -136,15 +158,30 @@ export default function StonesPage({ token }: Props) {
 
           {/* 데스크톱 탭 레이아웃 (1행) */}
           <div className="hidden md:flex flex-wrap gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-1 justify-start">
-            {tabs.map(tab => (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)} 
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 flex-none ${activeTab === tab.id ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
-              >
-                <tab.icon size={14}/> {tab.label}
-              </button>
-            ))}
+            {tabs.map(tab => {
+              const isTabDisabled = tab.id === 'plus' && !isAllBaseUnlocked;
+              const Icon = isTabDisabled ? Lock : tab.icon;
+
+              return (
+                <button 
+                  key={tab.id}
+                  onClick={() => {
+                    if (!isTabDisabled) setActiveTab(tab.id as TabType);
+                  }} 
+                  disabled={isTabDisabled}
+                  title={isTabDisabled ? `Requires all Ultimate Weapons (${unlockedBaseCount}/${allWeaponKeys.length})` : undefined}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 flex-none ${
+                    isTabDisabled
+                      ? 'opacity-40 cursor-not-allowed text-slate-600 border border-slate-800/80'
+                      : activeTab === tab.id
+                        ? 'bg-slate-800 text-white shadow-sm border border-slate-700'
+                        : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Icon size={14}/> {tab.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* 초기화 버튼 */}

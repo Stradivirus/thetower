@@ -41,7 +41,8 @@ export const DATA = {
       "사형 선고": { name: "Death Penalty", desc: "Chance of 5/8/11/15% to mark an enemy for death when it spawns, causing the first hit to destroy it" },
       "혼란 도래자": { name: "Havoc Bringer", desc: "10/13/15/20% chance for Rend Armor to instantly go to max" },
       "축소 광선": { name: "Shrink Ray", desc: "Attacks have a 1% chance to apply a non-stacking effect that decreases the enemy's mass by 10/20/30/40%" },
-      "증폭 공격": { name: "Amplifying Strike", desc: "Killing a boss or elite enemy increases Tower damage by 5x for 5/11/18/26 seconds" }
+      "증폭 공격": { name: "Amplifying Strike", desc: "Killing a boss or elite enemy increases Tower damage by 5x for 5/11/18/26 seconds" },
+      "황금 저격수": { name: "Gilded Sniper", desc: "On Enemy Death: 10/20/30/40% chance to apply all active coin bonuses, even if not in Range." }
     },
     armor: {
       "큐브 방지 포털": { name: "Anti-Cube Portal", desc: "Enemies take x10/15/20/25 damage for 7s after they are hit by a shockwave" },
@@ -49,7 +50,8 @@ export const DATA = {
       "웜홀 재지향기": { name: "Wormhole Redirector", desc: "Health Regen can heal up to 25/50/75/100% of Package Max Recovery" },
       "공간 변위기": { name: "Space Displacer", desc: "Landmines have a 15/20/25/30% chance to spawn as an Inner Land Mine (20 max) instead of a normal mine. These mines autonomously move and organize around the tower" },
       "날카로운 용기": { name: "Sharp Fortitude", desc: "Increase the wall's health and regen by x1.25/1.5/2/2.5. Enemies take +1% increased damage for each subsequent hit on Wall Thorns" },
-      "궤도 증강": { name: "Orbital Augment", desc: "Adds 2/4/6/8 orbiting Electrons around the tower. Each Electron deals damage equal to 15% of the enemy's remaining health (quarter effective against Bosses and Fleets)" }
+      "궤도 증강": { name: "Orbital Augment", desc: "Adds 2/4/6/8 orbiting Electrons around the tower. Each Electron deals damage equal to 15% of the enemy's remaining health (quarter effective against Bosses and Fleets)" },
+      "감시 프로토콜": { name: "Sentry Protocol", desc: "Orb speed is reduced to zero. Orbs instead fire 1/2/3/4 mini orbs." }
     },
     generator: {
       "특이성 하네스": { name: "Singularity Harness", desc: "Increases the range of each bot by +5/8/11/15m. Enemies hit by the Flame bot receive double damage" },

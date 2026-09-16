@@ -3,6 +3,7 @@
  * 용도: 무기 해금(Unlock) 비용을 보여주는 데이터 테이블
  * 기능: 해금 순서에 따른 비용 표시, 다음 해금 대상 강조, 누적 비용 계산 및 초기화 기능
  */
+import { Lock } from 'lucide-react';
 import { stoneStyles as styles, formatNum, ResetButton } from '../StoneShared';
 
 interface Props {
@@ -12,9 +13,22 @@ interface Props {
   unlockedCount: number;                                 // 현재까지 해금된 개수
   onRowClick: (type: 'base' | 'plus', count: number, totalCost: number) => void; // 행 클릭 핸들러
   onReset: (type: 'base' | 'plus') => void;              // 리셋 버튼 클릭 핸들러
+  isLocked?: boolean;                                    // 잠금 여부
+  lockMessage?: string;                                  // 잠금 오버레이 메시지
+  lockSubMessage?: string;                               // 잠금 보조 설명 (카운트 등)
 }
 
-export default function UwCostTable({ title, type, costs, unlockedCount, onRowClick, onReset }: Props) {
+export default function UwCostTable({ 
+  title, 
+  type, 
+  costs, 
+  unlockedCount, 
+  onRowClick, 
+  onReset,
+  isLocked = false,
+  lockMessage = 'Locked',
+  lockSubMessage
+}: Props) {
   /** 아직 해금되지 않은 남은 데이터들만 추출합니다. */
   const remainingData = costs
     .map((cost, idx) => ({ cost, level: idx + 1 }))
@@ -23,11 +37,20 @@ export default function UwCostTable({ title, type, costs, unlockedCount, onRowCl
   const totalRemaining = remainingData.reduce((acc, cur) => acc + cur.cost, 0);
 
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} relative ${isLocked ? 'opacity-40' : ''}`}>
+      {/* 미해금 시 블러 오버레이 */}
+      {isLocked && (
+        <div className="absolute inset-0 bg-slate-950/80 z-10 flex flex-col items-center justify-center text-center p-4 select-none backdrop-blur-[1px] rounded-2xl">
+          <Lock size={18} className="text-slate-500 mb-1.5" />
+          <span className="text-xs text-slate-300 font-bold">{lockMessage}</span>
+          {lockSubMessage && <span className="text-[10px] text-slate-500 mt-0.5">{lockSubMessage}</span>}
+        </div>
+      )}
+
       {/* 테이블 헤더: 제목 및 리셋 버튼 */}
       <div className={styles.uwHeader}>
         <span>{title}</span>
-        {unlockedCount > 0 && (
+        {unlockedCount > 0 && !isLocked && (
           <ResetButton onClick={(e) => { e.stopPropagation(); onReset(type); }} />
         )}
       </div>
@@ -49,8 +72,12 @@ export default function UwCostTable({ title, type, costs, unlockedCount, onRowCl
             return (
               <tr 
                 key={item.level} 
-                onClick={() => onRowClick(type, batchCount, batchCost)} 
-                className="transition-all border-b border-slate-800/50 hover:bg-blue-500/10 cursor-pointer group"
+                onClick={() => {
+                  if (!isLocked) onRowClick(type, batchCount, batchCost);
+                }} 
+                className={`transition-all border-b border-slate-800/50 ${
+                  isLocked ? 'cursor-default' : 'hover:bg-blue-500/10 cursor-pointer group'
+                }`}
               >
                 <td className={styles.td}>
                   #{item.level}
