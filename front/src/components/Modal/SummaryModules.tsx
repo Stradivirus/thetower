@@ -3,6 +3,7 @@
  * 용도: 요약 모달 내에서 장착 중인 모듈들의 상세 정보 표시
  * 기능: 타입별(Cannon, Armor 등) 메인/어시스트 모듈 렌더링, 연구 등급에 따른 등급 보정 및 효율(%) 계산 표시
  */
+import { Bookmark } from 'lucide-react';
 import { useGameData } from '../../contexts/GameDataContext';
 import { 
   MODULE_TYPES, 
@@ -16,6 +17,9 @@ import { T } from '../../locales';
 
 export default function SummaryModules() {
   const { modules, progress } = useGameData();
+
+  const activePresetId = modules.active_preset || 1;
+  const activePresetName = modules.presets?.[activePresetId.toString()]?.name || `Preset ${activePresetId}`;
 
   // 슬롯 ID와 연구 키 매핑 테이블
   const slotIdMap: Record<string, string> = {
@@ -165,64 +169,77 @@ export default function SummaryModules() {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-4 content-start">
-      {DISPLAY_ORDER.map((typeId) => {
-        const typeConfig = MODULE_TYPES.find(t => t.id === typeId);
-        if (!typeConfig) return null;
+    <div className="flex flex-col gap-3">
+      {/* 활성 프리셋 배지 */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/80 border border-slate-800 rounded-lg text-xs">
+        <span className="text-slate-400 font-bold flex items-center gap-1.5">
+          <Bookmark size={13} className="text-blue-400" />
+          Active Preset
+        </span>
+        <span className="font-bold text-blue-300 bg-blue-500/10 px-2.5 py-0.5 rounded border border-blue-500/30">
+          {activePresetName}
+        </span>
+      </div>
 
-        const mainKey = `equipped_${typeId}_main`;
-        const subKey = `equipped_${typeId}_sub`;
+      <div className="grid grid-cols-2 gap-4 content-start">
+        {DISPLAY_ORDER.map((typeId) => {
+          const typeConfig = MODULE_TYPES.find(t => t.id === typeId);
+          if (!typeConfig) return null;
 
-        const mainModule = modules[mainKey] as EquippedModule | undefined;
-        const subModule = modules[subKey] as EquippedModule | undefined;
+          const mainKey = `equipped_${typeId}_main`;
+          const subKey = `equipped_${typeId}_sub`;
 
-        // 관련 연구 데이터 로드
-        const mappedId = slotIdMap[typeId];
-        const unlockKey = `module_unlock_${mappedId}`;
-        const unlockLevel = progress[unlockKey] || 0;
-        
-        const subEffLevel = progress[`module_${mappedId}_sub`] || 0;
-        const subEfficiency = getEfficiencyPercent(subEffLevel);
+          const mainModule = modules[mainKey] as EquippedModule | undefined;
+          const subModule = modules[subKey] as EquippedModule | undefined;
 
-        const colors = typeColors[typeId] || typeColors['cannon'];
+          // 관련 연구 데이터 로드
+          const mappedId = slotIdMap[typeId];
+          const unlockKey = `module_unlock_${mappedId}`;
+          const unlockLevel = progress[unlockKey] || 0;
+          
+          const subEffLevel = progress[`module_${mappedId}_sub`] || 0;
+          const subEfficiency = getEfficiencyPercent(subEffLevel);
 
-        return (
-          <div 
-            key={typeId} 
-            className={`bg-slate-900 border-2 ${colors.border} ${colors.shadow} hover:${colors.glow} rounded-xl overflow-hidden h-fit transition-all duration-300`}
-          >
-            {/* 슬롯 타입 헤더 */}
-            <div className={`px-4 py-3 border-b-2 ${colors.border} flex items-center justify-between ${typeConfig.bg}`}>
-              <div className="flex items-center gap-2">
-                <typeConfig.icon size={18} className={typeConfig.color} />
-                <span className="font-bold text-slate-200 text-sm uppercase tracking-wider">
-                  {typeConfig.label}
-                </span>
+          const colors = typeColors[typeId] || typeColors['cannon'];
+
+          return (
+            <div 
+              key={typeId} 
+              className={`bg-slate-900 border-2 ${colors.border} ${colors.shadow} hover:${colors.glow} rounded-xl overflow-hidden h-fit transition-all duration-300`}
+            >
+              {/* 슬롯 타입 헤더 */}
+              <div className={`px-4 py-3 border-b-2 ${colors.border} flex items-center justify-between ${typeConfig.bg}`}>
+                <div className="flex items-center gap-2">
+                  <typeConfig.icon size={18} className={typeConfig.color} />
+                  <span className="font-bold text-slate-200 text-sm uppercase tracking-wider">
+                    {typeConfig.label}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-3">
+                {/* 메인 슬롯 */}
+                {mainModule ? (
+                  renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100)
+                ) : (
+                  <div className="text-center py-4 text-xs text-slate-600 italic border-b-2 border-slate-700/50">
+                    {T.summary.MODULES.NO_MAIN}
+                  </div>
+                )}
+
+                {/* 어시스트 슬롯 */}
+                {subModule ? (
+                  renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, subEfficiency)
+                ) : (
+                  <div className="text-center py-4 text-xs text-slate-600 italic mt-2">
+                    {T.summary.MODULES.NO_ASSIST}
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="p-3">
-              {/* 메인 슬롯 */}
-              {mainModule ? (
-                renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100)
-              ) : (
-                <div className="text-center py-4 text-xs text-slate-600 italic border-b-2 border-slate-700/50">
-                  {T.summary.MODULES.NO_MAIN}
-                </div>
-              )}
-
-              {/* 어시스트 슬롯 */}
-              {subModule ? (
-                renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, subEfficiency)
-              ) : (
-                <div className="text-center py-4 text-xs text-slate-600 italic mt-2">
-                  {T.summary.MODULES.NO_ASSIST}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
