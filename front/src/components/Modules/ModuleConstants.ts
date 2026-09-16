@@ -39,3 +39,40 @@ export const MODULE_TYPES = [
 
 // [5] 표시 순서 (SummaryModules에서 필요)
 export const DISPLAY_ORDER = ['cannon', 'generator', 'armor', 'core'];
+
+// [6] 장착 슬롯 키 목록
+export const EQUIPPED_SLOT_KEYS = [
+  'equipped_cannon_main', 'equipped_cannon_sub',
+  'equipped_armor_main', 'equipped_armor_sub',
+  'equipped_generator_main', 'equipped_generator_sub',
+  'equipped_core_main', 'equipped_core_sub'
+];
+
+/**
+ * [헬퍼] 클라이언트 모듈 데이터를 서버 저장용 JSON 포맷으로 변환합니다.
+ */
+export const generateSavePayload = (modulesData: any, activePresetId?: number, presets?: any) => {
+  const inventory_json: Record<string, any> = {};
+  const equipped_json: Record<string, any> = {};
+
+  Object.entries(modulesData || {}).forEach(([key, value]: [string, any]) => {
+    if (key.startsWith('equipped_')) {
+      equipped_json[key] = value;
+    } else if (key.startsWith('owned_')) {
+      const realName = key.replace('owned_', '');
+      if (typeof value === 'number') {
+        inventory_json[realName] = { rarity: value, effects: [] };
+      } else {
+        inventory_json[realName] = value;
+      }
+    }
+  });
+
+  const finalActivePreset = activePresetId !== undefined ? activePresetId : (modulesData?.active_preset || 1);
+  const finalPresets = presets !== undefined ? presets : (modulesData?.presets || {});
+
+  equipped_json['active_preset'] = finalActivePreset;
+  equipped_json['presets'] = finalPresets;
+
+  return { inventory_json, equipped_json };
+};
