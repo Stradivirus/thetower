@@ -8,7 +8,7 @@ import baseStats from '../../data/uw_base_stats.json';
 import plusStats from '../../data/uw_plus_stats.json';
 import labConfig from '../../data/uw_lab_config.json'; 
 import { stoneStyles as styles, formatNum, ResetButton } from './StoneShared';
-import { ToggleLeft, ToggleRight, FlaskConical } from 'lucide-react'; 
+import { ToggleLeft, ToggleRight, FlaskConical, Lock } from 'lucide-react'; 
 import { T } from '../../locales';
 
 interface Props {
@@ -101,6 +101,29 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
     if (localizedName) return localizedName;
     return uwKey.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
+
+  const allWeaponKeys = Object.keys(baseStats);
+  const unlockedBase: string[] = progress['unlocked_weapons'] || [];
+  const isAllBaseUnlocked = unlockedBase.length === allWeaponKeys.length;
+
+  if (category === 'plus' && !isAllBaseUnlocked) {
+    return (
+      <div className="text-center py-20 text-slate-500 animate-fade-in flex flex-col items-center">
+        <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-3">
+          <Lock size={22} className="text-slate-500" />
+        </div>
+        <p className="text-lg font-bold mb-2 text-slate-300">
+          Requires all Ultimate Weapons unlocked
+        </p>
+        <p className="text-sm text-slate-500 mb-2">
+          You must unlock all 9 Ultimate Weapons before accessing UW+ Stats.
+        </p>
+        <span className="text-xs text-slate-600 font-mono bg-slate-900/80 px-2.5 py-1 rounded-full border border-slate-800">
+          {unlockedBase.length}/{allWeaponKeys.length} Unlocked
+        </span>
+      </div>
+    );
+  }
 
   if (availableUwKeys.length === 0) {
     return (

@@ -4,6 +4,7 @@
  * 기능: 기본 무기(UW), UW+, 모듈 슬롯의 해금 상태 관리 및 비용 테이블 표시, 무기 수동 선택 모달 트리거
  */
 import { useState } from 'react';
+import { RotateCcw } from 'lucide-react';
 import unlockCosts from '../../data/uw_unlock_costs.json';
 import baseStats from '../../data/uw_base_stats.json';
 import plusStats from '../../data/uw_plus_stats.json';
@@ -30,6 +31,7 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
   const allWeaponKeys = Object.keys(baseStats);
   const unlockedBase: string[] = Array.isArray(progress['unlocked_weapons']) ? progress['unlocked_weapons'] : [];
   const unlockedPlus: string[] = Array.isArray(progress['unlocked_plus_weapons']) ? progress['unlocked_plus_weapons'] : [];
+  const isAllBaseUnlocked = unlockedBase.length === allWeaponKeys.length;
 
   /** 
    * [내부 헬퍼] 선택된 무기 아이템들을 해금 리스트에 추가하고 상태를 초기화합니다.
@@ -49,6 +51,8 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
    * - 그 외에는 무기 선택 모달을 오픈
    */
   const handleRowClick = (type: 'base' | 'plus', count: number, totalCost: number) => {
+    if (type === 'plus' && !isAllBaseUnlocked) return;
+
     const available = allWeaponKeys.filter(k => {
         if (type === 'base') return !unlockedBase.includes(k);
         else return unlockedBase.includes(k) && !unlockedPlus.includes(k);
@@ -126,16 +130,35 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-        {/* 1. 기본 무기 해금 비용 테이블 */}
-        <UwCostTable 
-          title="Ultimate Weapon Unlock"
-          type="base"
-          costs={unlockCosts.unlock_costs}
-          unlockedCount={unlockedBase.length}
-          onRowClick={handleRowClick}
-          onReset={handleReset}
-        />
+      {/* 9종 모두 해금 시 리셋 가능한 콤팩트 링크 */}
+      {isAllBaseUnlocked && (
+        <div className="flex justify-between items-center mb-4 px-3 py-2 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-400">
+          <span className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+            <span>All Ultimate Weapons Unlocked ({unlockedBase.length}/{allWeaponKeys.length})</span>
+          </span>
+          <button
+            onClick={() => handleReset('base')}
+            className="text-xs text-slate-500 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
+            title="Reset Base UWs"
+          >
+            <RotateCcw size={12} /> Reset Base UWs
+          </button>
+        </div>
+      )}
+
+      <div className={`grid grid-cols-1 ${!isAllBaseUnlocked ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2'} gap-6 animate-fade-in`}>
+        {/* 1. 기본 무기 해금 비용 테이블 (모두 해금 시 숨김) */}
+        {!isAllBaseUnlocked && (
+          <UwCostTable 
+            title="Ultimate Weapon Unlock"
+            type="base"
+            costs={unlockCosts.unlock_costs}
+            unlockedCount={unlockedBase.length}
+            onRowClick={handleRowClick}
+            onReset={handleReset}
+          />
+        )}
 
         {/* 2. UW+ 해금 비용 테이블 */}
         <UwCostTable 
@@ -145,6 +168,9 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
           unlockedCount={unlockedPlus.length}
           onRowClick={handleRowClick}
           onReset={handleReset}
+          isLocked={!isAllBaseUnlocked}
+          lockMessage="Requires all Ultimate Weapons unlocked"
+          lockSubMessage={`(${unlockedBase.length}/${allWeaponKeys.length} Unlocked)`}
         />
 
         {/* 3. 모듈 슬롯 등급(해금) 및 Bot+ 테이블 */}
