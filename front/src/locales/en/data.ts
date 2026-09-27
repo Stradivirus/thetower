@@ -37,7 +37,7 @@ export const DATA = {
   MODULES: {
     cannon: {
       "아스트랄 구조": { name: "Astral Deliverance", desc: "Bounce Shot's range is increased by 3% of the Tower's total range. Each bounce increases the projectile's damage by 20/40/60/80%" },
-      "절멸자": { name: "Being Annihilator", desc: "When you super crit, your next 3/4/5/6 are guaranteed super crit" },
+      "절멸자": { name: "Being Annihilator", desc: "Increase Super Crit chance by 5/7/10/14%. On Super Crit: Next 5 Shots guarantee a Super Crit." },
       "사형 선고": { name: "Death Penalty", desc: "Chance of 5/8/11/15% to mark an enemy for death when it spawns, causing the first hit to destroy it" },
       "혼란 도래자": { name: "Havoc Bringer", desc: "10/13/15/20% chance for Rend Armor to instantly go to max" },
       "축소 광선": { name: "Shrink Ray", desc: "Attacks have a 1% chance to apply a non-stacking effect that decreases the enemy's mass by 10/20/30/40%" },
@@ -67,7 +67,7 @@ export const DATA = {
       "차원 코어": { name: "Dimension Core", desc: "Chain Lightning has 60% chance of hitting the initial target. Shock chance and multiplier is doubled. If the shock is applied to the same enemy the shock multiplier will add up to a max stack of 5/10/15/20" },
       "멀티버스 넥서스": { name: "Multiverse Nexus", desc: "Death Wave, Golden Tower and Black Hole will always activate at the same time, but the cooldown will be the average of those +20/+10/+1/-10s" },
       "자석 후크": { name: "Magnetic Hook", desc: "1/2/3/4 Inner Land Mines are fired at Bosses as they enter Tower range. 25% of Elites have Inner Land Mines fired at them as they enter Tower range" },
-      "원시 붕괴": { name: "Primordial Collapse", desc: "Spawns one additional Black Hole. Damage from enemies within a Black Hole is decreased by 50/55/65/80%" }
+      "원시 붕괴": { name: "Primordial Collapse", desc: "Spawns one additional Black Hole. Damage from enemies within a Black Hole is decreased by 60/65/75/90%" }
     }
   },
 
