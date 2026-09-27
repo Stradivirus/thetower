@@ -52,10 +52,16 @@ export default function ManualSelectorModal({
   return (
     <div 
       // 배경(Overlay) 클릭 시 모달 닫기
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4 cursor-pointer"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-fade-in p-4 cursor-pointer"
     >
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[80vh] cursor-default">
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl shadow-2xl flex flex-col max-h-[80vh] cursor-default"
+      >
         
         {/* 모달 헤더: 선택 중인 타겟 등급 정보 표시 */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-800 bg-slate-950/50 rounded-t-2xl">
@@ -72,6 +78,14 @@ export default function ManualSelectorModal({
 
         {/* 옵션 리스트 본문: 스크롤 가능 */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-2">
+          {/* 슬롯 비우기 옵션 */}
+          <button
+            onClick={() => onSelect('')}
+            className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-dashed border-slate-700 bg-slate-900/50 hover:bg-slate-800/80 text-slate-400 hover:text-rose-400 hover:border-rose-500/50 transition-all text-xs font-bold"
+          >
+            <span>슬롯 비우기 (Empty Slot)</span>
+          </button>
+
           {effects
             .filter(effect => !excludedIds.includes(effect.id)) // 중복 옵션 필터링
             .map((effect) => {

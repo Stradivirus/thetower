@@ -266,22 +266,18 @@ export default function ModulesInfoPage() {
   const handleSaveProgress = async () => {
     if (!token) { alert("Login Required"); return; }
     
-    if (isChanged) {
-      try {
-          setIsSaving(true);
-          const payload = generateSavePayload(modules, activePresetId, presets);
-          await saveModules(payload);
-          
-          setIsChanged(false);
-          setIsSummaryOpen(true); 
-      } catch (e) { 
-          console.error("Save failed", e); 
-          alert("Save Failed"); 
-      } finally {
-          setIsSaving(false);
-      }
-    } else {
-       setIsSummaryOpen(true);
+    try {
+        setIsSaving(true);
+        const payload = generateSavePayload(modules, activePresetId, presets);
+        await saveModules(payload);
+        
+        setIsChanged(false);
+        setIsSummaryOpen(true); 
+    } catch (e: any) { 
+        console.error("Save failed", e); 
+        alert(e?.message || "Save Failed"); 
+    } finally {
+        setIsSaving(false);
     }
   };
 
@@ -450,21 +446,23 @@ export default function ModulesInfoPage() {
     newState.presets = updatedPresets;
     newState.active_preset = activePresetId;
 
-    // 4. 서버 저장 시도
-    try {
-      setIsSaving(true);
-      const payload = generateSavePayload(newState, activePresetId, updatedPresets);
-      await saveModules(payload);
+    // 4. 즉시 로컬 상태 반영 및 모달 닫기
+    setModules(newState);
+    setPresets(updatedPresets);
+    setIsChanged(true);
+    setDetailModal(prev => ({ ...prev, data: updatedOwned, isOpen: false }));
 
-      setModules(newState);
-      setPresets(updatedPresets);
-      setDetailModal(prev => ({ ...prev, data: updatedOwned, isOpen: false }));
-      
-    } catch (e: any) {
-      console.error("Modal Instant Save Failed", e);
-      alert(e?.message || "Save failed due to an error.");
-    } finally {
-      setIsSaving(false);
+    if (token) {
+      try {
+        setIsSaving(true);
+        const payload = generateSavePayload(newState, activePresetId, updatedPresets);
+        await saveModules(payload);
+        setIsChanged(false);
+      } catch (e: any) {
+        console.error("Modal Instant Save Failed", e);
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -499,27 +497,23 @@ export default function ModulesInfoPage() {
     newState.presets = updatedPresets;
     newState.active_preset = activePresetId;
 
+    // 즉시 로컬 상태 반영 및 모달 닫기
+    setPresets(updatedPresets);
+    setModules(newState);
+    setIsChanged(true);
+    setDetailModal(prev => ({ ...prev, isOpen: false }));
+
     if (token) {
       try {
         setIsSaving(true);
         const payload = generateSavePayload(newState, activePresetId, updatedPresets);
         await saveModules(payload);
-
-        setPresets(updatedPresets);
-        setModules(newState);
         setIsChanged(false);
-        setDetailModal(prev => ({ ...prev, isOpen: false }));
       } catch (e: any) {
         console.error("Modal Delete Save Failed", e);
-        alert(e?.message || "Save failed due to an error.");
       } finally {
         setIsSaving(false);
       }
-    } else {
-      setPresets(updatedPresets);
-      setModules(newState);
-      setIsChanged(true);
-      setDetailModal(prev => ({ ...prev, isOpen: false }));
     }
   };
 
@@ -591,27 +585,23 @@ export default function ModulesInfoPage() {
     newState.presets = updatedPresets;
     newState.active_preset = activePresetId;
 
+    // 즉시 로컬 상태 반영 및 모달 닫기
+    setPresets(updatedPresets);
+    setModules(newState);
+    setIsChanged(true);
+    setDetailModal(prev => ({ ...prev, isOpen: false }));
+
     if (token) {
       try {
         setIsSaving(true);
         const payload = generateSavePayload(newState, activePresetId, updatedPresets);
         await saveModules(payload);
-
-        setPresets(updatedPresets);
-        setModules(newState);
         setIsChanged(false);
-        setDetailModal(prev => ({ ...prev, isOpen: false }));
       } catch (e: any) {
         console.error("Modal Equip Save Failed", e);
-        alert(e?.message || "Save failed due to an error.");
       } finally {
         setIsSaving(false);
       }
-    } else {
-      setPresets(updatedPresets);
-      setModules(newState);
-      setIsChanged(true);
-      setDetailModal(prev => ({ ...prev, isOpen: false }));
     }
   };
 
@@ -643,27 +633,23 @@ export default function ModulesInfoPage() {
     newState.presets = updatedPresets;
     newState.active_preset = activePresetId;
 
+    // 즉시 로컬 상태 반영 및 모달 닫기
+    setPresets(updatedPresets);
+    setModules(newState);
+    setIsChanged(true);
+    setDetailModal(prev => ({ ...prev, isOpen: false }));
+
     if (token) {
       try {
         setIsSaving(true);
         const payload = generateSavePayload(newState, activePresetId, updatedPresets);
         await saveModules(payload);
-
-        setPresets(updatedPresets);
-        setModules(newState);
         setIsChanged(false);
-        setDetailModal(prev => ({ ...prev, isOpen: false }));
       } catch (e: any) {
         console.error("Modal Unequip Save Failed", e);
-        alert(e?.message || "Save failed due to an error.");
       } finally {
         setIsSaving(false);
       }
-    } else {
-      setPresets(updatedPresets);
-      setModules(newState);
-      setIsChanged(true);
-      setDetailModal(prev => ({ ...prev, isOpen: false }));
     }
   };
 

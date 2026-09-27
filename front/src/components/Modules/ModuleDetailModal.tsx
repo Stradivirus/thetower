@@ -214,8 +214,18 @@ export default function ModuleDetailModal({
   const handleEffectSelect = (effectId: string) => {
     if (selectedSlotIdx === null) return;
     const newEffects = [...effects];
-    newEffects[selectedSlotIdx] = effectId;
+    newEffects[selectedSlotIdx] = effectId && effectId.trim() !== '' ? effectId : null;
     setEffects(newEffects);
+
+    // 인스턴스 맵에도 즉시 반영
+    const cleanEffects = newEffects.filter((e): e is string => e !== null);
+    setInstances(prev => ({
+      ...prev,
+      [selectedInstanceId.toString()]: {
+        rarity,
+        effects: cleanEffects
+      }
+    }));
     setSelectorOpen(false);
   };
 
@@ -243,7 +253,10 @@ export default function ModuleDetailModal({
                moduleType === 'armor' ? Shield : 
                moduleType === 'generator' ? Zap : Cpu;
 
-  const currentSelectedIds = effects.filter((e): e is string => e !== null);
+  // 현재 슬롯을 제외한 다른 슬롯에 이미 들어간 옵션만 중복 제외 목록으로 지정
+  const currentSelectedIds = useMemo(() => {
+    return effects.filter((e, idx): e is string => e !== null && idx !== selectedSlotIdx);
+  }, [effects, selectedSlotIdx]);
 
   const hasSecondInstance = !!instances["2"];
   const isSelectedInstanceEquipped = equipStatus !== null && equippedInstanceId === selectedInstanceId;
