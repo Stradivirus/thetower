@@ -26,8 +26,8 @@ export const loginUser = async (username: string, password: string) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || '로그인 실패');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || '로그인 실패 (서버 응답 오류)');
   }
 
   return response.json();
@@ -44,8 +44,8 @@ export const registerUser = async (username: string, password: string) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || '회원가입 실패');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || '회원가입 실패 (서버 응답 오류)');
   }
 
   return response.json();
