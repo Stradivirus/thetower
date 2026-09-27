@@ -29,6 +29,7 @@ interface Props {
   equipStatus: 'main' | 'sub' | null;
   equippedInstanceId?: number | null;
   isSaving: boolean; 
+  viewMode?: 'equipped' | 'inventory';
 }
 
 export default function ModuleDetailModal({
@@ -43,7 +44,8 @@ export default function ModuleDetailModal({
   onUnequip,
   equipStatus,
   equippedInstanceId = 1,
-  isSaving
+  isSaving,
+  viewMode = 'inventory'
 }: Props) {
   
   // 1호기 / 2호기 인스턴스 맵 초기화
@@ -269,6 +271,11 @@ export default function ModuleDetailModal({
                 <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/30">
                   #{selectedInstanceId}
                 </span>
+                {viewMode === 'equipped' && (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded border ${RARITIES[rarity]?.color} ${RARITIES[rarity]?.border} ${RARITIES[rarity]?.bg}`}>
+                    {RARITIES[rarity]?.label}
+                  </span>
+                )}
               </h3>
               <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">{moduleType} Module</p>
             </div>
@@ -314,7 +321,7 @@ export default function ModuleDetailModal({
                 >
                   2호기
                 </button>
-                {selectedInstanceId === 2 && (
+                {viewMode !== 'equipped' && selectedInstanceId === 2 && (
                   <button
                     onClick={handleDeleteSecondInstance}
                     disabled={isSaving}
@@ -325,7 +332,7 @@ export default function ModuleDetailModal({
                   </button>
                 )}
               </div>
-            ) : (
+            ) : viewMode !== 'equipped' ? (
               <button
                 onClick={handleAddSecondInstance}
                 disabled={isSaving}
@@ -334,7 +341,7 @@ export default function ModuleDetailModal({
               >
                 <Plus size={13} /> 2호기 추가
               </button>
-            )}
+            ) : null}
           </div>
 
           {/* 장착 상태 인디케이터 */}
@@ -348,34 +355,36 @@ export default function ModuleDetailModal({
         {/* 모달 본문 */}
         <div className={`flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
           
-          {/* 1. 등급 선택 섹션 */}
-          <div className="space-y-2">
-             <label className="text-sm font-bold text-slate-400">
-               Module Rarity (#{selectedInstanceId})
-             </label>
-             <div className="grid grid-cols-4 gap-2">
-                {[RARITY.EPIC, RARITY.LEGENDARY, RARITY.MYTHIC, RARITY.ANCESTRAL].map((r) => {
-                  const rInfo = RARITIES[r];
-                  const isSelected = rarity === r;
-                  return (
-                    <button
-                      key={r}
-                      onClick={() => setRarity(r)}
-                      disabled={isSaving}
-                      className={`
-                        py-2 px-1 rounded-lg border text-xs font-bold transition-all
-                        ${isSelected 
-                          ? `${rInfo.bg} ${rInfo.border} ${rInfo.color} ring-1 ring-current` 
-                          : 'bg-slate-900 border-slate-700 text-slate-500 hover:bg-slate-800'
-                        }
-                      `}
-                    >
-                      {rInfo.label}
-                    </button>
-                  );
-                })}
-             </div>
-          </div>
+          {/* 1. 등급 선택 섹션 (인벤토리 모드에서만 변경 가능) */}
+          {viewMode !== 'equipped' && (
+            <div className="space-y-2">
+               <label className="text-sm font-bold text-slate-400">
+                 Module Rarity (#{selectedInstanceId})
+               </label>
+               <div className="grid grid-cols-4 gap-2">
+                  {[RARITY.EPIC, RARITY.LEGENDARY, RARITY.MYTHIC, RARITY.ANCESTRAL].map((r) => {
+                    const rInfo = RARITIES[r];
+                    const isSelected = rarity === r;
+                    return (
+                      <button
+                        key={r}
+                        onClick={() => setRarity(r)}
+                        disabled={isSaving}
+                        className={`
+                          py-2 px-1 rounded-lg border text-xs font-bold transition-all
+                          ${isSelected 
+                            ? `${rInfo.bg} ${rInfo.border} ${rInfo.color} ring-1 ring-current` 
+                            : 'bg-slate-900 border-slate-700 text-slate-500 hover:bg-slate-800'
+                          }
+                        `}
+                      >
+                        {rInfo.label}
+                      </button>
+                    );
+                  })}
+               </div>
+            </div>
+          )}
 
           {/* 2. 부옵션 편집 섹션 */}
           <div className="space-y-2">
@@ -401,22 +410,24 @@ export default function ModuleDetailModal({
         {/* 푸터 액션 영역 */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/30 rounded-b-2xl flex justify-between items-center gap-4 shrink-0">
           
-          {/* 삭제 버튼 */}
-          <button 
-             onClick={() => { 
-               if(confirm(selectedInstanceId === 2 ? '2호기를 삭제하시겠습니까?' : '이 모듈을 완전히 삭제하시겠습니까?')) {
-                 if (selectedInstanceId === 2) {
-                   handleDeleteSecondInstance();
-                 } else {
-                   onDelete();
+          {/* 삭제 버튼 (인벤토리 모드에서만 표시) */}
+          {viewMode !== 'equipped' ? (
+            <button 
+               onClick={() => { 
+                 if(confirm(selectedInstanceId === 2 ? '2호기를 삭제하시겠습니까?' : '이 모듈을 완전히 삭제하시겠습니까?')) {
+                   if (selectedInstanceId === 2) {
+                     handleDeleteSecondInstance();
+                   } else {
+                     onDelete();
+                   }
                  }
-               }
-             }}
-             disabled={isSaving}
-             className="flex items-center gap-2 px-4 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
-          >
-            <Trash2 size={16} /> {selectedInstanceId === 2 ? 'Delete #2' : 'Delete'}
-          </button>
+               }}
+               disabled={isSaving}
+               className="flex items-center gap-2 px-4 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={16} /> {selectedInstanceId === 2 ? 'Delete #2' : 'Delete'}
+            </button>
+          ) : <div />}
 
           <div className={`flex items-center gap-3 ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
             {/* 메인 슬롯 장착/해제 */}

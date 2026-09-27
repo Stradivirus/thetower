@@ -97,27 +97,73 @@ const getExistingModuleData = (moduleName: string, modulesState: any, presetsSta
 };
 
 /** 
- * [헬퍼] 클라이언트의 모듈 상태를 서버 저장용 JSON 포맷으로 변환합니다.
+ * [헬퍼] 클라이언트의 모듈 상태를 서버 저장용 JSON 포맷으로 안전하게 정제 및 변환합니다.
  */
 const generateSavePayload = (modulesData: any, activePresetId?: number, presets?: ModulePresetsMap) => {
   const inventory_json: Record<string, any> = {};
   const equipped_json: Record<string, any> = {};
 
-  Object.entries(modulesData).forEach(([key, value]: [string, any]) => {
-      if (key.startsWith('equipped_')) {
-          equipped_json[key] = value;
-      } else if (key.startsWith('owned_')) {
-          const realName = key.replace('owned_', '');
-          if (typeof value === 'number') {
-            inventory_json[realName] = { rarity: value, effects: [] };
-          } else {
-            inventory_json[realName] = value;
-          }
+  Object.entries(modulesData || {}).forEach(([key, value]: [string, any]) => {
+    if (key.startsWith('equipped_')) {
+      if (value && typeof value === 'object' && value.name) {
+        equipped_json[key] = {
+          name: value.name,
+          instanceId: value.instanceId || 1,
+          rarity: typeof value.rarity === 'number' ? value.rarity : 5,
+          effects: Array.isArray(value.effects) ? value.effects.filter((e: any) => typeof e === 'string' && e.trim() !== '') : []
+        };
       }
+    } else if (key.startsWith('owned_')) {
+      const realName = key.replace('owned_', '');
+      if (typeof value === 'number') {
+        inventory_json[realName] = { rarity: value, effects: [] };
+      } else if (value && typeof value === 'object') {
+        const cleanInstances: Record<string, any> = {};
+        if (value.instances && typeof value.instances === 'object') {
+          Object.entries(value.instances).forEach(([instId, inst]: [string, any]) => {
+            if (inst && typeof inst === 'object') {
+              cleanInstances[instId] = {
+                rarity: typeof inst.rarity === 'number' ? inst.rarity : (typeof value.rarity === 'number' ? value.rarity : 5),
+                effects: Array.isArray(inst.effects) ? inst.effects.filter((e: any) => typeof e === 'string' && e.trim() !== '') : []
+              };
+            }
+          });
+        }
+        inventory_json[realName] = {
+          rarity: typeof value.rarity === 'number' ? value.rarity : 5,
+          effects: Array.isArray(value.effects) ? value.effects.filter((e: any) => typeof e === 'string' && e.trim() !== '') : [],
+          ...(Object.keys(cleanInstances).length > 0 ? { instances: cleanInstances } : {})
+        };
+      }
+    }
   });
 
-  const finalActivePreset = activePresetId !== undefined ? activePresetId : (modulesData.active_preset || 1);
-  const finalPresets = presets !== undefined ? presets : (modulesData.presets || {});
+  const finalActivePreset = activePresetId !== undefined ? activePresetId : (modulesData?.active_preset || 1);
+  const sourcePresets = presets !== undefined ? presets : (modulesData?.presets || {});
+  
+  const finalPresets: ModulePresetsMap = {};
+  for (let i = 1; i <= 5; i++) {
+    const idStr = i.toString();
+    const p = sourcePresets[idStr];
+    const cleanSlots: Record<string, any> = {};
+    if (p?.slots && typeof p.slots === 'object') {
+      Object.entries(p.slots).forEach(([sKey, sVal]: [string, any]) => {
+        if (sVal && typeof sVal === 'object' && sVal.name) {
+          cleanSlots[sKey] = {
+            name: sVal.name,
+            instanceId: sVal.instanceId || 1,
+            rarity: typeof sVal.rarity === 'number' ? sVal.rarity : 5,
+            effects: Array.isArray(sVal.effects) ? sVal.effects.filter((e: any) => typeof e === 'string' && e.trim() !== '') : []
+          };
+        }
+      });
+    }
+    finalPresets[idStr] = {
+      id: i,
+      name: p?.name || `Preset ${i}`,
+      slots: cleanSlots
+    };
+  }
 
   equipped_json['active_preset'] = finalActivePreset;
   equipped_json['presets'] = finalPresets;
@@ -226,7 +272,6 @@ export default function ModulesInfoPage() {
           const payload = generateSavePayload(modules, activePresetId, presets);
           await saveModules(payload);
           
-          localStorage.setItem('thetower_modules', JSON.stringify(modules));
           setIsChanged(false);
           setIsSummaryOpen(true); 
       } catch (e) { 
@@ -243,7 +288,7 @@ export default function ModulesInfoPage() {
   /** 
    * [프리셋 전환] 다른 프리셋으로 전환합니다. 
    * 현재 활성 프리셋의 슬롯들을 저장하고, 대상 프리셋의 슬롯들을 적용합니다.
-   * 프리셋만 바꾸는 경우 별도의 저장 경고(*)를 띄우지 않고 조용히 동기화합니다.
+   * 로그인된 경우 서버에도 조용히 활성 프리셋 상태를 동기화합니다.
    */
   const handleSelectPreset = async (targetId: number) => {
     if (targetId === activePresetId) return;
@@ -281,10 +326,16 @@ export default function ModulesInfoPage() {
     setModules(newState);
     setActivePresetId(targetId);
     setPresets(updatedPresets);
-    
-    // 프리셋만 전환하는 경우 별도의 저장 경고(*)를 띄우지 않고 로컬 상태만 갱신
     setIsChanged(false);
-    localStorage.setItem('thetower_modules', JSON.stringify(newState));
+
+    if (token) {
+      try {
+        const payload = generateSavePayload(newState, targetId, updatedPresets);
+        await saveModules(payload);
+      } catch (e) {
+        console.warn("Silent preset save failed:", e);
+      }
+    }
   };
 
   /** 
@@ -407,7 +458,6 @@ export default function ModulesInfoPage() {
 
       setModules(newState);
       setPresets(updatedPresets);
-      localStorage.setItem('thetower_modules', JSON.stringify(newState));
       setDetailModal(prev => ({ ...prev, data: updatedOwned, isOpen: false }));
       
     } catch (e: any) {
@@ -457,7 +507,6 @@ export default function ModulesInfoPage() {
 
         setPresets(updatedPresets);
         setModules(newState);
-        localStorage.setItem('thetower_modules', JSON.stringify(newState));
         setIsChanged(false);
         setDetailModal(prev => ({ ...prev, isOpen: false }));
       } catch (e: any) {
@@ -550,7 +599,6 @@ export default function ModulesInfoPage() {
 
         setPresets(updatedPresets);
         setModules(newState);
-        localStorage.setItem('thetower_modules', JSON.stringify(newState));
         setIsChanged(false);
         setDetailModal(prev => ({ ...prev, isOpen: false }));
       } catch (e: any) {
@@ -603,7 +651,6 @@ export default function ModulesInfoPage() {
 
         setPresets(updatedPresets);
         setModules(newState);
-        localStorage.setItem('thetower_modules', JSON.stringify(newState));
         setIsChanged(false);
         setDetailModal(prev => ({ ...prev, isOpen: false }));
       } catch (e: any) {
@@ -718,6 +765,7 @@ export default function ModulesInfoPage() {
         equipStatus={getEquipStatus()}
         equippedInstanceId={getEquippedInstanceId()}
         isSaving={isSaving} 
+        viewMode={viewMode === 'equipped' ? 'equipped' : 'inventory'}
       />
     </div>
   );

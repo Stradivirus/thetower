@@ -60,7 +60,6 @@ export default function SummaryModules() {
     newState.presets = updatedPresets;
 
     setModules(newState);
-    localStorage.setItem('thetower_modules', JSON.stringify(newState));
   };
 
   // 슬롯 ID와 연구 키 매핑 테이블
