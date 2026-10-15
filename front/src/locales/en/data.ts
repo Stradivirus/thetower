@@ -59,7 +59,8 @@ export const DATA = {
       "펄서 수확기": { name: "Pulsar Harvester", desc: "Each time a projectile hits an enemy, there is a 1/1.5/2/2.5% chance that it will reduce the enemy's Health and Attack Level by 1" },
       "블랙홀 소화기": { name: "Black Hole Digestor", desc: "Temporarily get 3/5/7/10% extra Coins / Kill Bonus for each free upgrade you got on the current wave. Free Upgrades can not increase Tower Range" },
       "프로젝트 자금": { name: "Project Funding", desc: "Tower damage is multiplied by 12.5/25/50/100% of the number of digits in your current cash" },
-      "회복 보너스": { name: "Restorative Bonus", desc: "Packages grant a 50% attack speed boost for 15/20/25/30s, decaying for 60 seconds" }
+      "회복 보너스": { name: "Restorative Bonus", desc: "Packages grant a 50% attack speed boost for 15/20/25/30s, decaying for 60 seconds" },
+      "무한대 임계값": { name: "Infinity Threshold", desc: "Free Upgrades to Damage, Health, and Health Regen may exceed the in-run limit by 1000/2000/3000/4000 levels" }
     },
     core: {
       "Om 칩": { name: "Om Chip", desc: "Spotlight will rotate to focus a boss. Bosses reflect the light around it to nearby enemies, increasing by x2/4/7/15 the damage they receive" },
@@ -67,7 +68,8 @@ export const DATA = {
       "차원 코어": { name: "Dimension Core", desc: "Chain Lightning has 60% chance of hitting the initial target. Shock chance and multiplier is doubled. If the shock is applied to the same enemy the shock multiplier will add up to a max stack of 5/10/15/20" },
       "멀티버스 넥서스": { name: "Multiverse Nexus", desc: "Death Wave, Golden Tower and Black Hole will always activate at the same time, but the cooldown will be the average of those +20/+10/+1/-10s" },
       "자석 후크": { name: "Magnetic Hook", desc: "1/2/3/4 Inner Land Mines are fired at Bosses as they enter Tower range. 25% of Elites have Inner Land Mines fired at them as they enter Tower range" },
-      "원시 붕괴": { name: "Primordial Collapse", desc: "Spawns one additional Black Hole. Damage from enemies within a Black Hole is decreased by 60/65/75/90%" }
+      "원시 붕괴": { name: "Primordial Collapse", desc: "Spawns one additional Black Hole. Damage from enemies within a Black Hole is decreased by 60/65/75/90%" },
+      "전술 탄막": { name: "Tactical Barrage", desc: "Doubles Smart Missile's Radius and Amplifier lab bonuses. Fires a Homing Missile every 14/10/6/2s, targeting the enemy with highest missile stack and focusing active Smart Missiles to the new target." }
     }
   },
 
