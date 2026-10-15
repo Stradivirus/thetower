@@ -34,6 +34,7 @@ export default function UwCostTable({
     .map((cost, idx) => ({ cost, level: idx + 1 }))
     .filter(item => item.level > unlockedCount);
     
+  const spentCost = costs.slice(0, unlockedCount).reduce((acc, cur) => acc + cur, 0);
   const totalRemaining = remainingData.reduce((acc, cur) => acc + cur.cost, 0);
 
   return (
@@ -49,7 +50,12 @@ export default function UwCostTable({
 
       {/* 테이블 헤더: 제목 및 리셋 버튼 */}
       <div className={styles.uwHeader}>
-        <span>{title}</span>
+        <div className="flex items-center gap-2">
+          <span>{title}</span>
+          <span className="text-xs font-mono font-bold text-yellow-400">
+            {formatNum(spentCost)}
+          </span>
+        </div>
         {unlockedCount > 0 && !isLocked && (
           <ResetButton onClick={(e) => { e.stopPropagation(); onReset(type); }} />
         )}

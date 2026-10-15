@@ -10,6 +10,7 @@ import labConfig from '../../data/uw_lab_config.json';
 import { stoneStyles as styles, formatNum, ResetButton } from './StoneShared';
 import { ToggleLeft, ToggleRight, FlaskConical, Lock } from 'lucide-react'; 
 import { T } from '../../locales';
+import { calculateUwStones } from '../../utils/stoneCalculations';
 
 interface Props {
   category: 'base' | 'plus';
@@ -142,35 +143,51 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
       <div className="mb-6 pb-2 scrollbar-hide sticky top-16 bg-slate-950/95 z-10 pt-2">
         {/* 모바일: 줄바꿈 적용 */}
         <div className="md:hidden flex flex-wrap gap-2">
-          {availableUwKeys.map((uwKey) => (
-            <button
-              key={uwKey}
-              onClick={() => onSelectUw(uwKey)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all border ${
-                selectedUw === uwKey 
-                  ? 'bg-slate-800 text-white border-green-500 shadow-sm' 
-                  : 'bg-slate-900 text-white border-slate-700 hover:border-slate-500 hover:bg-slate-800'
-              }`}
-            >
-              {getUwDisplayName(uwKey)}
-            </button>
-          ))}
+          {availableUwKeys.map((uwKey) => {
+            const uwStones = calculateUwStones(progress, uwKey, category);
+            return (
+              <button
+                key={uwKey}
+                onClick={() => onSelectUw(uwKey)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex flex-col items-center justify-center min-w-[70px] ${
+                  selectedUw === uwKey 
+                    ? 'bg-slate-800 text-white border-green-500 shadow-sm ring-1 ring-green-500/30' 
+                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500 hover:bg-slate-800'
+                }`}
+              >
+                <span className="whitespace-nowrap">{getUwDisplayName(uwKey)}</span>
+                <span className={`text-xs font-mono font-bold leading-tight mt-0.5 ${
+                  selectedUw === uwKey ? 'text-yellow-400' : 'text-slate-400'
+                }`}>
+                  {formatNum(uwStones)}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        {/* 데스크톱: 기존대로 스크롤 적용 */}
+        {/* 데스크톱: 스크롤 적용 */}
         <div className="hidden md:flex gap-2 overflow-x-auto">
-          {availableUwKeys.map((uwKey) => (
-            <button
-              key={uwKey}
-              onClick={() => onSelectUw(uwKey)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
-                selectedUw === uwKey 
-                  ? 'bg-slate-800 text-white border-green-500 shadow-sm' 
-                  : 'bg-slate-900 text-white border-slate-700 hover:border-slate-500 hover:bg-slate-800'
-              }`}
-            >
-              {getUwDisplayName(uwKey)}
-            </button>
-          ))}
+          {availableUwKeys.map((uwKey) => {
+            const uwStones = calculateUwStones(progress, uwKey, category);
+            return (
+              <button
+                key={uwKey}
+                onClick={() => onSelectUw(uwKey)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border flex flex-col items-center justify-center min-w-[76px] ${
+                  selectedUw === uwKey 
+                    ? 'bg-slate-800 text-white border-green-500 shadow-sm ring-1 ring-green-500/30' 
+                    : 'bg-slate-900 text-slate-300 border-slate-700 hover:border-slate-500 hover:bg-slate-800'
+                }`}
+              >
+                <span className="whitespace-nowrap">{getUwDisplayName(uwKey)}</span>
+                <span className={`text-xs font-mono font-bold leading-tight mt-0.5 ${
+                  selectedUw === uwKey ? 'text-yellow-400' : 'text-slate-400'
+                }`}>
+                  {formatNum(uwStones)}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

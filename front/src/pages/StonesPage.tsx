@@ -32,6 +32,7 @@ export default function StonesPage({ token }: Props) {
   const {
     progress,
     totalStonesUsed,
+    tabStonesUsed,
     isSaving,
     isProgressChanged,
     updateProgress,
@@ -110,17 +111,23 @@ export default function StonesPage({ token }: Props) {
             {/* 1행: Unlock */}
             <button 
               onClick={() => setActiveTab('unlock')} 
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'unlock' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${activeTab === 'unlock' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
             >
-              <Lock size={14}/> Unlock
+              <span className="flex items-center gap-1.5 text-xs font-medium"><Lock size={13}/> Unlock</span>
+              <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'unlock' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                {formatNum(tabStonesUsed['unlock'] || 0)}
+              </span>
             </button>
             {/* 2행: Base Stats, UW+ Stats */}
             <div className="flex gap-1">
               <button 
                 onClick={() => setActiveTab('base')} 
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'base' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+                className={`flex-1 px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${activeTab === 'base' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
               >
-                <Zap size={14}/> Base Stats
+                <span className="flex items-center gap-1.5 text-xs font-medium"><Zap size={13}/> Base Stats</span>
+                <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'base' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                  {formatNum(tabStonesUsed['base'] || 0)}
+                </span>
               </button>
               <button 
                 onClick={() => {
@@ -128,7 +135,7 @@ export default function StonesPage({ token }: Props) {
                 }} 
                 disabled={!isAllBaseUnlocked}
                 title={!isAllBaseUnlocked ? `Requires all Ultimate Weapons (${unlockedBaseCount}/${allWeaponKeys.length})` : undefined}
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                className={`flex-1 px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${
                   !isAllBaseUnlocked
                     ? 'opacity-40 cursor-not-allowed text-slate-600 border border-slate-800/80'
                     : activeTab === 'plus' 
@@ -136,31 +143,41 @@ export default function StonesPage({ token }: Props) {
                       : 'text-slate-400 hover:text-white'
                 }`}
               >
-                {!isAllBaseUnlocked ? <Lock size={14} /> : <PlusCircle size={14}/>} UW+ Stats
+                <span className="flex items-center gap-1.5 text-xs font-medium">{!isAllBaseUnlocked ? <Lock size={13} /> : <PlusCircle size={13}/>} UW+ Stats</span>
+                <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'plus' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                  {formatNum(tabStonesUsed['plus'] || 0)}
+                </span>
               </button>
             </div>
             {/* 3행: Cards, Modules */}
             <div className="flex gap-1">
               <button 
                 onClick={() => setActiveTab('card')} 
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'card' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+                className={`flex-1 px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${activeTab === 'card' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
               >
-                <Layers size={14}/> Cards
+                <span className="flex items-center gap-1.5 text-xs font-medium"><Layers size={13}/> Cards</span>
+                <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'card' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                  {formatNum(tabStonesUsed['card'] || 0)}
+                </span>
               </button>
               <button 
                 onClick={() => setActiveTab('module')} 
-                className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${activeTab === 'module' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
+                className={`flex-1 px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${activeTab === 'module' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
               >
-                <Box size={14}/> Modules
+                <span className="flex items-center gap-1.5 text-xs font-medium"><Box size={13}/> Modules</span>
+                <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'module' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                  {formatNum(tabStonesUsed['module'] || 0)}
+                </span>
               </button>
             </div>
           </div>
 
           {/* 데스크톱 탭 레이아웃 (1행) */}
-          <div className="hidden md:flex flex-wrap gap-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-1 justify-start">
+          <div className="hidden md:flex flex-wrap gap-1.5 bg-slate-900/80 p-1 rounded-xl border border-slate-800 flex-1 justify-start">
             {tabs.map(tab => {
               const isTabDisabled = tab.id === 'plus' && !isAllBaseUnlocked;
               const Icon = isTabDisabled ? Lock : tab.icon;
+              const stones = tabStonesUsed[tab.id] || 0;
 
               return (
                 <button 
@@ -169,8 +186,8 @@ export default function StonesPage({ token }: Props) {
                     if (!isTabDisabled) setActiveTab(tab.id as TabType);
                   }} 
                   disabled={isTabDisabled}
-                  title={isTabDisabled ? `Requires all Ultimate Weapons (${unlockedBaseCount}/${allWeaponKeys.length})` : undefined}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 flex-none ${
+                  title={isTabDisabled ? `Requires all Ultimate Weapons (${unlockedBaseCount}/${allWeaponKeys.length})` : `${tab.label}: ${formatNum(stones)} Stones`}
+                  className={`px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 flex-none min-w-[80px] ${
                     isTabDisabled
                       ? 'opacity-40 cursor-not-allowed text-slate-600 border border-slate-800/80'
                       : activeTab === tab.id
@@ -178,7 +195,17 @@ export default function StonesPage({ token }: Props) {
                         : 'text-slate-400 hover:text-white'
                   }`}
                 >
-                  <Icon size={14}/> {tab.label}
+                  <div className="flex items-center gap-1.5 text-xs font-medium">
+                    <Icon size={13}/> 
+                    <span>{tab.label}</span>
+                  </div>
+                  <span className={`text-xs font-mono font-bold leading-tight ${
+                    activeTab === tab.id
+                      ? 'text-yellow-400'
+                      : 'text-slate-400'
+                  }`}>
+                    {formatNum(stones)}
+                  </span>
                 </button>
               );
             })}

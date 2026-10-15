@@ -38,13 +38,25 @@ export default function ModuleUnlockTable({ progress, onUpgrade, onReset }: Prop
     return acc + remainingCost;
   }, 0);
 
+  /** 전체 모듈 슬롯의 소모 비용 총합을 계산합니다. */
+  const moduleTotalSpent = moduleSlots.reduce((acc, mod) => {
+    const currentLevel = progress[`module_unlock_${mod.id}`] || 0;
+    const spentCost = moduleRarities.slice(0, currentLevel).reduce((sum, r) => sum + r.nextCost, 0);
+    return acc + spentCost;
+  }, 0);
+
   const isAnyModuleUnlocked = moduleSlots.some(mod => (progress[`module_unlock_${mod.id}`] || 0) > 0);
 
   return (
     <div className={styles.card + " h-fit"}>
       {/* 테이블 헤더: 제목 및 초기화 버튼 */}
       <div className={styles.uwHeader}>
-        <span>Module Slots</span>
+        <div className="flex items-center gap-2">
+          <span>Module Slots</span>
+          <span className="text-xs font-mono font-bold text-yellow-400">
+            {formatNum(moduleTotalSpent)}
+          </span>
+        </div>
         {isAnyModuleUnlocked && (
           <ResetButton onClick={(e) => { e.stopPropagation(); onReset(); }} />
         )}

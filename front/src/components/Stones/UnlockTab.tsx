@@ -12,6 +12,7 @@ import WeaponSelectModal from './Unlock/WeaponSelectModal';
 import UwCostTable from './Unlock/UwCostTable';       
 import ModuleUnlockTable from './Unlock/ModuleUnlockTable'; 
 import BotUnlockTable from './Unlock/BotUnlockTable'; 
+import { formatNum } from './StoneShared'; 
 
 interface Props {
   progress: Record<string, any>;
@@ -133,10 +134,13 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
       {/* 9종 모두 해금 시 리셋 가능한 콤팩트 링크 */}
       {isAllBaseUnlocked && (
         <div className="flex justify-between items-center mb-4 px-3 py-2 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-400">
-          <span className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-            <span>All Ultimate Weapons Unlocked ({unlockedBase.length}/{allWeaponKeys.length})</span>
-          </span>
+            <span className="font-medium text-slate-300">All Ultimate Weapons Unlocked ({unlockedBase.length}/{allWeaponKeys.length})</span>
+            <span className="text-xs font-mono font-bold text-yellow-400 ml-1">
+              {formatNum(unlockCosts.unlock_costs.slice(0, unlockedBase.length).reduce((a, b) => a + b, 0))}
+            </span>
+          </div>
           <button
             onClick={() => handleReset('base')}
             className="text-xs text-slate-500 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"

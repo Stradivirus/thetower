@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Sword, Shield, Zap, Box, Disc, Star, Lock } from 'lucide-react';
 import moduleCosts from '../../data/module_costs.json';
 import { stoneStyles as styles, formatNum, ResetButton } from './StoneShared';
+import { calculateModuleSlotEfficiencyStones } from '../../utils/stoneCalculations';
 
 interface Props {
   progress: Record<string, any>;
@@ -59,13 +60,14 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
       <div className="flex flex-wrap justify-center gap-3 mb-4 w-full max-w-3xl">
         {moduleTypes.map((type) => {
           const typeUnlocked = progress[`module_unlock_${type.id}`] >= 1;
+          const slotStones = calculateModuleSlotEfficiencyStones(progress, type.id);
           
           return (
             <button
               key={type.id}
               onClick={() => setSelectedType(type.id)}
               className={`
-                flex items-center gap-2 px-4 py-3 rounded-xl border transition-all flex-1 min-w-[140px] justify-center relative overflow-hidden
+                flex flex-col items-center justify-center gap-0.5 px-4 py-2.5 rounded-xl border transition-all flex-1 min-w-[140px] relative overflow-hidden
                 ${selectedType === type.id 
                   ? `bg-slate-800 ${type.border} ring-1 ring-offset-0 ring-offset-transparent ${type.color.replace('text-', 'ring-')}` 
                   : 'bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800'
@@ -80,9 +82,14 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
                 </div>
               )}
 
-              <type.icon size={18} className={selectedType === type.id ? type.color : 'text-slate-500'} />
-              <span className={`font-bold text-sm ${selectedType === type.id ? 'text-white' : ''}`}>
-                {type.label}
+              <div className="flex items-center gap-2">
+                <type.icon size={18} className={selectedType === type.id ? type.color : 'text-slate-500'} />
+                <span className={`font-bold text-sm ${selectedType === type.id ? 'text-white' : ''}`}>
+                  {type.label}
+                </span>
+              </div>
+              <span className={`text-xs font-mono font-bold leading-tight ${selectedType === type.id ? 'text-yellow-400' : 'text-slate-400'}`}>
+                {formatNum(slotStones)}
               </span>
             </button>
           );
@@ -91,23 +98,31 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
 
       {/* 2. 스탯 종류 선택 섹션 (슬롯이 해금된 경우에만 표시) */}
       {isUnlocked && (
-        <div className="flex justify-center bg-slate-900/50 p-1 rounded-xl border border-slate-800 mb-8 animate-fade-in">
-          {statTypes.map((stat) => (
-            <button
-              key={stat.id}
-              onClick={() => setSelectedStat(stat.id)}
-              className={`
-                flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all
-                ${selectedStat === stat.id 
-                  ? 'bg-slate-700 text-white shadow-sm' 
-                  : 'text-slate-500 hover:text-slate-300'
-                }
-              `}
-            >
-              <stat.icon size={14} />
-              {stat.label}
-            </button>
-          ))}
+        <div className="flex justify-center bg-slate-900/50 p-1 rounded-xl border border-slate-800 mb-8 animate-fade-in gap-1">
+          {statTypes.map((stat) => {
+            const statStones = calculateModuleSlotEfficiencyStones(progress, selectedType, stat.id);
+            return (
+              <button
+                key={stat.id}
+                onClick={() => setSelectedStat(stat.id)}
+                className={`
+                  flex flex-col items-center justify-center px-6 py-1.5 rounded-lg text-sm font-bold transition-all
+                  ${selectedStat === stat.id 
+                    ? 'bg-slate-700 text-white shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-300'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-1.5">
+                  <stat.icon size={14} />
+                  <span>{stat.label}</span>
+                </div>
+                <span className={`text-xs font-mono font-bold leading-tight mt-0.5 ${selectedStat === stat.id ? 'text-yellow-400' : 'text-slate-400'}`}>
+                  {formatNum(statStones)}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 

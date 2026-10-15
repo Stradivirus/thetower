@@ -28,13 +28,19 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
   // 진행도 데이터를 기반으로 완료/미완료 카드 필터링
   const completedCards = cards.filter(c => progress[`card_${c.name}`] === 1);
   const remainingCards = cards.filter(c => progress[`card_${c.name}`] !== 1);
+  const completedCost = completedCards.reduce((acc, c) => acc + c.cost, 0);
 
   return (
     <div className="animate-fade-in">
       <div className={styles.card}>
         {/* 섹션 헤더 */}
         <div className={styles.uwHeader}>
-          <span>Card Mastery Costs</span>
+          <div className="flex items-center gap-2">
+            <span>Card Mastery Costs</span>
+            <span className="text-xs font-mono font-bold text-yellow-400">
+              {formatNum(completedCost)}
+            </span>
+          </div>
           {completedCards.length > 0 && (
              <ResetButton onClick={(e) => { e.stopPropagation(); resetCards(); }} />
           )}

@@ -5,7 +5,7 @@
  */
 import { useState, useMemo, useEffect } from 'react';
 import { saveProgress } from '../api/progress';
-import { useTotalStones } from '../utils/stoneCalculations';
+import { useTotalStones, useTabStones } from '../utils/stoneCalculations';
 import { useGameData } from '../contexts/GameDataContext';
 
 /** 
@@ -26,8 +26,9 @@ export function useStonesData(token: string | null) {
     }
   }, [progress, lastSavedProgress]);
 
-  // 총 사용 스톤량 계산 (메모이제이션된 훅 사용)
+  // 총 사용 스톤량 및 탭별 사용 스톤량 계산 (메모이제이션된 훅 사용)
   const totalStonesUsed = useTotalStones(progress);
+  const tabStonesUsed = useTabStones(progress);
 
   /** 개별 항목의 진행도를 업데이트합니다. */
   const updateProgress = (key: string, value: any) => {
@@ -84,6 +85,7 @@ export function useStonesData(token: string | null) {
     progress,
     modulesState: modules,
     totalStonesUsed,
+    tabStonesUsed,
     isSaving,
     isProgressChanged,
     updateProgress,

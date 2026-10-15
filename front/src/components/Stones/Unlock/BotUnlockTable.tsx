@@ -78,7 +78,12 @@ export default function BotUnlockTable({ progress, updateProgress, updateBatch }
       {/* 1. Bot+ Unlock Costs 테이블 */}
       <div className={styles.card}>
         <div className={styles.uwHeader}>
-          <span>Bot+ Unlock Costs</span>
+          <div className="flex items-center gap-2">
+            <span>Bot+ Unlock Costs</span>
+            <span className="text-xs font-mono font-bold text-yellow-400">
+              {formatNum(unlockedBotsCount * 1250)}
+            </span>
+          </div>
           {isAnyBotUnlocked && (
             <ResetButton onClick={handleReset} />
           )}
@@ -127,7 +132,12 @@ export default function BotUnlockTable({ progress, updateProgress, updateBatch }
       {/* 2. Synchronicity Costs 테이블 (Requires all Bot+) */}
       <div className={`${styles.card} relative ${!allBotsUnlocked ? 'opacity-40' : ''}`}>
         <div className={styles.uwHeader}>
-          <span>Synchronicity Costs</span>
+          <div className="flex items-center gap-2">
+            <span>Synchronicity Costs</span>
+            <span className="text-xs font-mono font-bold text-yellow-400">
+              {formatNum(currentSynchLevel * 1500)}
+            </span>
+          </div>
         </div>
 
         {/* 미해금 시 블러 오버레이 */}
