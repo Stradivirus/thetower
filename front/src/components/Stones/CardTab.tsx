@@ -37,7 +37,7 @@ export default function CardTab({ progress, updateProgress, resetCards }: Props)
         <div className={styles.uwHeader}>
           <div className="flex items-center gap-2">
             <span>Card Mastery Costs</span>
-            <span className="text-xs font-mono font-bold text-yellow-400">
+            <span className="text-sm font-mono font-bold text-yellow-400">
               {formatNum(completedCost)}
             </span>
           </div>

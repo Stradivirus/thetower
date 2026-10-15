@@ -137,7 +137,7 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
             <span className="font-medium text-slate-300">All Ultimate Weapons Unlocked ({unlockedBase.length}/{allWeaponKeys.length})</span>
-            <span className="text-xs font-mono font-bold text-yellow-400 ml-1">
+            <span className="text-sm font-mono font-bold text-yellow-400 ml-1">
               {formatNum(unlockCosts.unlock_costs.slice(0, unlockedBase.length).reduce((a, b) => a + b, 0))}
             </span>
           </div>

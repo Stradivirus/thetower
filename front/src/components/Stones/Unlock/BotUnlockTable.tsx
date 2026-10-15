@@ -80,7 +80,7 @@ export default function BotUnlockTable({ progress, updateProgress, updateBatch }
         <div className={styles.uwHeader}>
           <div className="flex items-center gap-2">
             <span>Bot+ Unlock Costs</span>
-            <span className="text-xs font-mono font-bold text-yellow-400">
+            <span className="text-sm font-mono font-bold text-yellow-400">
               {formatNum(unlockedBotsCount * 1250)}
             </span>
           </div>
@@ -134,7 +134,7 @@ export default function BotUnlockTable({ progress, updateProgress, updateBatch }
         <div className={styles.uwHeader}>
           <div className="flex items-center gap-2">
             <span>Synchronicity Costs</span>
-            <span className="text-xs font-mono font-bold text-yellow-400">
+            <span className="text-sm font-mono font-bold text-yellow-400">
               {formatNum(currentSynchLevel * 1500)}
             </span>
           </div>

@@ -52,7 +52,7 @@ export default function UwCostTable({
       <div className={styles.uwHeader}>
         <div className="flex items-center gap-2">
           <span>{title}</span>
-          <span className="text-xs font-mono font-bold text-yellow-400">
+          <span className="text-sm font-mono font-bold text-yellow-400">
             {formatNum(spentCost)}
           </span>
         </div>

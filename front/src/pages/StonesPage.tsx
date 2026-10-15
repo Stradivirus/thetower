@@ -114,7 +114,7 @@ export default function StonesPage({ token }: Props) {
               className={`px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${activeTab === 'unlock' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
             >
               <span className="flex items-center gap-1.5 text-xs font-medium"><Lock size={13}/> Unlock</span>
-              <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'unlock' ? 'text-yellow-400' : 'text-slate-400'}`}>
+              <span className={`text-sm font-mono font-bold leading-tight ${activeTab === 'unlock' ? 'text-yellow-400' : 'text-slate-400'}`}>
                 {formatNum(tabStonesUsed['unlock'] || 0)}
               </span>
             </button>
@@ -125,7 +125,7 @@ export default function StonesPage({ token }: Props) {
                 className={`flex-1 px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${activeTab === 'base' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
               >
                 <span className="flex items-center gap-1.5 text-xs font-medium"><Zap size={13}/> Base Stats</span>
-                <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'base' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                <span className={`text-sm font-mono font-bold leading-tight ${activeTab === 'base' ? 'text-yellow-400' : 'text-slate-400'}`}>
                   {formatNum(tabStonesUsed['base'] || 0)}
                 </span>
               </button>
@@ -144,7 +144,7 @@ export default function StonesPage({ token }: Props) {
                 }`}
               >
                 <span className="flex items-center gap-1.5 text-xs font-medium">{!isAllBaseUnlocked ? <Lock size={13} /> : <PlusCircle size={13}/>} UW+ Stats</span>
-                <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'plus' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                <span className={`text-sm font-mono font-bold leading-tight ${activeTab === 'plus' ? 'text-yellow-400' : 'text-slate-400'}`}>
                   {formatNum(tabStonesUsed['plus'] || 0)}
                 </span>
               </button>
@@ -156,7 +156,7 @@ export default function StonesPage({ token }: Props) {
                 className={`flex-1 px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${activeTab === 'card' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
               >
                 <span className="flex items-center gap-1.5 text-xs font-medium"><Layers size={13}/> Cards</span>
-                <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'card' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                <span className={`text-sm font-mono font-bold leading-tight ${activeTab === 'card' ? 'text-yellow-400' : 'text-slate-400'}`}>
                   {formatNum(tabStonesUsed['card'] || 0)}
                 </span>
               </button>
@@ -165,7 +165,7 @@ export default function StonesPage({ token }: Props) {
                 className={`flex-1 px-3 py-1.5 rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${activeTab === 'module' ? 'bg-slate-800 text-white shadow-sm border border-slate-700' : 'text-slate-400 hover:text-white'}`}
               >
                 <span className="flex items-center gap-1.5 text-xs font-medium"><Box size={13}/> Modules</span>
-                <span className={`text-xs font-mono font-bold leading-tight ${activeTab === 'module' ? 'text-yellow-400' : 'text-slate-400'}`}>
+                <span className={`text-sm font-mono font-bold leading-tight ${activeTab === 'module' ? 'text-yellow-400' : 'text-slate-400'}`}>
                   {formatNum(tabStonesUsed['module'] || 0)}
                 </span>
               </button>
@@ -199,7 +199,7 @@ export default function StonesPage({ token }: Props) {
                     <Icon size={13}/> 
                     <span>{tab.label}</span>
                   </div>
-                  <span className={`text-xs font-mono font-bold leading-tight ${
+                  <span className={`text-sm font-mono font-bold leading-tight ${
                     activeTab === tab.id
                       ? 'text-yellow-400'
                       : 'text-slate-400'

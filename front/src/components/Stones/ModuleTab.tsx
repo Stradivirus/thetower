@@ -88,7 +88,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
                   {type.label}
                 </span>
               </div>
-              <span className={`text-xs font-mono font-bold leading-tight ${selectedType === type.id ? 'text-yellow-400' : 'text-slate-400'}`}>
+              <span className={`text-sm font-mono font-bold leading-tight ${selectedType === type.id ? 'text-yellow-400' : 'text-slate-400'}`}>
                 {formatNum(slotStones)}
               </span>
             </button>
@@ -117,7 +117,7 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
                   <stat.icon size={14} />
                   <span>{stat.label}</span>
                 </div>
-                <span className={`text-xs font-mono font-bold leading-tight mt-0.5 ${selectedStat === stat.id ? 'text-yellow-400' : 'text-slate-400'}`}>
+                <span className={`text-sm font-mono font-bold leading-tight mt-0.5 ${selectedStat === stat.id ? 'text-yellow-400' : 'text-slate-400'}`}>
                   {formatNum(statStones)}
                 </span>
               </button>
@@ -149,7 +149,12 @@ export default function ModuleTab({ progress, updateProgress }: Props) {
           
           {/* 해금된 상태에서 진행도가 있을 때만 리셋 버튼 노출 */}
           {isUnlocked && currentLevel > 0 && (
-            <ResetButton onClick={(e) => { e.stopPropagation(); updateProgress(currentKey, 0); }} />
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-mono font-bold text-yellow-400">
+                {formatNum(calculateModuleSlotEfficiencyStones(progress, selectedType, selectedStat))}
+              </span>
+              <ResetButton onClick={(e) => { e.stopPropagation(); updateProgress(currentKey, 0); }} />
+            </div>
           )}
         </div>
 

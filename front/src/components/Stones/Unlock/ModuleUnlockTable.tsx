@@ -53,7 +53,7 @@ export default function ModuleUnlockTable({ progress, onUpgrade, onReset }: Prop
       <div className={styles.uwHeader}>
         <div className="flex items-center gap-2">
           <span>Module Slots</span>
-          <span className="text-xs font-mono font-bold text-yellow-400">
+          <span className="text-sm font-mono font-bold text-yellow-400">
             {formatNum(moduleTotalSpent)}
           </span>
         </div>

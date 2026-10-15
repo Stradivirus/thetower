@@ -10,7 +10,7 @@ import labConfig from '../../data/uw_lab_config.json';
 import { stoneStyles as styles, formatNum, ResetButton } from './StoneShared';
 import { ToggleLeft, ToggleRight, FlaskConical, Lock } from 'lucide-react'; 
 import { T } from '../../locales';
-import { calculateUwStones } from '../../utils/stoneCalculations';
+import { calculateUwStones, sumCostsUpToLevel } from '../../utils/stoneCalculations';
 
 interface Props {
   category: 'base' | 'plus';
@@ -156,7 +156,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
                 }`}
               >
                 <span className="whitespace-nowrap">{getUwDisplayName(uwKey)}</span>
-                <span className={`text-xs font-mono font-bold leading-tight mt-0.5 ${
+                <span className={`text-sm font-mono font-bold leading-tight mt-0.5 ${
                   selectedUw === uwKey ? 'text-yellow-400' : 'text-slate-400'
                 }`}>
                   {formatNum(uwStones)}
@@ -180,7 +180,7 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
                 }`}
               >
                 <span className="whitespace-nowrap">{getUwDisplayName(uwKey)}</span>
-                <span className={`text-xs font-mono font-bold leading-tight mt-0.5 ${
+                <span className={`text-sm font-mono font-bold leading-tight mt-0.5 ${
                   selectedUw === uwKey ? 'text-yellow-400' : 'text-slate-400'
                 }`}>
                   {formatNum(uwStones)}
@@ -283,6 +283,12 @@ export default function UwStatsTab({ category, progress, updateProgress, selecte
                           {detail.values.length - 1}
                         </span>
                     </div>
+
+                    {currentLevel > 0 && detail.costs && (
+                      <span className="text-sm font-mono font-bold text-yellow-400">
+                        {formatNum(sumCostsUpToLevel(detail.costs, currentLevel))}
+                      </span>
+                    )}
 
                     {currentLevel > 0 && (
                       <ResetButton onClick={(e) => { e.stopPropagation(); updateProgress(key, 0); }} />

@@ -125,31 +125,26 @@ export function useTabStones(progress: Record<string, any>): Record<string, numb
     let card = 0;
     let module = 0;
 
-    // 1. UW Base & Plus Stats 누적 비용 계산
-    Object.entries(progress).forEach(([key, level]) => {
-      if (typeof level !== 'number' || level <= 0) return;
-
-      if (key.startsWith('base_')) {
-        const parts = key.split('_'); 
-        const statKey = parts[parts.length - 1]; 
-        const uwKeyParts = parts.slice(1, parts.length - 1); 
-        const uwKey = uwKeyParts.join('_'); 
-
-        const costs = uwStatsData[uwKey]?.[statKey]?.costs;
-        if (costs) {
-          base += sumCostsUpToLevel(costs, level); 
+    // 1. UW Base Stats 누적 비용 계산
+    Object.entries(baseStats as Record<string, any>).forEach(([uwKey, stats]) => {
+      Object.entries(stats as Record<string, any>).forEach(([statName, detail]) => {
+        const key = `base_${uwKey}_${statName}`;
+        const level = progress[key];
+        if (typeof level === 'number' && level > 0 && detail.costs) {
+          base += sumCostsUpToLevel(detail.costs, level);
         }
-      } else if (key.startsWith('plus_')) {
-        const parts = key.split('_'); 
-        const statKey = parts[parts.length - 1]; 
-        const uwKeyParts = parts.slice(1, parts.length - 1); 
-        const uwKey = uwKeyParts.join('_'); 
+      });
+    });
 
-        const costs = uwStatsData[uwKey]?.[statKey]?.costs;
-        if (costs) {
-          plus += sumCostsUpToLevel(costs, level); 
+    // 1.5. UW Plus Stats 누적 비용 계산
+    Object.entries(plusStats as Record<string, any>).forEach(([uwKey, stats]) => {
+      Object.entries(stats as Record<string, any>).forEach(([statName, detail]) => {
+        const key = `plus_${uwKey}_${statName}`;
+        const level = progress[key];
+        if (typeof level === 'number' && level > 0 && detail.costs) {
+          plus += sumCostsUpToLevel(detail.costs, level);
         }
-      }
+      });
     });
 
     // 2. 카드 마스터리 비용 합산
