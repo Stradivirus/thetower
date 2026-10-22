@@ -277,7 +277,7 @@ export function evaluateStonePlan(realProgress: Record<string, any>, plan: Stone
     let stepDesc = '';
     let valueDesc = '-';
 
-    // 1. UW Base / Plus 스탯
+    // 1. UW Base / Plus 스탯 (항상 +1 레벨씩 단일 단계로 평가)
     if (key.startsWith('base_') || key.startsWith('plus_')) {
       const isPlus = key.startsWith('plus_');
       const prefix = isPlus ? 'plus_' : 'base_';
@@ -289,9 +289,10 @@ export function evaluateStonePlan(realProgress: Record<string, any>, plan: Stone
         const statName = rest.slice(matchedUw.length + 1);
         const detail = statsSource[matchedUw]?.[statName];
         const fromLv = Number(simProgress[key] || 0);
-        const toLv = Number(targetValue || 0);
+        const maxLv = detail?.costs?.length || 0;
+        const toLv = fromLv + 1;
 
-        if (detail && toLv > fromLv) {
+        if (detail && toLv <= maxLv) {
           cost = sumCostsUpToLevel(detail.costs || [], toLv) - sumCostsUpToLevel(detail.costs || [], fromLv);
           categoryLabel = isPlus ? 'UW+' : 'Base UW';
           let statDispName = detail.name || statName;
@@ -349,15 +350,13 @@ export function evaluateStonePlan(realProgress: Record<string, any>, plan: Stone
         simProgress[key] = [...currentList, ...addedWeapons];
       }
     }
-    // 4. 모듈 슬롯 등급 해금
+    // 4. 모듈 슬롯 등급 해금 (항상 +1 등급씩 단일 단계로 평가)
     else if (key.startsWith('module_unlock_')) {
       const slotId = key.replace('module_unlock_', '');
       const fromLv = Number(simProgress[key] || 0);
-      const toLv = Number(targetValue || 0);
-      if (toLv > fromLv) {
-        for (let i = fromLv; i < toLv; i++) {
-          cost += MODULE_UNLOCK_COSTS[i] || 0;
-        }
+      const toLv = fromLv + 1;
+      if (toLv <= MODULE_UNLOCK_COSTS.length) {
+        cost = MODULE_UNLOCK_COSTS[fromLv] || 0;
         categoryLabel = 'Unlock';
         const slotLabel = slotId.charAt(0).toUpperCase() + slotId.slice(1);
         title = `${slotLabel} Module Slot`;
@@ -380,12 +379,12 @@ export function evaluateStonePlan(realProgress: Record<string, any>, plan: Stone
         simProgress[key] = 1;
       }
     }
-    // 6. Bot Synchronicity
+    // 6. Bot Synchronicity (항상 +1 레벨씩 단일 단계로 평가)
     else if (key === 'bot_synchronicity') {
       const fromLv = Number(simProgress[key] || 0);
-      const toLv = Number(targetValue || 0);
-      if (toLv > fromLv) {
-        cost = (toLv - fromLv) * 1500;
+      const toLv = fromLv + 1;
+      if (toLv <= 4) {
+        cost = 1500;
         categoryLabel = 'Unlock';
         title = 'Bot Synchronicity';
         stepDesc = `Lv.${fromLv} → Lv.${toLv}`;
@@ -393,14 +392,15 @@ export function evaluateStonePlan(realProgress: Record<string, any>, plan: Stone
         simProgress[key] = toLv;
       }
     }
-    // 7. 모듈 효율 강화 (module_{type}_{main|sub})
+    // 7. 모듈 효율 강화 (module_{type}_{main|sub}, 항상 +1 레벨씩 단일 단계로 평가)
     else if (key.startsWith('module_')) {
       const parts = key.split('_'); // ['module', slotId, statType]
       const slotId = parts[1] || '';
       const statType = parts[2] || 'main';
       const fromLv = Number(simProgress[key] || 0);
-      const toLv = Number(targetValue || 0);
-      if (toLv > fromLv) {
+      const maxAllowed = statType === 'sub' ? 70 : efficiencyCosts.length;
+      const toLv = fromLv + 1;
+      if (toLv <= maxAllowed) {
         cost = sumCostsUpToLevel(efficiencyCosts, toLv) - sumCostsUpToLevel(efficiencyCosts, fromLv);
         categoryLabel = 'Module';
         const slotLabel = slotId.charAt(0).toUpperCase() + slotId.slice(1);
