@@ -3,18 +3,12 @@
  * 용도: 개별 모듈의 상세 설정(등급 변경, 부옵션 편집, 장착/해제)을 위한 모달
  * 기능: 등급 선택기 제공, 슬롯별 부옵션 수동 선택 및 자동 잠금, 메인/어시스트 슬롯 장착 제어
  */
-import { useState, useEffect, useMemo } from 'react';
 import { X, Save, Trash2, Shield, Zap, Target, Cpu, Loader2, Plus } from 'lucide-react'; 
 import { RARITIES, RARITY } from './ModuleConstants';
-import { MODULE_TYPES } from '../../data/module_reroll_data'; 
-import SlotViewer, { type SimulationSlot } from './Reroll/SlotViewer';
+import SlotViewer from './Reroll/SlotViewer';
 import ManualSelectorModal from './Reroll/ManualSelectorModal';
 import useEscKey from '../../hooks/useEscKey';
-
-interface InstanceData {
-  rarity: number;
-  effects: string[];
-}
+import { useModuleDetailState, type InstanceData } from '../../hooks/useModuleDetailState';
 
 interface Props {
   isOpen: boolean;
@@ -47,218 +41,39 @@ export default function ModuleDetailModal({
   isSaving,
   viewMode = 'inventory'
 }: Props) {
-  
-  // 1호기 / 2호기 인스턴스 맵 초기화
-  const [instances, setInstances] = useState<Record<string, InstanceData>>({});
-  const [selectedInstanceId, setSelectedInstanceId] = useState<number>(1);
-
-  const [rarity, setRarity] = useState<number>(RARITY.ANCESTRAL);
-  const [effects, setEffects] = useState<(string | null)[]>([]);
-  
-  const [isSelectorOpen, setSelectorOpen] = useState(false);
-  const [selectedSlotIdx, setSelectedSlotIdx] = useState<number | null>(null);
-
-  // 모달 오픈 시 인스턴스 데이터 동기화
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const isDataObject = currentData && typeof currentData === 'object';
-    const initialR = isDataObject 
-      ? (typeof currentData.rarity === 'number' ? currentData.rarity : RARITY.ANCESTRAL)
-      : (typeof currentData === 'number' ? currentData : RARITY.ANCESTRAL);
-    const initialEff = (isDataObject && Array.isArray(currentData.effects)) ? currentData.effects : [];
-
-    const instMap: Record<string, InstanceData> = {};
-
-    if (isDataObject && currentData.instances && Object.keys(currentData.instances).length > 0) {
-      Object.entries(currentData.instances).forEach(([id, inst]: [string, any]) => {
-        instMap[id] = {
-          rarity: typeof inst.rarity === 'number' ? inst.rarity : initialR,
-          effects: Array.isArray(inst.effects) ? inst.effects : []
-        };
-      });
-    }
-
-    // 1호기가 누락되어 있다면 기본값 할당
-    if (!instMap["1"]) {
-      instMap["1"] = {
-        rarity: initialR,
-        effects: initialEff
-      };
-    }
-
-    setInstances(instMap);
-
-    // 기본 선택 호기: 현재 장착된 호기 또는 1호기
-    const initId = (equippedInstanceId && instMap[equippedInstanceId.toString()]) ? equippedInstanceId : 1;
-    setSelectedInstanceId(initId);
-
-    const activeInst = instMap[initId.toString()] || instMap["1"];
-    setRarity(activeInst.rarity);
-
-    const filled = Array(8).fill(null);
-    activeInst.effects.forEach((eff: string, idx: number) => {
-      if (idx < 8) filled[idx] = eff;
-    });
-    setEffects(filled);
-  }, [currentData, isOpen, equippedInstanceId]);
-
-  /** 호기 전환 핸들러 (1호기 <-> 2호기) */
-  const handleSwitchInstance = (targetId: number) => {
-    if (targetId === selectedInstanceId || isSaving) return;
-
-    // 현재 편집 중인 내용을 현재 호기에 임시 반영
-    const cleanEffects = effects.filter((e): e is string => e !== null);
-    const updatedInstances = {
-      ...instances,
-      [selectedInstanceId.toString()]: {
-        rarity,
-        effects: cleanEffects
-      }
-    };
-    setInstances(updatedInstances);
-
-    // 대상 호기 데이터 로드
-    const targetInst = updatedInstances[targetId.toString()] || { rarity: RARITY.ANCESTRAL, effects: [] };
-    setSelectedInstanceId(targetId);
-    setRarity(targetInst.rarity);
-
-    const filled = Array(8).fill(null);
-    targetInst.effects.forEach((eff: string, idx: number) => {
-      if (idx < 8) filled[idx] = eff;
-    });
-    setEffects(filled);
-  };
-
-  /** 2호기 생성 (1호기 옵션을 복사하여 생성) */
-  const handleAddSecondInstance = () => {
-    if (isSaving) return;
-    const cleanEffects = effects.filter((e): e is string => e !== null);
-    const updatedInstances = {
-      ...instances,
-      [selectedInstanceId.toString()]: {
-        rarity,
-        effects: cleanEffects
-      },
-      "2": {
-        rarity,
-        effects: [...cleanEffects]
-      }
-    };
-    setInstances(updatedInstances);
-    setSelectedInstanceId(2);
-  };
-
-  /** 2호기 삭제 */
-  const handleDeleteSecondInstance = () => {
-    if (isSaving) return;
-    if (!confirm('2호기를 삭제하시겠습니까?')) return;
-
-    const updatedInstances = { ...instances };
-    delete updatedInstances["2"];
-    setInstances(updatedInstances);
-
-    // 1호기로 복귀
-    setSelectedInstanceId(1);
-    const inst1 = updatedInstances["1"] || { rarity: RARITY.ANCESTRAL, effects: [] };
-    setRarity(inst1.rarity);
-    const filled = Array(8).fill(null);
-    inst1.effects.forEach((eff: string, idx: number) => {
-      if (idx < 8) filled[idx] = eff;
-    });
-    setEffects(filled);
-  };
+  const {
+    selectedInstanceId,
+    rarity,
+    setRarity,
+    effects,
+    isSelectorOpen,
+    setSelectorOpen,
+    availableEffects,
+    simulationSlots,
+    currentSelectedIds,
+    hasSecondInstance,
+    handleSwitchInstance,
+    handleAddSecondInstance,
+    handleDeleteSecondInstance,
+    handleSlotClick,
+    handleEffectSelect,
+    handleSave,
+  } = useModuleDetailState({
+    isOpen,
+    moduleType,
+    currentData,
+    equippedInstanceId,
+    isSaving,
+    onSave,
+  });
 
   // ESC 키 처리 (저장 중이 아닐 때만 닫기 허용)
   useEscKey(onClose, isOpen && !isSelectorOpen && !isSaving);
-
-  /** 현재 모듈 타입에 사용 가능한 부옵션 리스트를 가져옵니다. */
-  const availableEffects = useMemo(() => {
-    return MODULE_TYPES[moduleType] || [];
-  }, [moduleType]);
-
-  /** 
-   * 슬롯 뷰어 표시를 위해 현재 편집 중인 효과 데이터를 Slot 인터페이스에 맞게 가공합니다.
-   */
-  const simulationSlots: SimulationSlot[] = useMemo(() => {
-    return effects.map((effectId, idx) => {
-      if (!effectId) {
-        return { id: idx, effectId: null, rarity: 0, value: '-', unit: '', isLocked: false };
-      }
-      const effectData = availableEffects.find(e => e.id === effectId);
-      if (!effectData) {
-        return { id: idx, effectId: null, rarity: 0, value: 'Unknown', unit: '', isLocked: false };
-      }
-      
-      const val = effectData.values[rarity]; 
-      
-      return {
-        id: idx,
-        effectId: effectId,
-        rarity: rarity, 
-        value: val ?? '-',
-        unit: effectData.unit,
-        isLocked: false 
-      };
-    });
-  }, [effects, availableEffects, rarity]);
-
-  /** 슬롯 클릭 시 부옵션 수동 선택 모달을 엽니다. */
-  const handleSlotClick = (idx: number) => {
-    if (isSaving) return; 
-    setSelectedSlotIdx(idx);
-    setSelectorOpen(true);
-  };
-
-  /** 선택 모달에서 옵션을 골랐을 때 호출되는 콜백 */
-  const handleEffectSelect = (effectId: string) => {
-    if (selectedSlotIdx === null) return;
-    const newEffects = [...effects];
-    newEffects[selectedSlotIdx] = effectId && effectId.trim() !== '' ? effectId : null;
-    setEffects(newEffects);
-
-    // 인스턴스 맵에도 즉시 반영
-    const cleanEffects = newEffects.filter((e): e is string => e !== null);
-    setInstances(prev => ({
-      ...prev,
-      [selectedInstanceId.toString()]: {
-        rarity,
-        effects: cleanEffects
-      }
-    }));
-    setSelectorOpen(false);
-  };
-
-  /** 현재 편집된 내용을 부모 컴포넌트로 전달하여 저장합니다. */
-  const handleSave = () => {
-    if (isSaving) return; 
-    const cleanEffects = effects.filter((e): e is string => e !== null);
-    const updatedInstances = {
-      ...instances,
-      [selectedInstanceId.toString()]: {
-        rarity,
-        effects: cleanEffects
-      }
-    };
-    setInstances(updatedInstances);
-    onSave({
-      rarity,
-      effects: cleanEffects,
-      instanceId: selectedInstanceId,
-      instances: updatedInstances
-    });
-  };
 
   const Icon = moduleType === 'cannon' ? Target : 
                moduleType === 'armor' ? Shield : 
                moduleType === 'generator' ? Zap : Cpu;
 
-  // 현재 슬롯을 제외한 다른 슬롯에 이미 들어간 옵션만 중복 제외 목록으로 지정
-  const currentSelectedIds = useMemo(() => {
-    return effects.filter((e, idx): e is string => e !== null && idx !== selectedSlotIdx);
-  }, [effects, selectedSlotIdx]);
-
-  const hasSecondInstance = !!instances["2"];
   const isSelectedInstanceEquipped = equipStatus !== null && equippedInstanceId === selectedInstanceId;
 
   if (!isOpen) return null;

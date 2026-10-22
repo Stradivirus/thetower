@@ -5,7 +5,7 @@
  */
 import { ClipboardList, ArrowUp, ArrowDown, Check, Trash2, PlusCircle, RotateCcw, Save } from 'lucide-react';
 import { stoneStyles as styles, formatNum } from './StoneShared';
-import type { EvaluatedPlanItem } from '../../utils/stoneCalculations';
+import type { EvaluatedPlanItem } from '../../utils/stonePlanCalculations';
 import { useGameData } from '../../contexts/GameDataContext';
 
 interface Props {

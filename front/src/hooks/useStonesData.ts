@@ -5,7 +5,8 @@
  */
 import { useState, useMemo, useEffect } from 'react';
 import { saveProgress } from '../api/progress';
-import { useTotalStones, useTabStones, evaluateStonePlan, type StonePlanItem } from '../utils/stoneCalculations';
+import { useTotalStones, useTabStones } from '../utils/stoneCalculations';
+import { evaluateStonePlan, type StonePlanItem } from '../utils/stonePlanCalculations';
 import { useGameData } from '../contexts/GameDataContext';
 
 /** 
