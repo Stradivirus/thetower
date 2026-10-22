@@ -145,10 +145,11 @@ export function useStonesData(token: string | null) {
     syncProgress({ ...progress, stone_plan: nextPlan });
   };
 
-  /** 계획 항목 완료 처리: 실제 내 진행도(progress)에 반영하고 계획표에서 제거 */
-  const completePlanItem = (id: string) => {
-    const target = stonePlan.find(item => item.id === id);
-    if (!target) return;
+  /** 계획 항목 완료 처리: 실제 내 진행도(progress)에 반영, 계획표에서 제거 후 서버에 자동 저장 */
+  const completePlanItem = async (id: string) => {
+    const targetIdx = stonePlan.findIndex(item => item.id === id);
+    if (targetIdx === -1) return;
+    const target = stonePlan[targetIdx];
 
     const newProg: Record<string, any> = { ...progress };
 
@@ -160,18 +161,38 @@ export function useStonesData(token: string | null) {
       });
       newProg[target.key] = currentList;
       newProg['stone_plan'] = stonePlan.filter(item => item.id !== id);
+    } else if (target.key.startsWith('card_') || target.key.startsWith('bot_plus_')) {
+      newProg[target.key] = 1;
+      newProg['stone_plan'] = stonePlan.filter(item => item.id !== id);
     } else {
-      const targetVal = Number(target.targetValue || 0);
-      newProg[target.key] = Math.max(Number(newProg[target.key] || 0), targetVal);
-      // 동일 키에 대해 목표 레벨 이하인 하위 분할 계획들도 함께 완료 제거
-      newProg['stone_plan'] = stonePlan.filter(item => {
-        if (item.id === id) return false;
-        if (item.key === target.key && Number(item.targetValue || 0) <= targetVal) return false;
+      // 동일 키의 계획 단계 중 클릭한 행(targetIdx)까지 몇 단계가 포함되는지 계산하여 반영
+      let stepsCompleted = 0;
+      for (let i = 0; i <= targetIdx; i++) {
+        if (stonePlan[i].key === target.key) {
+          stepsCompleted++;
+        }
+      }
+      newProg[target.key] = Number(newProg[target.key] || 0) + stepsCompleted;
+      newProg['stone_plan'] = stonePlan.filter((item, idx) => {
+        if (item.key === target.key && idx <= targetIdx) return false;
         return true;
       });
     }
 
     syncProgress(newProg);
+
+    if (token) {
+      setIsSaving(true);
+      try {
+        await saveProgress(newProg);
+        setLastSavedProgress(newProg);
+      } catch (e) {
+        console.error("Auto-save on complete failed:", e);
+        alert("완료 처리 저장에 실패했습니다.");
+      } finally {
+        setIsSaving(false);
+      }
+    }
   };
 
   /** 계획표 전체 비우기 */
