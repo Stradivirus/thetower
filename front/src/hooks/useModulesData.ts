@@ -8,16 +8,19 @@ import { saveModules } from '../api/modules';
 import { useGameData } from '../contexts/GameDataContext';
 import type { ModulePresetsMap } from '../types/gameData';
 import {
-  EQUIPPED_SLOT_KEYS,
   SLOT_ID_MAP,
   getInitialPresets,
   getExistingModuleData,
   generateSavePayload,
+} from '../utils/moduleDataUtils';
+import {
+  backfillOwnedEffects,
+  computePresetSwitchState,
   computeModalSaveState,
   computeModalDeleteState,
   computeModalEquipState,
   computeModalUnequipState,
-} from '../utils/moduleDataUtils';
+} from '../utils/moduleStateMutations';
 
 export function useModulesData() {
   const [isChanged, setIsChanged] = useState(false); // 변경 사항 발생 여부
@@ -64,39 +67,7 @@ export function useModulesData() {
       const initialPresets = getInitialPresets(modules);
       setPresets(initialPresets);
 
-      // 기존 장착 슬롯 및 프리셋의 부옵션이 owned_*에 누락되어 있다면 자동 동기화
-      let hasOwnedBackfill = false;
-      const updatedModules = { ...modules };
-
-      // 1) 현재 슬롯들의 부옵션 보존
-      EQUIPPED_SLOT_KEYS.forEach(k => {
-        const eq = modules[k];
-        if (eq && eq.name) {
-          const ownedKey = `owned_${eq.name}`;
-          const currentOwned = modules[ownedKey];
-          if (!currentOwned || (typeof currentOwned === 'object' && (!currentOwned.effects || currentOwned.effects.length === 0) && eq.effects?.length > 0)) {
-            updatedModules[ownedKey] = { rarity: eq.rarity, effects: eq.effects || [] };
-            hasOwnedBackfill = true;
-          }
-        }
-      });
-
-      // 2) 프리셋 슬롯들의 부옵션 보존
-      Object.values(initialPresets).forEach(p => {
-        if (p?.slots) {
-          Object.values(p.slots).forEach((s: any) => {
-            if (s?.name && s.effects?.length > 0) {
-              const ownedKey = `owned_${s.name}`;
-              const currentOwned = updatedModules[ownedKey];
-              if (!currentOwned || (typeof currentOwned === 'object' && (!currentOwned.effects || currentOwned.effects.length === 0))) {
-                updatedModules[ownedKey] = { rarity: s.rarity, effects: s.effects || [] };
-                hasOwnedBackfill = true;
-              }
-            }
-          });
-        }
-      });
-
+      const { hasOwnedBackfill, updatedModules } = backfillOwnedEffects(modules, initialPresets);
       if (hasOwnedBackfill) {
         setModules(updatedModules);
       }
@@ -158,33 +129,12 @@ export function useModulesData() {
   const handleSelectPreset = async (targetId: number) => {
     if (targetId === activePresetId) return;
 
-    const currentSlots: Record<string, any> = {};
-    EQUIPPED_SLOT_KEYS.forEach(key => {
-      if (modules[key]) {
-        currentSlots[key] = modules[key];
-      }
-    });
-
-    const targetPreset = presets[targetId.toString()] || { id: targetId, name: `Preset ${targetId}`, slots: {} };
-    const updatedPresets = {
-      ...presets,
-      [activePresetId.toString()]: {
-        ...(presets[activePresetId.toString()] || { id: activePresetId, name: `Preset ${activePresetId}`, slots: {} }),
-        slots: currentSlots
-      }
-    };
-
-    const newState = { ...modules };
-    EQUIPPED_SLOT_KEYS.forEach(key => {
-      delete newState[key];
-    });
-
-    Object.entries(targetPreset.slots || {}).forEach(([key, val]) => {
-      newState[key] = val;
-    });
-
-    newState.active_preset = targetId;
-    newState.presets = updatedPresets;
+    const { newState, updatedPresets } = computePresetSwitchState(
+      modules,
+      presets,
+      activePresetId,
+      targetId
+    );
 
     setModules(newState);
     setActivePresetId(targetId);
