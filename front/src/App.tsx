@@ -135,6 +135,7 @@ export default function App() {
               <NavBar 
                 token={token} 
                 isGuest={isGuest}
+                isModalOpen={isReportModalOpen || isAuthModalOpen}
                 onLogout={handleLogout} 
                 onOpenAuth={() => setIsAuthModalOpen(true)}
                 onOpenReport={() => setIsReportModalOpen(true)}

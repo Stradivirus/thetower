@@ -3,6 +3,7 @@
  * 용도: 애플리케이션 상단 네비게이션 바
  * 기능: 페이지 이동 라우팅, 인증 상태 표시, 다국어 전환 버튼 및 리포트 추가 모달 트리거
  */
+import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, Box, Languages, Eye } from 'lucide-react';
 import { T, CURRENT_LANG, toggleLanguage } from '../../locales'; 
@@ -10,16 +11,48 @@ import { T, CURRENT_LANG, toggleLanguage } from '../../locales';
 interface NavBarProps {
   token: string | null;      // 인증 토큰 (로그인 여부 확인용)
   isGuest?: boolean;         // 비로그인 둘러보기 모드 여부
+  isModalOpen?: boolean;     // 모달 오픈 여부 (단축키 충돌 방지용)
   onLogout: () => void;      // 로그아웃 핸들러
   onOpenAuth: () => void;    // 로그인 모달 오픈 핸들러
   onOpenReport: () => void;  // 리포트 입력 모달 오픈 핸들러
 }
 
-export default function NavBar({ token, isGuest = false, onLogout, onOpenAuth, onOpenReport }: NavBarProps) {
+export default function NavBar({ token, isGuest = false, isModalOpen = false, onLogout, onOpenAuth, onOpenReport }: NavBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
   const Text = T.layout.NAV;
+
+  // 전역 네비게이션 및 액션 단축키 (Z: 기록실, X: 모듈, C: 스톤, V: 리포트 추가)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isModalOpen) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      const activeEl = document.activeElement as HTMLElement | null;
+      const activeTag = activeEl?.tagName;
+      if (activeTag === 'INPUT' || activeTag === 'TEXTAREA' || activeTag === 'SELECT' || activeEl?.isContentEditable) {
+        return;
+      }
+
+      if (e.code === 'KeyZ' || e.key === 'z' || e.key === 'Z' || e.key === 'ㅋ') {
+        e.preventDefault();
+        navigate('/history');
+      } else if (e.code === 'KeyX' || e.key === 'x' || e.key === 'X' || e.key === 'ㅌ') {
+        e.preventDefault();
+        navigate('/modules');
+      } else if (e.code === 'KeyC' || e.key === 'c' || e.key === 'C' || e.key === 'ㅊ') {
+        e.preventDefault();
+        navigate('/stones');
+      } else if ((e.code === 'KeyV' || e.key === 'v' || e.key === 'V' || e.key === 'ㅍ') && token) {
+        e.preventDefault();
+        onOpenReport();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, token, navigate, onOpenReport]);
 
   /** 
    * 현재 경로에 따라 활성화된 버튼 스타일을 반환합니다.
@@ -137,30 +170,50 @@ export default function NavBar({ token, isGuest = false, onLogout, onOpenAuth, o
           <button
             onClick={() => navigate('/history')}
             className={navBtnClass('/history', 'bg-purple-500/10 text-purple-400 border-purple-500/50')}
+            title={`${Text.HISTORY} (Z)`}
           >
-            <Archive size={16} /> <span className="hidden md:inline">{Text.HISTORY}</span>
+            <Archive size={16} />
+            <span className="hidden md:inline">{Text.HISTORY}</span>
+            <span className="hidden md:inline text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/70 text-slate-400 border border-slate-700/80 leading-none">
+              Z
+            </span>
           </button>
 
           <button
             onClick={() => navigate('/modules')}
             className={navBtnClass('/modules', 'bg-yellow-500/10 text-yellow-400 border-yellow-500/50')}
+            title={`${Text.MODULE} (X)`}
           >
-            <Box size={16} /> <span className="hidden md:inline">{Text.MODULE}</span>
+            <Box size={16} />
+            <span className="hidden md:inline">{Text.MODULE}</span>
+            <span className="hidden md:inline text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/70 text-slate-400 border border-slate-700/80 leading-none">
+              X
+            </span>
           </button>
 
           <button
             onClick={() => navigate('/stones')}
             className={navBtnClass('/stones', 'bg-green-500/10 text-green-400 border-green-500/50')}
+            title={`${Text.STONE} (C)`}
           >
-            <Triangle size={16} /> <span className="hidden md:inline">{Text.STONE}</span>
+            <Triangle size={16} />
+            <span className="hidden md:inline">{Text.STONE}</span>
+            <span className="hidden md:inline text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900/70 text-slate-400 border border-slate-700/80 leading-none">
+              C
+            </span>
           </button>
 
           {token && (
             <button
               onClick={onOpenReport}
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all shadow-lg shadow-blue-600/20 ml-2"
+              title={`${Text.ADD} (V)`}
             >
-              <Plus size={16} /> <span className="hidden md:inline">{Text.ADD}</span>
+              <Plus size={16} />
+              <span className="hidden md:inline">{Text.ADD}</span>
+              <span className="hidden md:inline text-[11px] font-mono bg-blue-700/80 px-1.5 py-0.5 rounded text-blue-100 border border-blue-400/30 leading-none">
+                V
+              </span>
             </button>
           )}
         </div>

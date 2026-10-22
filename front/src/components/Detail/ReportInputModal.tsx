@@ -3,11 +3,12 @@
  * 용도: 새로운 전투 리포트 텍스트를 입력받아 서버로 전송하는 모달
  * 기능: 텍스트 붙여넣기 폼 제공, 퀵 메모, 엔터키 즉시 저장(Shift+Enter는 줄바꿈), API 연동
  */
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Save, FileText, Trophy, Zap, Beaker } from 'lucide-react';
 import { createReport } from '../../api/reports';
 import { useReports } from '../../contexts/ReportContext';
 import { useStatsCache } from '../../contexts/StatsCacheContext';
+import useEscKey from '../../hooks/useEscKey';
 import { T } from '../../locales';
 
 interface Props {
@@ -19,11 +20,21 @@ export default function ReportInputModal({ onClose }: Props) {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const notesInputRef = useRef<HTMLInputElement | null>(null);
   const { refreshReports } = useReports();
   const { invalidateStatsCache } = useStatsCache();
 
   const Text = T.detail;
   const Common = T.common;
+
+  // ESC 키로 모달 닫기 지원
+  useEscKey(onClose, !loading);
+
+  // 1. 모달 오픈 시 리포트 입력창에 자동 포커스
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   // 테스트 서브 메뉴 데이터
   const TEST_SUBS = [
@@ -56,6 +67,12 @@ export default function ReportInputModal({ onClose }: Props) {
     }
   };
 
+  // 포스트잇(퀵 메모) 클릭 시: 메모 텍스트 채운 뒤 추가 작성을 위해 메모 입력창으로 포커스 이동
+  const handleQuickNote = (noteValue: string) => {
+    setNotes(noteValue);
+    notesInputRef.current?.focus();
+  };
+
   // 엔터키 감지 핸들러
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -84,6 +101,8 @@ export default function ReportInputModal({ onClose }: Props) {
           {/* 입력창 영역: w-full을 통해 부모의 512px을 꽉 채움 */}
           <div className="relative group w-full">
             <textarea
+              ref={textareaRef}
+              autoFocus
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -104,6 +123,7 @@ export default function ReportInputModal({ onClose }: Props) {
 
           {/* notes 입력 */}
           <input
+            ref={notesInputRef}
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -122,7 +142,7 @@ export default function ReportInputModal({ onClose }: Props) {
               {Common.CANCEL}
             </button>
             <button
-              onClick={handleSubmit}
+              onClick={() => handleSubmit()}
               disabled={loading || !text.trim()}
               className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-all shadow-lg shadow-blue-600/20 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
@@ -135,8 +155,9 @@ export default function ReportInputModal({ onClose }: Props) {
         <div className="absolute top-4 -right-24 flex flex-col gap-1.5 w-[88px]">
           <button
             type="button"
-            onClick={() => setNotes(Text.BTN_TOURNAMENT)}
-            className="flex items-center justify-center gap-1.5 w-full py-2 bg-slate-800 hover:bg-yellow-500/20 border border-slate-600 hover:border-yellow-500/50 rounded-lg text-yellow-400 transition-all text-[11px] font-medium shadow-[2px_2px_0_#0f172a]"
+            disabled={loading}
+            onClick={() => handleQuickNote(Text.BTN_TOURNAMENT)}
+            className="flex items-center justify-center gap-1.5 w-full py-2 bg-slate-800 hover:bg-yellow-500/20 border border-slate-600 hover:border-yellow-500/50 rounded-lg text-yellow-400 transition-all text-[11px] font-medium shadow-[2px_2px_0_#0f172a] disabled:opacity-50"
           >
             <Trophy size={12} className="text-yellow-500" />
             {Text.BTN_TOURNAMENT}
@@ -153,8 +174,9 @@ export default function ReportInputModal({ onClose }: Props) {
             <button
               key={sub.key}
               type="button"
-              onClick={() => setNotes(sub.value)}
-              className="w-full py-1.5 bg-slate-800 hover:bg-emerald-500/20 border border-slate-600 hover:border-emerald-500/50 rounded-lg text-slate-300 hover:text-emerald-300 transition-all text-[11px] font-medium shadow-[2px_2px_0_#0f172a]"
+              disabled={loading}
+              onClick={() => handleQuickNote(sub.value)}
+              className="w-full py-1.5 bg-slate-800 hover:bg-emerald-500/20 border border-slate-600 hover:border-emerald-500/50 rounded-lg text-slate-300 hover:text-emerald-300 transition-all text-[11px] font-medium shadow-[2px_2px_0_#0f172a] disabled:opacity-50"
             >
               {sub.label}
             </button>
@@ -171,8 +193,9 @@ export default function ReportInputModal({ onClose }: Props) {
             <button
               key={sub.key}
               type="button"
-              onClick={() => setNotes(sub.value)}
-              className="w-full py-1.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-600 hover:border-purple-500/50 rounded-lg text-slate-300 hover:text-purple-300 transition-all text-[11px] font-medium shadow-[2px_2px_0_#0f172a]"
+              disabled={loading}
+              onClick={() => handleQuickNote(sub.value)}
+              className="w-full py-1.5 bg-slate-800 hover:bg-purple-500/20 border border-slate-600 hover:border-purple-500/50 rounded-lg text-slate-300 hover:text-purple-300 transition-all text-[11px] font-medium shadow-[2px_2px_0_#0f172a] disabled:opacity-50"
             >
               {sub.label}
             </button>
