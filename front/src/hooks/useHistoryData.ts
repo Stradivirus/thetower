@@ -3,11 +3,13 @@
  * 용도: 히스토리 페이지의 데이터 로딩, 필터링 및 통계 계산 로직 관리 (커스텀 훅)
  * 기능: 전체 리포트 로드, 월별 및 최근 7일 데이터 그룹화, 다양한 필터 상태 관리
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import type { BattleMain } from '../types/report';
 import type { MonthlyGroup, TournamentFilterMode } from '../types/history';
 import { useReports } from '../contexts/ReportContext';
+
+const PAGE_SIZE = 50;
 
 export function useHistoryData() {
   const navigate = useNavigate();
@@ -15,11 +17,12 @@ export function useHistoryData() {
   
   const { reports: allReports, isLoading: reportsLoading } = useReports();
   
-  // 상태 관리: 뷰 모드, 필터, 확장 여부
+  // 상태 관리: 뷰 모드, 필터, 확장 여부, 무한 스크롤 노출 개수
   const [viewMode, setViewMode] = useState<'group' | 'list'>('group');
   const [tournamentFilter, setTournamentFilter] = useState<TournamentFilterMode>('all');
   const [onlyMemo, setOnlyMemo] = useState(false);
   const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
 
   const tierFilter = searchParams.get('tier');
 
@@ -29,6 +32,11 @@ export function useHistoryData() {
   useEffect(() => {
     if (tierFilter) setViewMode('list');
   }, [tierFilter]);
+
+  // 필터나 뷰 모드가 변경되면 노출 개수를 50개로 초기화
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [viewMode, tournamentFilter, onlyMemo, tierFilter]);
 
   /** 특정 월 토글 핸들러 */
   const toggleMonth = (monthKey: string) => {
@@ -70,6 +78,18 @@ export function useHistoryData() {
     }
     return result;
   }, [allReports, tournamentFilter, onlyMemo, tierFilter]);
+
+  /** 리스트 뷰에서 현재 화면에 렌더링할 리포트 목록 (50개 단위) */
+  const visibleReports = useMemo(() => {
+    return filteredReports.slice(0, visibleCount);
+  }, [filteredReports, visibleCount]);
+
+  const hasMore = visibleCount < filteredReports.length;
+
+  /** 무한 스크롤 시 다음 50개 로드 */
+  const loadMore = useCallback(() => {
+    setVisibleCount(prev => Math.min(prev + PAGE_SIZE, filteredReports.length));
+  }, [filteredReports.length]);
 
   /** 최근 7일 그룹 데이터 계산 */
   const recentGroup = useMemo((): MonthlyGroup | null => {
@@ -146,6 +166,9 @@ export function useHistoryData() {
     expandedMonths, toggleMonth,
     handleSelectReport,
     filteredReports,
+    visibleReports,
+    hasMore,
+    loadMore,
     recentGroup,
     monthlyGroups,
     totalCount: filteredReports.length,

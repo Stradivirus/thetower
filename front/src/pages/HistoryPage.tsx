@@ -3,6 +3,7 @@
  * 용도: 과거 전투 기록 관리 및 성과 분석 페이지
  * 기능: 일간/주간/월간 성장 차트 표시, 월별 기록 그룹화, 다양한 필터링(토너먼트, 메모, 티어) 기능
  */
+import { useEffect, useRef } from 'react';
 import { Archive, Loader2, Filter } from 'lucide-react';
 import ReportList from '../components/Main/ReportList';
 import WeeklyStatsChart from '../components/History/WeeklyStatsChart';
@@ -24,11 +25,36 @@ export default function HistoryPage() {
     expandedMonths, toggleMonth,
     handleSelectReport,
     filteredReports,
+    visibleReports,
+    hasMore,
+    loadMore,
     recentGroup,
     monthlyGroups,
     totalCount,
     isFilterActive
   } = useHistoryData();
+
+  // 무한 스크롤 감지용 Ref
+  const observerTargetRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (viewMode !== 'list' || !hasMore) return;
+
+    const target = observerTargetRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [viewMode, hasMore, loadMore, visibleReports.length]);
 
   return (
     <>
@@ -121,11 +147,20 @@ export default function HistoryPage() {
                         {Text.SECTION.ALL_LIST.replace('{n}', String(filteredReports.length))}
                   </div>
                   <ReportList 
-                      reports={filteredReports} 
+                      reports={visibleReports} 
                       onSelectReport={handleSelectReport}
                       hideHeader={false}
                       collapseThresholdDays={Infinity} 
                   />
+                  {/* 무한 스크롤 감지 영역 */}
+                  {hasMore && (
+                    <div ref={observerTargetRef} className="flex justify-center items-center py-8 text-slate-500">
+                      <Loader2 size={20} className="animate-spin text-blue-500 mr-2" />
+                      <span className="text-xs font-mono">
+                        {visibleReports.length} / {filteredReports.length}
+                      </span>
+                    </div>
+                  )}
               </div>
           )}
 
