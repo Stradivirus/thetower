@@ -17,4 +17,5 @@ export const AUTH = {
   ERR_PW_MISMATCH: "Passwords do not match.",
   SUCCESS_REGISTER: "Registration successful! Logging in...",
   LOGOUT: "Logout",
+  BTN_BROWSE: "Browse Mode (View Owner's Data)",
 };

@@ -72,15 +72,9 @@ export default function ModuleHeader({
       {viewMode !== 'reroll' && (
         <button 
           onClick={handleSave}
-          disabled={!token}
-          className={`
-            flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm
-            ${token
-              ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20' 
-              : 'bg-slate-800 text-slate-500 border-slate-700 cursor-not-allowed'}
-          `}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
         >
-          <List size={16} /> {isChanged ? 'Save & Summary*' : 'Save & Summary'}
+          <List size={16} /> {!token ? 'Summary' : (isChanged ? 'Save & Summary*' : 'Save & Summary')}
         </button>
       )}
     </div>

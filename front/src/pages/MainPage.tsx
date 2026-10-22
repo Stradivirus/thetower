@@ -15,7 +15,7 @@ import { T } from '../locales';
 
 export default function MainPage() {
   const navigate = useNavigate();
-  const { progress } = useGameData();
+  const { progress, isLoggedIn, isGuest } = useGameData();
   const { reports } = useReports();
   
   // 다국어 텍스트 매핑
@@ -42,15 +42,14 @@ export default function MainPage() {
     return reports.filter(r => new Date(r.battle_date) >= cutoffDate);
   }, [reports]);
 
-  /** 요약(Summary) 모달 열기 - 로그인 체크 포함 */
+  /** 요약(Summary) 모달 열기 - 로그인 또는 둘러보기 상태 허용 */
   const handleOpenSummary = useCallback(() => {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
+    if (!isLoggedIn && !isGuest) {
         alert("로그인이 필요합니다.");
         return;
     }
     setIsSummaryOpen(true);
-  }, []);
+  }, [isLoggedIn, isGuest]);
 
   return (
     <>

@@ -4,6 +4,7 @@
  * 기능: 일관된 테이블/카드 디자인 테마 제공, 숫자 포맷팅 유틸리티, 공통 초기화(Reset) 버튼 제공
  */
 import { RotateCcw } from 'lucide-react';
+import { useGameData } from '../../contexts/GameDataContext';
 
 /** 
  * 스톤 계산기 테마를 위한 공통 Tailwind CSS 클래스 모음
@@ -29,9 +30,12 @@ interface ResetBtnProps {
 }
 
 /** 
- * 개별 항목이나 섹션을 초기화할 때 사용하는 공통 리셋 버튼 컴포넌트
+ * 개별 항목이나 섹션을 초기화할 때 사용하는 공통 리셋 버튼 컴포넌트 (비로그인/둘러보기 시 숨김)
  */
 export function ResetButton({ onClick }: ResetBtnProps) {
+  const { isLoggedIn } = useGameData();
+  if (!isLoggedIn) return null;
+
   return (
     <button 
       onClick={onClick}

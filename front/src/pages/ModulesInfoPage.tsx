@@ -261,10 +261,13 @@ export default function ModulesInfoPage() {
   };
 
   /** 
-   * [전체 저장] 변경된 모듈 상태를 서버에 저장합니다.
+   * [전체 저장] 변경된 모듈 상태를 서버에 저장하고 요약 모달을 엽니다. (비로그인 시 요약 모달만 오픈)
    */
   const handleSaveProgress = async () => {
-    if (!token) { alert("Login Required"); return; }
+    if (!token) {
+      setIsSummaryOpen(true);
+      return;
+    }
     
     try {
         setIsSaving(true);
@@ -390,7 +393,7 @@ export default function ModulesInfoPage() {
   };
 
   /** 
-   * 상세 모달에서 수정한 내용을 DB에 즉시 저장합니다. (특정 호기 기준)
+   * 상세 모달에서 수정한 내용을 반영합니다. (로그인된 경우에만 DB에 즉시 저장)
    */
   const handleModalSave = async (newData: { 
     rarity: number; 
@@ -398,8 +401,6 @@ export default function ModulesInfoPage() {
     instanceId: number; 
     instances: Record<string, any>; 
   }) => {
-    if (!token) { alert("Login Required"); return; }
-
     const { name, type } = detailModal;
     const { instanceId, instances: newInstances } = newData;
     const newState = { ...modules };

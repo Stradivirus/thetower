@@ -7,6 +7,7 @@ import type { FullReportV2 } from '../../types/report';
 import { formatDate } from '../../utils/format';
 import CombatAnalysisV1 from '../../components/Detail/V1/CombatAnalysisV1';
 import StatGridV1 from '../../components/Detail/V1/StatGridV1';
+import { useGameData } from '../../contexts/GameDataContext';
 import { T } from '../../locales'; 
 
 interface Props {
@@ -20,6 +21,7 @@ interface Props {
 
 export default function ReportDetailV1({ data, onBack, onDelete, deletePopup, onClosePopup, handleConfirmDelete }: Props) {
   const { main, detail } = data;
+  const { isLoggedIn } = useGameData();
   const Text = T.detail;
   const Common = T.common;
 
@@ -57,9 +59,11 @@ export default function ReportDetailV1({ data, onBack, onDelete, deletePopup, on
                </div>
             </div>
           )}
-          <button onClick={onDelete} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-rose-500 transition-all shadow-sm">
-            <Trash2 size={20} />
-          </button>
+          {isLoggedIn && (
+            <button onClick={onDelete} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-rose-500 transition-all shadow-sm">
+              <Trash2 size={20} />
+            </button>
+          )}
         </div>
       </div>
 

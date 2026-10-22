@@ -20,6 +20,7 @@ interface GameDataContextType {
   setProgress: (newProgress: UserProgress) => void;
   setModules: (newModules: UserModules) => void;
   isLoggedIn: boolean;         // 로그인 여부
+  isGuest: boolean;            // 비로그인 둘러보기 모드 여부
 }
 
 const GameDataContext = createContext<GameDataContextType | null>(null);
@@ -27,21 +28,22 @@ const GameDataContext = createContext<GameDataContextType | null>(null);
 interface ProviderProps {
   children: ReactNode;
   token: string | null;
+  isGuest?: boolean;
 }
 
-export function GameDataProvider({ children, token }: ProviderProps) {
+export function GameDataProvider({ children, token, isGuest = false }: ProviderProps) {
   const [progress, setProgress] = useState<UserProgress>({});
   const [modules, setModules] = useState<UserModules>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   const isLoggedIn = !!token;
+  const canFetch = isLoggedIn || isGuest;
 
   /** 
    * 서버에서 게임 데이터를 로드하여 상태를 업데이트합니다.
    */
   const loadData = useCallback(async () => {
-    if (!token) {
+    if (!canFetch) {
       setProgress({});
       setModules({});
       return;
@@ -77,25 +79,22 @@ export function GameDataProvider({ children, token }: ProviderProps) {
 
         setModules(mergedModules);
       }
-
-      setIsLoaded(true);
     } catch (e) {
       console.error("Failed to load game data", e);
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [canFetch, token, isGuest]);
 
-  // 토큰이 유효하고 아직 로드되지 않은 경우 데이터 로드 실행
+  // 토큰 또는 둘러보기 상태 변경 시 데이터 로드 실행
   useEffect(() => {
-    if (token && !isLoaded) {
+    if (canFetch) {
       loadData();
-    } else if (!token) {
-      setIsLoaded(false);
+    } else {
       setProgress({});
       setModules({});
     }
-  }, [token, isLoaded, loadData]);
+  }, [canFetch, token, isGuest, loadData]);
 
   /** 
    * 수동으로 데이터를 새로고침하는 함수
@@ -113,7 +112,8 @@ export function GameDataProvider({ children, token }: ProviderProps) {
         refreshData,
         setProgress,
         setModules,
-        isLoggedIn 
+        isLoggedIn,
+        isGuest
       }}
     >
       {children}

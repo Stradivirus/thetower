@@ -23,11 +23,13 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY", "secret_key_fallback")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+OWNER_USERNAME = os.getenv("OWNER_USERNAME", "test")
 
 # 비밀번호 해싱 설정 (Bcrypt)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # OAuth2 스키마 설정 (로그인 엔드포인트 지정)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
 def verify_password(plain_password, hashed_password):
     """평문 비밀번호와 해싱된 비밀번호를 비교하여 일치 여부 반환"""
@@ -84,3 +86,23 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
     return user
+
+async def get_current_or_guest_user(
+    token: Optional[str] = Depends(oauth2_scheme_optional),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    조회(GET) 전용 의존성 함수:
+    - 토큰이 있으면 검증하여 현재 로그인한 사용자를 반환합니다. (만료/위조된 토큰은 401 반환)
+    - 토큰이 없으면(비로그인 둘러보기 모드) 환경변수 OWNER_USERNAME 계정을 반환합니다.
+    """
+    if token:
+        return await get_current_user(token=token, db=db)
+
+    owner_user = await crud.get_user_by_username(db, username=OWNER_USERNAME)
+    if owner_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="기본 둘러보기 계정(OWNER_USERNAME)을 찾을 수 없습니다.",
+        )
+    return owner_user

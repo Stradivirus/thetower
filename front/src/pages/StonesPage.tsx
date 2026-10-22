@@ -211,22 +211,24 @@ export default function StonesPage({ token }: Props) {
             })}
           </div>
 
-          {/* 초기화 버튼 */}
-          <button 
-            onClick={resetAll}
-            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all font-bold text-sm"
-            title="Reset All Progress"
-          >
-            <RotateCcw size={16} /> Reset
-          </button>
+          {/* 초기화 버튼 (로그인 시에만 표시) */}
+          {token && (
+            <button 
+              onClick={resetAll}
+              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all font-bold text-sm"
+              title="Reset All Progress"
+            >
+              <RotateCcw size={16} /> Reset
+            </button>
+          )}
 
           {/* 저장 및 요약 버튼 */}
           <button 
             onClick={handleSaveAndSummary}
             className="hidden md:flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isSaving || !token}
+            disabled={isSaving}
           >
-            <List size={16} /> {isSaving ? 'Saving...' : (isProgressChanged ? 'Save & Summary*' : 'Save & Summary')}
+            <List size={16} /> {!token ? 'Summary' : isSaving ? 'Saving...' : (isProgressChanged ? 'Save & Summary*' : 'Save & Summary')}
           </button>
         </div>
       </div>

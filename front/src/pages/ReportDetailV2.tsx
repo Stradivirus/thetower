@@ -16,6 +16,7 @@ import ResourceGrid from '../components/Detail/grid/ResourceGrid';
 import EnemyGrid from '../components/Detail/grid/EnemyGrid';
 import { T } from '../locales';
 import { updateMemo } from '../api/reports';
+import { useGameData } from '../contexts/GameDataContext';
 import { useState } from 'react'; 
 
 interface Props {
@@ -29,6 +30,7 @@ interface Props {
 
 export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, onClosePopup, handleConfirmDelete }: Props) {
   const { main, v2_main, v2_detail, detail } = data;
+  const { isLoggedIn } = useGameData();
   const Text = T.detail;
   const Common = T.common;
 
@@ -113,7 +115,7 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
         </div>
 
         <div className="flex items-center gap-4">
-          {isEditing ? (
+          {isEditing && isLoggedIn ? (
             <div className="flex items-center gap-2">
               <textarea
                 value={memoText}
@@ -139,14 +141,18 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
                    </div>
                 </div>
               )}
-              <button onClick={() => setIsEditing(true)} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-blue-500 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all shadow-lg group">
-                <Edit2 size={20} className="group-hover:scale-110 transition-transform" />
-              </button>
+              {isLoggedIn && (
+                <button onClick={() => setIsEditing(true)} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-blue-500 hover:bg-blue-500/10 hover:border-blue-500/30 transition-all shadow-lg group">
+                  <Edit2 size={20} className="group-hover:scale-110 transition-transform" />
+                </button>
+              )}
             </>
           )}
-          <button onClick={onDelete} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all shadow-lg group">
-            <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
-          </button>
+          {isLoggedIn && (
+            <button onClick={onDelete} className="p-3 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500/30 transition-all shadow-lg group">
+              <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
+            </button>
+          )}
         </div>
       </div>
 

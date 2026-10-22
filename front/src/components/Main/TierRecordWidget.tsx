@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { type TierRecord } from '../../api/stats';
 import { useStatsCache } from '../../contexts/StatsCacheContext';
+import { useGameData } from '../../contexts/GameDataContext';
 import { ChevronDown, ChevronUp, Settings, X, Trophy, Info, ExternalLink, TrendingUp, CalendarDays, CalendarRange, Calendar } from 'lucide-react'; 
 import { T } from '../../locales'; 
 import { formatNumber } from '../../utils/format';
@@ -41,11 +42,12 @@ const TierRecordWidget: React.FC = () => {
   
   const Text = T.main.WIDGET; 
   const ChartText = T.history.CHART;
-  const token = localStorage.getItem('access_token');
+  const { isLoggedIn, isGuest } = useGameData();
+  const canView = isLoggedIn || isGuest;
 
   // 데이터 및 사용자 설정 로드
   useEffect(() => {
-    if (!token) return;
+    if (!canView) return;
 
     const loadData = async () => {
       try {
@@ -101,7 +103,7 @@ const TierRecordWidget: React.FC = () => {
     if (savedVisible !== null) setIsVisible(savedVisible === 'true');
     if (savedMinTier !== null) setMinTier(parseInt(savedMinTier, 10));
     if (savedMaxTier !== null) setMaxTier(parseInt(savedMaxTier, 10));
-  }, [token]);
+  }, [canView, isLoggedIn, isGuest, getGlobalMaxWavesCached, getWeeklyStatsCached, getWeeklyTrendsCached, getMonthlyTrendsCached]);
 
   /** 위젯 표시 여부 토글 */
   const toggleVisibility = () => {
@@ -124,7 +126,7 @@ const TierRecordWidget: React.FC = () => {
     localStorage.setItem(STORAGE_KEY_MAX_TIER, String(val));
   };
 
-  if (!token) return null;
+  if (!canView) return null;
 
   // 위젯이 숨겨진 상태일 때의 플로팅 버튼 뷰
   if (!isVisible) {

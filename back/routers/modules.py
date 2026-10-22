@@ -8,14 +8,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
 import schemas, crud
 from models import User
-from auth import get_current_user
+from auth import get_current_user, get_current_or_guest_user
 
 router = APIRouter(prefix="/api/modules", tags=["modules"])
 
 @router.get("/", response_model=schemas.UserModulesResponse)
 async def get_my_modules(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """내 모듈 인벤토리 및 장착 상태를 조회합니다."""
     modules = await crud.get_user_modules(db, current_user.id)

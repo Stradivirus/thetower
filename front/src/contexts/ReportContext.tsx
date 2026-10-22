@@ -17,12 +17,14 @@ interface ReportContextType {
 
 const ReportContext = createContext<ReportContextType | null>(null);
 
-export function ReportProvider({ children, token }: { children: ReactNode; token: string | null }) {
+export function ReportProvider({ children, token, isGuest = false }: { children: ReactNode; token: string | null; isGuest?: boolean }) {
   const [reports, setReports] = useState<BattleMain[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const canFetch = !!token || isGuest;
+
   const refreshReports = useCallback(async () => {
-    if (!token) {
+    if (!canFetch) {
       setReports([]);
       return;
     }
@@ -36,16 +38,16 @@ export function ReportProvider({ children, token }: { children: ReactNode; token
     } finally {
       setIsLoading(false);
     }
-  }, [token]);
+  }, [canFetch, token, isGuest]);
 
-  // 토큰이 있을 때 초기 데이터 로드
+  // 토큰 또는 둘러보기 상태가 있을 때 초기 데이터 로드
   useEffect(() => {
-    if (token) {
+    if (canFetch) {
       refreshReports();
     } else {
       setReports([]);
     }
-  }, [token, refreshReports]);
+  }, [canFetch, token, isGuest, refreshReports]);
 
   /** 
    * 새로운 리포트를 상태에 추가 (새로고침 없이 반영)

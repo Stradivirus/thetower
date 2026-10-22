@@ -23,7 +23,7 @@ from parser_v2 import is_v2, parse_battle_report_v2
 from datetime import datetime
 from typing import List, Optional
 from models import User
-from auth import get_current_user
+from auth import get_current_user, get_current_or_guest_user
 import slack
 import re
 
@@ -117,7 +117,7 @@ async def create_report(
 @router.get("/view", response_model=HistoryViewResponse)
 async def get_history_view_api(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """기록실 메인 화면을 위한 최근 기록 및 월별 요약 데이터를 조회합니다."""
     return await crud.get_history_view(db, current_user.id)
@@ -126,7 +126,7 @@ async def get_history_view_api(
 async def get_reports_by_month_api(
     month_key: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """특정 월에 해당하는 전투 기록 목록을 조회합니다."""
     try:
@@ -139,7 +139,7 @@ async def get_reports_by_month_api(
 @router.get("/recent", response_model=List[BattleMainResponse])
 async def get_recent_reports(
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """최근 7일간의 전투 기록 목록을 조회합니다."""
     return await crud.get_recent_reports(db, current_user.id)
@@ -149,7 +149,7 @@ async def get_history_reports(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """사용자의 전체 전투 기록을 페이징하여 조회합니다."""
     return await crud.get_history_reports(db, current_user.id, skip=skip, limit=limit)
@@ -158,7 +158,7 @@ async def get_history_reports(
 async def get_weekly_stats_api(
     limit: int = 7,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """최근 N일간의 일간 통계 데이터를 조회합니다. (기본 7일)"""
     return await crud.get_weekly_stats(db, current_user.id, limit=limit)
@@ -167,7 +167,7 @@ async def get_weekly_stats_api(
 async def get_weekly_trends_api(
     limit: int = 8,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """최근 N주간의 주간 트렌드 데이터를 조회합니다. (기본 8주)"""
     return await crud.get_weekly_trends(db, current_user.id, limit=limit)
@@ -176,7 +176,7 @@ async def get_weekly_trends_api(
 async def get_monthly_trends_api(
     limit: int = 6,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """최근 N개월간의 월간 트렌드 데이터를 조회합니다. (기본 6개월)"""
     return await crud.get_monthly_trends(db, current_user.id, limit=limit)
@@ -189,7 +189,7 @@ async def get_monthly_trends_api(
 async def get_report_detail(
     battle_date: str,
     db: AsyncSession = Depends(get_db_replica),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_or_guest_user)
 ):
     """
     특정 전투 기록의 상세 데이터를 조회합니다.

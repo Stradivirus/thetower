@@ -13,6 +13,7 @@ import UwCostTable from './Unlock/UwCostTable';
 import ModuleUnlockTable from './Unlock/ModuleUnlockTable'; 
 import BotUnlockTable from './Unlock/BotUnlockTable'; 
 import { formatNum } from './StoneShared'; 
+import { useGameData } from '../../contexts/GameDataContext';
 
 interface Props {
   progress: Record<string, any>;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export default function UnlockTab({ progress, updateProgress, updateBatch }: Props) {
+  const { isLoggedIn } = useGameData();
   // 해금할 무기를 선택하는 상태 관리
   const [selectingState, setSelectingState] = useState<{ 
     type: 'base' | 'plus'; 
@@ -141,13 +143,15 @@ export default function UnlockTab({ progress, updateProgress, updateBatch }: Pro
               {formatNum(unlockCosts.unlock_costs.slice(0, unlockedBase.length).reduce((a, b) => a + b, 0))}
             </span>
           </div>
-          <button
-            onClick={() => handleReset('base')}
-            className="text-xs text-slate-500 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
-            title="Reset Base UWs"
-          >
-            <RotateCcw size={12} /> Reset Base UWs
-          </button>
+          {isLoggedIn && (
+            <button
+              onClick={() => handleReset('base')}
+              className="text-xs text-slate-500 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
+              title="Reset Base UWs"
+            >
+              <RotateCcw size={12} /> Reset Base UWs
+            </button>
+          )}
         </div>
       )}
 

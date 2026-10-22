@@ -18,4 +18,5 @@ export const AUTH = {
   ERR_PW_MISMATCH: "비밀번호가 일치하지 않습니다.",
   SUCCESS_REGISTER: "가입 성공! 자동으로 로그인합니다.",
   LOGOUT: "로그아웃",
+  BTN_BROWSE: "둘러보기 (주인장 기록 보기)",
 };

@@ -7,6 +7,7 @@ export const LAYOUT = {
     ADD: "Add",
     LOGIN: "Login",
     LOGOUT: "Logout",
+    GUEST_BADGE: "Browsing",
   },
   SUPPORT: {
     BUTTON_TITLE: "Support",

@@ -4,16 +4,17 @@
  * 기능: 로그인/회원가입 폼 전환, 입력 유효성 검사, API 연동 및 성공 시 토큰 전달
  */
 import { useState } from 'react';
-import { X, LogIn, UserPlus, AlertCircle, User } from 'lucide-react';
+import { X, LogIn, UserPlus, AlertCircle, User, Eye } from 'lucide-react';
 import { loginUser, registerUser } from '../../api/auth';
 import { T } from '../../locales'; 
 
 interface Props {
   onClose: () => void;                   // 모달 닫기 핸들러
   onLoginSuccess: (token: string) => void; // 인증 성공 시 실행할 콜백
+  onBrowse?: () => void;                  // 비로그인 둘러보기 진입 핸들러
 }
 
-export default function AuthModal({ onClose, onLoginSuccess }: Props) {
+export default function AuthModal({ onClose, onLoginSuccess, onBrowse }: Props) {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -150,6 +151,17 @@ export default function AuthModal({ onClose, onLoginSuccess }: Props) {
             >
               {loading ? Text.BTN_PROCESSING : isRegister ? <><UserPlus size={16}/> {Text.BTN_REGISTER}</> : <><LogIn size={16}/> {Text.BTN_LOGIN}</>}
             </button>
+
+            {/* 둘러보기 버튼 */}
+            {onBrowse && (
+              <button
+                type="button"
+                onClick={onBrowse}
+                className="w-full bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 text-sm"
+              >
+                <Eye size={16} /> {Text.BTN_BROWSE}
+              </button>
+            )}
           </form>
 
           {/* 모드 전환 링크 */}

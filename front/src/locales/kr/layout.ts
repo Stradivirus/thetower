@@ -7,6 +7,7 @@ export const LAYOUT = {
     ADD: "추가",
     LOGIN: "로그인",
     LOGOUT: "로그아웃", // 툴팁용
+    GUEST_BADGE: "둘러보기 중",
   },
   SUPPORT: {
     BUTTON_TITLE: "문의하기",

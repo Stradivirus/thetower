@@ -3,7 +3,7 @@
  * 용도: 통계 및 요약 정보 API 응답 캐싱을 위한 전역 컨텍스트
  * 기능: 일간/주간/월간 통계 API 응답 임시 저장(Cache), 신규 업로드 시 캐시 파괴(Invalidation)
  */
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { getGlobalMaxWaves, type TierRecord } from '../api/stats';
 import { getWeeklyStats, getWeeklyTrends, getMonthlyTrends } from '../api/reports';
 
@@ -17,11 +17,19 @@ interface StatsCacheContextType {
 
 const StatsCacheContext = createContext<StatsCacheContextType | undefined>(undefined);
 
-export const StatsCacheProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const StatsCacheProvider: React.FC<{ children: React.ReactNode; authKey?: string }> = ({ children, authKey }) => {
   const [globalMaxWaves, setGlobalMaxWaves] = useState<TierRecord[] | null>(null);
   const [weeklyStats, setWeeklyStats] = useState<any | null>(null);
   const [weeklyTrends, setWeeklyTrends] = useState<any | null>(null);
   const [monthlyTrends, setMonthlyTrends] = useState<any | null>(null);
+
+  // 인증 상태(로그인/둘러보기) 변경 시 이전 계정의 통계 캐시 자동 초기화
+  useEffect(() => {
+    setGlobalMaxWaves(null);
+    setWeeklyStats(null);
+    setWeeklyTrends(null);
+    setMonthlyTrends(null);
+  }, [authKey]);
 
   const getGlobalMaxWavesCached = useCallback(async () => {
     if (globalMaxWaves) return globalMaxWaves;

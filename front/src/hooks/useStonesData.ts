@@ -34,14 +34,14 @@ export function useStonesData(token: string | null) {
   const updateProgress = (key: string, value: any) => {
     const newProgress = { ...progress, [key]: value };
     setProgress(newProgress);
-    localStorage.setItem('thetower_progress', JSON.stringify(newProgress));
+    if (token) localStorage.setItem('thetower_progress', JSON.stringify(newProgress));
   };
 
   /** 여러 항목의 진행도를 한꺼번에 업데이트합니다. */
   const updateBatch = (updates: Record<string, any>) => {
     const newProgress = { ...progress, ...updates };
     setProgress(newProgress);
-    localStorage.setItem('thetower_progress', JSON.stringify(newProgress));
+    if (token) localStorage.setItem('thetower_progress', JSON.stringify(newProgress));
   };
 
   /** 카드 관련 진행도만 초기화합니다. */
@@ -49,7 +49,7 @@ export function useStonesData(token: string | null) {
     const newProg = { ...progress };
     Object.keys(newProg).forEach(k => { if(k.startsWith('card_')) delete newProg[k]; });
     setProgress(newProg);
-    localStorage.setItem('thetower_progress', JSON.stringify(newProg));
+    if (token) localStorage.setItem('thetower_progress', JSON.stringify(newProg));
   };
 
   /** 모든 진행도 데이터를 초기화합니다. */

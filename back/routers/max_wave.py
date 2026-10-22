@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func, select
 import database, schemas, models
 from crud import max_wave
-from auth import get_current_user 
+from auth import get_current_or_guest_user 
 
 router = APIRouter(
     prefix="/api",
@@ -19,7 +19,7 @@ router = APIRouter(
 @router.get("/max-waves", response_model=List[schemas.TierRecordSchema])
 async def get_max_waves(
     db: AsyncSession = Depends(database.get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_or_guest_user)
 ):
     """
     티어별 서버 전체 최고 기록과 로그인한 사용자의 개인 최고 기록을 조회하여 반환합니다.

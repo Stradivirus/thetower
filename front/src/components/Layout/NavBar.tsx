@@ -4,17 +4,18 @@
  * 기능: 페이지 이동 라우팅, 인증 상태 표시, 다국어 전환 버튼 및 리포트 추가 모달 트리거
  */
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, Box, Languages } from 'lucide-react';
+import { Plus, Triangle, Archive, LayoutGrid, LogIn, LogOut, Box, Languages, Eye } from 'lucide-react';
 import { T, CURRENT_LANG, toggleLanguage } from '../../locales'; 
 
 interface NavBarProps {
   token: string | null;      // 인증 토큰 (로그인 여부 확인용)
+  isGuest?: boolean;         // 비로그인 둘러보기 모드 여부
   onLogout: () => void;      // 로그아웃 핸들러
   onOpenAuth: () => void;    // 로그인 모달 오픈 핸들러
   onOpenReport: () => void;  // 리포트 입력 모달 오픈 핸들러
 }
 
-export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: NavBarProps) {
+export default function NavBar({ token, isGuest = false, onLogout, onOpenAuth, onOpenReport }: NavBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
@@ -106,12 +107,19 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
                 <LogOut size={18} />
               </button>
             ) : (
-              <button
-                onClick={onOpenAuth}
-                className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold transition-all border bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white"
-              >
-                <LogIn size={16} /> <span className="hidden md:inline">{Text.LOGIN}</span>
-              </button>
+              <div className="flex items-center gap-2">
+                {isGuest && (
+                  <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 select-none">
+                    <Eye size={13} /> {Text.GUEST_BADGE}
+                  </span>
+                )}
+                <button
+                  onClick={onOpenAuth}
+                  className="flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold transition-all border bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-white"
+                >
+                  <LogIn size={16} /> <span className="hidden md:inline">{Text.LOGIN}</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -147,37 +155,33 @@ export default function NavBar({ token, onLogout, onOpenAuth, onOpenReport }: Na
             <Triangle size={16} /> <span className="hidden md:inline">{Text.STONE}</span>
           </button>
 
-          <button
-            onClick={() => {
-              if (!token) {
-                onOpenAuth();
-                return;
-              }
-              onOpenReport();
-            }}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all shadow-lg shadow-blue-600/20 ml-2"
-          >
-            <Plus size={16} /> <span className="hidden md:inline">{Text.ADD}</span>
-          </button>
+          {token && (
+            <button
+              onClick={onOpenReport}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 md:px-4 py-2 rounded-full text-sm font-medium transition-all shadow-lg shadow-blue-600/20 ml-2"
+            >
+              <Plus size={16} /> <span className="hidden md:inline">{Text.ADD}</span>
+            </button>
+          )}
         </div>
 
         {/* 모바일 레이아웃: 2줄 구조 (2줄째는 액션 영역만) */}
         <div className="md:hidden flex flex-col gap-2">
           {/* 액션 버튼 줄: 기록 추가 + 언어 + 로그인 */}
           <div className="flex items-center justify-between gap-2">
-            <button
-              onClick={() => {
-                if (!token) {
-                  onOpenAuth();
-                  return;
-                }
-                onOpenReport();
-              }}
-              className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-full text-sm font-medium transition-all shadow-lg shadow-blue-600/20"
-            >
-              <Plus size={16} />
-              <span className="text-xs">{Text.ADD}</span>
-            </button>
+            {token ? (
+              <button
+                onClick={onOpenReport}
+                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-full text-sm font-medium transition-all shadow-lg shadow-blue-600/20"
+              >
+                <Plus size={16} />
+                <span className="text-xs">{Text.ADD}</span>
+              </button>
+            ) : isGuest ? (
+              <span className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 select-none">
+                <Eye size={14} /> {Text.GUEST_BADGE}
+              </span>
+            ) : <div className="flex-1" />}
 
             <button
               onClick={toggleLanguage}
