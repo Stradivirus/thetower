@@ -56,18 +56,18 @@ export function useStonesData(token: string | null) {
 
     const makeId = () => `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-    // 1. 기본 무기 / UW+ 해금 계획 담기
+    // 1. 기본 무기 / UW+ 해금 계획 담기 (1개씩 개별 단계로 분할 등록)
     if (key === 'unlocked_weapons' || key === 'unlocked_plus_weapons') {
       const prevList: string[] = Array.isArray(effectiveProgress[key]) ? effectiveProgress[key] : [];
       const added = Array.isArray(value) ? value.filter((w: string) => !prevList.includes(w)) : [];
       if (added.length > 0) {
-        const newItem: StonePlanItem = {
+        const newItems: StonePlanItem[] = added.map((w: string) => ({
           id: makeId(),
           category: 'unlock',
           key,
-          targetValue: added,
-        };
-        syncProgress({ ...progress, stone_plan: [...stonePlan, newItem] });
+          targetValue: [w],
+        }));
+        syncProgress({ ...progress, stone_plan: [...stonePlan, ...newItems] });
       }
       return;
     }
@@ -93,7 +93,8 @@ export function useStonesData(token: string | null) {
       return;
     }
 
-    // 3. 레벨형 스탯 (UW Base, UW+, 모듈 슬롯, Bot+, 모듈 효율) 계획 담기 (분할 허용)
+    // 3. 레벨형 스탯 (UW Base, UW+, 모듈 슬롯, Bot+, 모듈 효율) 계획 담기 (1단계씩 개별 등록)
+    const realLv = Number(progress[key] || 0);
     const currentEff = Number(effectiveProgress[key] || 0);
     const targetLv = Number(value || 0);
     if (targetLv === 0) {
@@ -110,13 +111,28 @@ export function useStonesData(token: string | null) {
       else if (key.startsWith('module_unlock_') || key.startsWith('bot_')) category = 'unlock';
       else if (key.startsWith('module_')) category = 'module';
 
-      const newItem: StonePlanItem = {
-        id: makeId(),
-        category,
-        key,
-        targetValue: targetLv,
-      };
-      syncProgress({ ...progress, stone_plan: [...stonePlan, newItem] });
+      const newItems: StonePlanItem[] = [];
+      for (let lv = currentEff + 1; lv <= targetLv; lv++) {
+        newItems.push({
+          id: makeId(),
+          category,
+          key,
+          targetValue: lv,
+        });
+      }
+      syncProgress({ ...progress, stone_plan: [...stonePlan, ...newItems] });
+    } else if (targetLv < currentEff) {
+      // 이미 계획으로 담아둔 레벨보다 낮은 레벨을 클릭한 경우 초과분 계획 단계들을 뒤에서부터 제거
+      const keepCount = Math.max(0, targetLv - realLv);
+      let seen = 0;
+      const nextPlan = stonePlan.filter(item => {
+        if (item.key !== key) return true;
+        seen++;
+        return seen <= keepCount;
+      });
+      if (nextPlan.length !== stonePlan.length) {
+        syncProgress({ ...progress, stone_plan: nextPlan });
+      }
     }
   };
 
