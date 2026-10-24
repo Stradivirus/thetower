@@ -3,7 +3,8 @@
  * 용도: 스톤 계산기 페이지(StonesPage) 상단 스티키 헤더 및 탭 네비게이션 컴포넌트
  * 기능: 총 사용 스톤 표시, 5개 기본 탭 + Plan 탭 전환, 계획 담기 핀 토글, Reset / Save & Summary 제어
  */
-import { ArrowLeft, Triangle, Lock, Zap, PlusCircle, Layers, Box, List, RotateCcw, ClipboardList, Pin } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Triangle, Lock, Zap, PlusCircle, Layers, Box, List, RotateCcw, ClipboardList, Pin, AlertTriangle } from 'lucide-react';
 import { formatNum } from './StoneShared';
 
 export type StoneTabType = 'unlock' | 'base' | 'plus' | 'card' | 'module' | 'plan';
@@ -55,6 +56,8 @@ export default function StoneHeader({
   onResetAll,
   onSaveAndSummary,
 }: Props) {
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+
   return (
     <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 sticky top-0 bg-slate-950/90 backdrop-blur-md py-3 z-20 border-b border-slate-800 gap-4">
       <div className="flex items-center justify-between w-full md:w-auto gap-4">
@@ -240,10 +243,10 @@ export default function StoneHeader({
         </div>
 
         {/* 데스크톱 우측 액션 버튼 2단 배치 (1단: Reset / 2단: Save & Summary) */}
-        <div className="hidden md:flex flex-col gap-1 min-w-[148px]">
+        <div className="hidden md:flex flex-col gap-1 min-w-[148px] relative">
           {token && (
             <button
-              onClick={onResetAll}
+              onClick={() => setIsResetConfirmOpen((prev) => !prev)}
               className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20 transition-all font-bold text-xs"
               title="Reset All Progress"
             >
@@ -257,6 +260,44 @@ export default function StoneHeader({
           >
             <List size={token ? 13 : 16} /> {!token ? 'Summary' : isSaving ? 'Saving...' : (isProgressChanged ? 'Save & Summary*' : 'Save & Summary')}
           </button>
+
+          {/* 전체 리셋 확인 팝업 */}
+          {isResetConfirmOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsResetConfirmOpen(false)}
+              />
+              <div className="absolute right-0 top-full mt-2 z-50 bg-slate-900 border border-slate-700 shadow-2xl rounded-xl p-4 w-64 animate-fade-in">
+                <div className="flex items-center gap-2 mb-2 text-rose-400 font-bold text-sm">
+                  <AlertTriangle size={16} />
+                  <span>전체 초기화 확인</span>
+                </div>
+                <p className="text-slate-300 text-xs mb-4 leading-relaxed">
+                  모든 스톤 진행도가 초기화됩니다. 정말 전체 리셋하시겠습니까?
+                </p>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsResetConfirmOpen(false)}
+                    className="px-3 py-1.5 text-xs font-bold text-slate-400 hover:text-white rounded-lg transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsResetConfirmOpen(false);
+                      onResetAll();
+                    }}
+                    className="px-3 py-1.5 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition-colors"
+                  >
+                    리셋 확인
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

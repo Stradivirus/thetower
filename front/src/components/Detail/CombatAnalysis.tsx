@@ -120,31 +120,35 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
     : [];
 
   const totalKills = allKillSourceItems.reduce((sum, item) => sum + item.value, 0);
-  const majorKillSources = allKillSourceItems.filter(item => (item.value / totalKills) * 100 >= 3);
-  const minorKillSources = allKillSourceItems.filter(item => (item.value / totalKills) * 100 < 3);
+  const majorKillSources = allKillSourceItems.filter((item, idx) => idx < 3 || (totalKills > 0 && (item.value / totalKills) * 100 >= 1.0));
+  const minorKillSources = allKillSourceItems.filter((item, idx) => !(idx < 3 || (totalKills > 0 && (item.value / totalKills) * 100 >= 1.0)));
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg h-full">
-      {/* 1. 대미지 딜러 분석 섹션 */}
-      <DamageDealerSection 
-        majorStats={majorStats} 
-        minorStats={minorStats} 
-        totalDamageStr={totalDamageStr} 
-      />
-
-      {/* 2. 복합 분석 영역 (Kill Source + Kill Bonus) */}
-      <div className="flex flex-col lg:flex-row gap-6 mt-8">
-        <KillSourceSection 
-          allKillSourceItems={allKillSourceItems}
-          majorKillSources={majorKillSources}
-          minorKillSources={minorKillSources}
-          totalKills={totalKills}
-        />
-        <KillBonusSection 
-          killBonusEntries={killBonusEntries}
-          actualTotalEnemies={actualTotalEnemies}
-        />
+      {/* 1. 상단 반반 영역: 대미지 딜러 분석 (50%) | Destroyed By (50%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-stretch">
+        <div className="lg:border-r lg:border-slate-800/80 lg:pr-10">
+          <DamageDealerSection 
+            majorStats={majorStats} 
+            minorStats={minorStats} 
+            totalDamageStr={totalDamageStr} 
+          />
+        </div>
+        <div>
+          <KillSourceSection 
+            majorKillSources={majorKillSources}
+            minorKillSources={minorKillSources}
+            totalKills={totalKills}
+            actualTotalEnemies={actualTotalEnemies}
+          />
+        </div>
       </div>
+
+      {/* 2. 하단 가로 영역: 처치 보너스 분석 */}
+      <KillBonusSection 
+        killBonusEntries={killBonusEntries}
+        actualTotalEnemies={actualTotalEnemies}
+      />
 
       {/* 3. 기타 전투 스탯 그리드 */}
       {miscStats.length > 0 && (

@@ -33,7 +33,8 @@ export default function ResourceGrid({ coinData, currencyData }: ResourceGridPro
   const coinKeywords = [
     '코인', 'Coin', '황금 타워', 'Golden Tower', '블랙홀', 'Black Hole', 
     '스포트라이트', 'Spotlight', '황금 봇', 'Golden Bot', '죽음의 파동', 'Death Wave',
-    '웨이브 건너뛰기', 'Wave Skip', '골든 콤보', 'Golden Combo', '현상금', 'Bounty'
+    '웨이브 건너뛰기', 'Wave Skip', '골든 콤보', 'Golden Combo', '현상금', 'Bounty',
+    '오브', 'Orb', 'Orbs'
   ];
 
   // 모든 데이터를 합친 후 분류

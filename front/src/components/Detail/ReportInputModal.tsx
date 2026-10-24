@@ -1,10 +1,10 @@
 /**
  * 파일명: thetower/front/src/components/Detail/ReportInputModal.tsx
- * 용도: 새로운 전투 리포트 텍스트를 입력받아 서버로 전송하는 모달 (3슬롯 동시 입력 지원)
- * 기능: 3개 입력창 나란히 제공(최소 1개만 입력해도 저장 가능), 포커스 슬롯 연동 퀵 메모, 엔터키 즉시 저장(Shift+Enter는 줄바꿈), API 연동
+ * 용도: 새로운 전투 리포트 텍스트를 입력받아 서버로 전송하는 모달 (기본 3슬롯 / 확장 시 2x4 8슬롯 동시 입력 지원)
+ * 기능: 3개 입력창 나란히 제공(확장 시 8개 2x4 그리드, 최소 1개만 입력해도 저장 가능), 포커스 슬롯 연동 퀵 메모, 엔터키 즉시 저장(Shift+Enter는 줄바꿈), API 연동
  */
 import { useState, useEffect, useRef } from 'react';
-import { X, Save, FileText, Trophy, Zap, Beaker, CheckCircle2 } from 'lucide-react';
+import { X, Save, FileText, Trophy, Zap, Beaker, CheckCircle2, Maximize2, Minimize2 } from 'lucide-react';
 import { createReport } from '../../api/reports';
 import { useReports } from '../../contexts/ReportContext';
 import { useStatsCache } from '../../contexts/StatsCacheContext';
@@ -21,11 +21,13 @@ interface ReportSlot {
   saved?: boolean;
 }
 
-const SLOT_COUNT = 3;
+const DEFAULT_SLOT_COUNT = 3;
+const EXPANDED_SLOT_COUNT = 8;
 
 export default function ReportInputModal({ onClose }: Props) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [slots, setSlots] = useState<ReportSlot[]>(() =>
-    Array.from({ length: SLOT_COUNT }, () => ({ text: '', notes: '', saved: false }))
+    Array.from({ length: EXPANDED_SLOT_COUNT }, () => ({ text: '', notes: '', saved: false }))
   );
   const [activeIndex, setActiveIndex] = useState<number>(0);
   const [loading, setLoading] = useState(false);
@@ -35,6 +37,9 @@ export default function ReportInputModal({ onClose }: Props) {
   const notesInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { refreshReports, addReportToState } = useReports();
   const { invalidateStatsCache } = useStatsCache();
+
+  const visibleSlotCount = isExpanded ? EXPANDED_SLOT_COUNT : DEFAULT_SLOT_COUNT;
+  const visibleSlots = slots.slice(0, visibleSlotCount);
 
   const Text = T.detail;
   const Common = T.common;
@@ -46,6 +51,18 @@ export default function ReportInputModal({ onClose }: Props) {
   useEffect(() => {
     textareaRefs.current[0]?.focus();
   }, []);
+
+  // 확장/축소 토글 핸들러
+  const handleToggleExpand = () => {
+    if (loading || isCompleted) return;
+    setIsExpanded((prev) => {
+      const next = !prev;
+      if (!next && activeIndex >= DEFAULT_SLOT_COUNT) {
+        setActiveIndex(0);
+      }
+      return next;
+    });
+  };
 
   // 테스트 서브 메뉴 데이터
   const TEST_SUBS = [
@@ -71,7 +88,7 @@ export default function ReportInputModal({ onClose }: Props) {
   };
 
   // 최소 1개 이상의 슬롯에 텍스트가 입력되어 있는지 확인
-  const filledCount = slots.filter((s) => s.text.trim().length > 0).length;
+  const filledCount = visibleSlots.filter((s) => s.text.trim().length > 0).length;
   const hasValidInput = filledCount > 0;
 
   const handleSubmit = async () => {
@@ -83,7 +100,7 @@ export default function ReportInputModal({ onClose }: Props) {
     const nextSlots = [...slots];
 
     try {
-      for (let i = 0; i < nextSlots.length; i++) {
+      for (let i = 0; i < visibleSlotCount; i++) {
         const trimmedText = nextSlots[i].text.trim();
         if (!trimmedText || nextSlots[i].saved) continue;
 
@@ -140,11 +157,17 @@ export default function ReportInputModal({ onClose }: Props) {
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="relative my-auto">
 
-        {/* 모달 본체: 3개 입력창을 가로로 나란히 배치 */}
-        <div className="bg-slate-900 border border-slate-700 w-[92vw] max-w-[1140px] rounded-2xl shadow-2xl p-6 animate-fade-in">
+        {/* 모달 본체: 기본 3열 / 확장 시 2x4 (8개) 그리드 배치 */}
+        <div
+          className={`bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl animate-fade-in transition-all ${
+            isExpanded
+              ? 'w-[94vw] max-w-[1360px] p-5'
+              : 'w-[92vw] max-w-[1140px] p-6'
+          }`}
+        >
 
           {/* 헤더 */}
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-4 gap-3">
             <h2 className="text-xl font-bold text-white flex items-center gap-2.5 flex-wrap">
               <FileText className="text-blue-500" /> {Text.INPUT_TITLE}
               <span className="text-xs font-medium text-amber-400/90 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
@@ -152,18 +175,51 @@ export default function ReportInputModal({ onClose }: Props) {
               </span>
               {filledCount > 0 && (
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                  {filledCount} / {SLOT_COUNT}
+                  {filledCount} / {visibleSlotCount}
                 </span>
               )}
             </h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-              <X />
-            </button>
+
+            <div className="flex items-center gap-3 shrink-0">
+              {/* 3개 <-> 8개(2x4) 확장 토글 버튼 */}
+              <button
+                type="button"
+                disabled={loading || isCompleted}
+                onClick={handleToggleExpand}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-50 ${
+                  isExpanded
+                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/50 hover:bg-indigo-500/30'
+                    : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 hover:text-white'
+                }`}
+              >
+                {isExpanded ? (
+                  <>
+                    <Minimize2 size={14} />
+                    <span>기본 (3개)</span>
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 size={14} />
+                    <span>대량 입력 (8개)</span>
+                  </>
+                )}
+              </button>
+
+              <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                <X />
+              </button>
+            </div>
           </div>
 
-          {/* 3열 입력창 그리드 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {slots.map((slot, index) => {
+          {/* 입력창 그리드 (기본: 1x3 / 확장: 2x4) */}
+          <div
+            className={
+              isExpanded
+                ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3'
+                : 'grid grid-cols-1 md:grid-cols-3 gap-4'
+            }
+          >
+            {visibleSlots.map((slot, index) => {
               const isActive = activeIndex === index;
               const isFilled = slot.text.trim().length > 0;
               const isSaved = !!slot.saved;
@@ -172,7 +228,7 @@ export default function ReportInputModal({ onClose }: Props) {
                 <div
                   key={index}
                   onClick={() => setActiveIndex(index)}
-                  className={`flex flex-col rounded-xl p-3 border transition-colors ${
+                  className={`flex flex-col rounded-xl ${isExpanded ? 'p-2.5' : 'p-3'} border transition-colors ${
                     isSaved
                       ? 'bg-emerald-950/30 border-emerald-500/70 shadow-lg shadow-emerald-500/10'
                       : isActive
@@ -180,10 +236,10 @@ export default function ReportInputModal({ onClose }: Props) {
                       : 'bg-slate-950/40 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <span
-                        className={`text-base font-extrabold px-2.5 py-0.5 rounded-md tracking-tight ${
+                        className={`${isExpanded ? 'text-sm px-2 py-0.5' : 'text-base px-2.5 py-0.5'} font-extrabold rounded-md tracking-tight ${
                           isSaved
                             ? 'bg-emerald-600 text-white'
                             : isActive
@@ -229,14 +285,14 @@ export default function ReportInputModal({ onClose }: Props) {
                       onChange={(e) => updateSlot(index, 'text', e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder={Text.INPUT_PLACEHOLDER}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-slate-300 font-mono text-xs focus:outline-none focus:border-blue-500 resize-none custom-scrollbar disabled:opacity-60"
-                      style={{ height: '340px' }}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-300 font-mono text-xs focus:outline-none focus:border-blue-500 resize-none custom-scrollbar disabled:opacity-60"
+                      style={{ height: isExpanded ? '170px' : '340px' }}
                     />
 
                     {/* 저장 완료 오버레이 */}
                     {isSaved && (
                       <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-[1px] rounded-lg flex flex-col items-center justify-center gap-2 pointer-events-none animate-fade-in">
-                        <CheckCircle2 size={44} className="text-emerald-400" />
+                        <CheckCircle2 size={isExpanded ? 34 : 44} className="text-emerald-400" />
                         <span className="text-base font-extrabold text-emerald-400 tracking-tight">
                           저장 완료!
                         </span>
@@ -246,7 +302,7 @@ export default function ReportInputModal({ onClose }: Props) {
                     {/* 엔터키 안내 문구 */}
                     {!slot.text && !isSaved && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 group-focus-within:opacity-40 transition-opacity px-2 text-center">
-                        <span className="text-lg font-black text-slate-400 uppercase tracking-tighter">
+                        <span className={`${isExpanded ? 'text-sm' : 'text-lg'} font-black text-slate-400 uppercase tracking-tighter`}>
                           {Text.INPUT_HELP}
                         </span>
                       </div>
@@ -265,7 +321,7 @@ export default function ReportInputModal({ onClose }: Props) {
                     onChange={(e) => updateSlot(index, 'notes', e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder={Text.NOTE_PLACEHOLDER}
-                    className="w-full mt-2.5 bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-slate-300 text-xs focus:outline-none focus:border-blue-500 disabled:opacity-60"
+                    className={`w-full ${isExpanded ? 'mt-2 p-2' : 'mt-2.5 p-2.5'} bg-slate-950 border border-slate-700 rounded-lg text-slate-300 text-xs focus:outline-none focus:border-blue-500 disabled:opacity-60`}
                   />
                 </div>
               );

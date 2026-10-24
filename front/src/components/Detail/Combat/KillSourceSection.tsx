@@ -1,128 +1,115 @@
 import { useState } from 'react';
-import { Skull } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Skull, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatNumber } from '../../../utils/format';
+import { T } from '../../../locales';
+import { StatRow } from './DamageDealerSection';
 
-/** 차트 색상 팔레트 */
-const CHART_COLORS = [
-  '#f59e0b', '#8b5cf6', '#3b82f6', '#10b981', '#ec4899', 
-  '#06b6d4', '#f43f5e', '#a855f7', '#14b8a6', '#f97316'
+/** 처치 수단 전용 쿨톤 컬러 팔레트 (좌측 딜 그래프의 웜톤과 시각적 구분) */
+const KILL_RANK_COLORS = [
+  { text: 'text-sky-400', bg: 'bg-sky-500' },       // 1위
+  { text: 'text-indigo-400', bg: 'bg-indigo-500' }, // 2위
+  { text: 'text-violet-400', bg: 'bg-violet-500' }, // 3위
+  { text: 'text-teal-400', bg: 'bg-teal-500' },     // 4위
+  { text: 'text-fuchsia-400', bg: 'bg-fuchsia-500' }, // 5위
 ];
+const DEFAULT_KILL_COLOR = { text: 'text-slate-400', bg: 'bg-slate-500' };
 
-interface Props {
-  allKillSourceItems: any[];
-  majorKillSources: any[];
-  minorKillSources: any[];
-  totalKills: number;
+interface KillSourceItemData {
+  name: string;
+  value: number;
+  displayValue: string;
+  color: string;
+  originalIndex: number;
 }
 
-export default function KillSourceSection({ allKillSourceItems, majorKillSources, minorKillSources, totalKills }: Props) {
-  const [activeIndex, setActiveIndex] = useState(-1);
+interface Props {
+  majorKillSources: KillSourceItemData[];
+  minorKillSources: KillSourceItemData[];
+  totalKills: number;
+  actualTotalEnemies?: number;
+}
 
-  /** [헬퍼] 원형 차트 지시선 라벨 렌더링 */
-  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, index }: any) => {
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 1.55; 
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+export default function KillSourceSection({ majorKillSources, minorKillSources, totalKills, actualTotalEnemies }: Props) {
+  const [showMinors, setShowMinors] = useState(false);
+  const Text = T.detail;
 
-    return (
-      <text 
-        x={x} 
-        y={y} 
-        fill={CHART_COLORS[index % CHART_COLORS.length]} 
-        textAnchor={x > cx ? 'start' : 'end'} 
-        dominantBaseline="central" 
-        className="text-[13px] font-black pointer-events-none drop-shadow-[0_2px_2px_rgba(0,0,0,0.5)]"
-        style={{ opacity: 1 }}
-      >
-        {name}
-      </text>
-    );
-  };
-
-  /** [내부 컴포넌트] 리스트 아이템 렌더러 */
-  const KillSourceItem = ({ item, isMajor }: { item: any, isMajor: boolean }) => {
-    const ratio = totalKills > 0 ? (item.value / totalKills) * 100 : 0;
-    const isHovered = activeIndex === item.originalIndex;
-    return (
-        <div 
-            className={`flex flex-col p-2.5 rounded-xl transition-all border ${isHovered ? 'bg-slate-800 border-slate-600 scale-[1.05]' : 'border-transparent hover:bg-slate-800/50'}`}
-            onMouseEnter={() => setActiveIndex(item.originalIndex)}
-            onMouseLeave={() => setActiveIndex(-1)}
-        >
-            <span className="text-[11px] font-black mb-1 truncate uppercase tracking-tight" style={{ color: item.color }}>{item.name}</span>
-            <div className="flex items-baseline justify-between">
-                {isMajor ? (
-                    <>
-                        <span className="text-base font-mono font-bold text-white leading-none">{item.displayValue}</span>
-                        <span className="text-[10px] font-black text-slate-500 font-mono leading-none">{ratio.toFixed(1)}%</span>
-                    </>
-                ) : (
-                    <span className="text-xs font-mono font-bold text-slate-300 leading-none">{item.displayValue}</span>
-                )}
-            </div>
-        </div>
-    );
-  };
+  const baseTotal = totalKills > 0 ? totalKills : (actualTotalEnemies || 0);
+  const minorItems: [string, any][] = minorKillSources.map(item => [
+    item.name,
+    item.value >= 1000 ? formatNumber(item.value) : item.value.toLocaleString(),
+  ]);
 
   return (
-    <div className="lg:w-3/4 bg-slate-950/30 border border-slate-800/50 rounded-2xl p-6 flex flex-col">
-      <div className="flex items-center gap-2 mb-4 px-1">
-          <Skull size={18} className="text-blue-400" />
-          <h4 className="text-base font-black text-blue-400 uppercase tracking-widest">Destroyed By</h4>
+    <div className="flex flex-col h-full">
+      {/* 분석 헤더 */}
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-lg font-bold flex items-center gap-2 text-sky-400">
+          <Skull size={20} /> Destroyed By
+        </h3>
+        <div className="flex flex-col items-end">
+          <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{Text.DASH_TOTAL_ENEMIES}</span>
+          <span
+            className="text-xl font-mono font-bold text-white tracking-tight"
+            title={(actualTotalEnemies || totalKills).toLocaleString()}
+          >
+            {formatNumber(actualTotalEnemies || totalKills)}
+          </span>
+        </div>
       </div>
-      
-      <div className="flex flex-col xl:flex-row items-stretch gap-2 flex-1">
-          {/* [좌] Major Sources (3% 이상) */}
-          <div className="w-full xl:w-1/4 flex flex-col gap-2 justify-center py-4">
-              <div className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mb-2 px-2 border-b border-slate-800/50 pb-1">Major (≥ 3%)</div>
-              {majorKillSources.map(item => <KillSourceItem key={item.name} item={item} isMajor={true} />)}
-          </div>
 
-          {/* [중] 원형 차트 */}
-          <div className="w-full xl:w-2/4 h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                      <Pie
-                          data={allKillSourceItems}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={{ stroke: '#475569', strokeWidth: 2 }}
-                          label={renderCustomizedLabel}
-                          outerRadius={120}
-                          innerRadius={75}
-                          dataKey="value"
-                          stroke="none"
-                          onMouseEnter={(_, index) => setActiveIndex(index)}
-                          onMouseLeave={() => setActiveIndex(-1)}
-                          isAnimationActive={false}
-                      >
-                          {allKillSourceItems.map((item, index) => (
-                              <Cell 
-                                  key={`cell-${index}`} 
-                                  fill={item.color} 
-                                  opacity={activeIndex === -1 || activeIndex === item.originalIndex ? 1 : 0.3}
-                                  style={{ transition: 'opacity 0.2s ease', cursor: 'pointer' }}
-                              />
-                          ))}
-                      </Pie>
-                      <Tooltip 
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px' }}
-                          itemStyle={{ color: '#e2e8f0', fontSize: '12px', fontWeight: 'bold' }}
-                          formatter={(value: any) => [value.toLocaleString(), 'Count']}
-                      />
-                  </PieChart>
-              </ResponsiveContainer>
-          </div>
-
-          {/* [우] Minor Sources (3% 미만) */}
-          <div className="w-full xl:w-1/4 flex flex-col gap-2 justify-center py-4">
-              <div className="text-[10px] font-black text-slate-600 uppercase tracking-tighter mb-2 px-2 border-b border-slate-800/50 pb-1">Minor (&lt; 3%)</div>
-              <div className="grid grid-cols-1 gap-1 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
-                  {minorKillSources.map(item => <KillSourceItem key={item.name} item={item} isMajor={false} />)}
+      {/* 주요 처치 수단 리스트 (Progress Bar - Cool Tone) */}
+      <div className="space-y-3.5 flex-1">
+        {majorKillSources.map((item, idx) => {
+          const percentage = baseTotal > 0 ? (item.value / baseTotal) * 100 : 0;
+          const colorSet = KILL_RANK_COLORS[idx] || DEFAULT_KILL_COLOR;
+          return (
+            <div key={item.name} className="group">
+              <div className="flex justify-between items-end mb-1.5 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={`font-bold w-4 text-center ${idx < 3 ? 'text-sky-400' : 'text-slate-500'}`}>
+                    {idx + 1}
+                  </span>
+                  <span className="text-slate-200 font-medium flex items-center gap-1">
+                    {item.name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 font-mono" title={item.value.toLocaleString()}>
+                    {formatNumber(item.value)}
+                  </span>
+                  <span className={`font-bold w-16 text-right text-base font-mono ${colorSet.text}`}>
+                    {percentage.toFixed(1)}%
+                  </span>
+                </div>
               </div>
-          </div>
+              <div className="w-full h-2 bg-slate-800/90 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ease-out ${colorSet.bg}`}
+                  style={{ width: `${Math.min(percentage, 100)}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
       </div>
+
+      {/* 소수 처치 수단 섹션 (접이식) */}
+      {minorItems.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => setShowMinors(!showMinors)}
+            className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors mb-3 w-full border-t border-slate-800/80 pt-4"
+          >
+            {showMinors ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <span>기타 처치 수단 ({minorItems.length}개 항목)</span>
+          </button>
+          {showMinors && (
+            <div className="animate-fade-in pl-1">
+              <StatRow items={minorItems} compact />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
