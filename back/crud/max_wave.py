@@ -13,7 +13,7 @@ async def get_all_tier_records(db: AsyncSession):
     result = await db.execute(stmt)
     return result.scalars().all()
 
-async def update_tier_record(db: AsyncSession, tier: int, wave: int):
+async def update_tier_record(db: AsyncSession, tier: int, wave: int, commit: bool = True):
     """
     특정 티어의 최고 웨이브 기록을 업데이트합니다.
     기존 기록보다 높은 웨이브일 경우에만 갱신을 수행합니다.
@@ -26,13 +26,15 @@ async def update_tier_record(db: AsyncSession, tier: int, wave: int):
         # 기존 기록보다 높은 경우에만 갱신
         if wave > record.max_wave:
             record.max_wave = wave
-            await db.commit()
-            await db.refresh(record)
+            if commit:
+                await db.commit()
+                await db.refresh(record)
             return record
     else:
         # 해당 티어의 기록이 없는 경우 새로 생성
         new_record = models.TierRecord(tier=tier, max_wave=wave)
         db.add(new_record)
-        await db.commit()
-        await db.refresh(new_record)
+        if commit:
+            await db.commit()
+            await db.refresh(new_record)
         return new_record

@@ -28,7 +28,7 @@ async def get_v2_report(db: AsyncSession, battle_date, user_id: int):
 
     return v2_main, v2_detail
 
-async def create_battle_record_v2(db: AsyncSession, parsed_data: dict, user_id: int):
+async def create_battle_record_v2(db: AsyncSession, parsed_data: dict, user_id: int, commit: bool = True):
     """
     V2 파싱 데이터를 BattleMainV2, BattleDetailV2에 저장
     - BattleMain은 기존 create_battle_record()에서 이미 저장된 상태
@@ -84,10 +84,12 @@ async def create_battle_record_v2(db: AsyncSession, parsed_data: dict, user_id: 
             )
             db.add(detail_v2)
 
-        await db.commit()
+        if commit:
+            await db.commit()
         return main_v2
 
     except Exception as e:
-        await db.rollback()
+        if commit:
+            await db.rollback()
         print(f"❌ [V2 Save Error] 트랜잭션 롤백됨: {e}")
         return None

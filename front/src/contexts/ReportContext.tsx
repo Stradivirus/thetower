@@ -50,12 +50,15 @@ export function ReportProvider({ children, token, isGuest = false }: { children:
   }, [canFetch, token, isGuest, refreshReports]);
 
   /** 
-   * 새로운 리포트를 상태에 추가 (새로고침 없이 반영)
+   * 새로운 리포트를 상태에 추가 (동일 battle_date 존재 시 덮어쓰기 후 최신순 정렬)
    */
   const addReportToState = useCallback((newReport: BattleMain) => {
-    setReports(prev => [newReport, ...prev].sort((a, b) => 
-      new Date(b.battle_date).getTime() - new Date(a.battle_date).getTime()
-    ));
+    setReports(prev => {
+      const filtered = prev.filter(r => r.battle_date !== newReport.battle_date);
+      return [newReport, ...filtered].sort((a, b) => 
+        new Date(b.battle_date).getTime() - new Date(a.battle_date).getTime()
+      );
+    });
   }, []);
 
   /** 

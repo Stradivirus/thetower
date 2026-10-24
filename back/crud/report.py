@@ -51,7 +51,7 @@ async def update_monthly_summary_remove(db: AsyncSession, owner_id: int, date_ob
         summary.total_cells = max(0, summary.total_cells - cells)
         summary.total_shards = max(0, summary.total_shards - shards)
 
-async def create_battle_record(db: AsyncSession, parsed_data: dict, user_id: int, notes: str = None):
+async def create_battle_record(db: AsyncSession, parsed_data: dict, user_id: int, notes: str = None, commit: bool = True):
     """
     파싱된 데이터를 기반으로 새로운 전투 기록을 생성합니다.
     - BattleMain: 주요 통계 데이터 저장 (merge를 통한 중복 처리)
@@ -122,11 +122,13 @@ async def create_battle_record(db: AsyncSession, parsed_data: dict, user_id: int
                 )
                 db.add(new_detail)
         
-        await db.commit()
+        if commit:
+            await db.commit()
         return battle_main
 
     except Exception as e:
-        await db.rollback()
+        if commit:
+            await db.rollback()
         print(f"❌ [Save Error] 트랜잭션 롤백됨: {e}")
         return None
 

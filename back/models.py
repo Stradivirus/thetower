@@ -87,6 +87,27 @@ class BattleMain(Base):
     v2_main = relationship("BattleMainV2", back_populates="main", uselist=False, cascade="all, delete-orphan")
     v2_detail = relationship("BattleDetailV2", back_populates="main", uselist=False, cascade="all, delete-orphan")
 
+    @property
+    def death_wave_ratio(self) -> str:
+        total = float(self.total_enemies or 0)
+        if total > 0:
+            return f"{round(float(self.death_wave_kills or 0) / total * 100, 1)}%"
+        return "0%"
+
+    @property
+    def spotlight_ratio(self) -> str:
+        total = float(self.total_enemies or 0)
+        if total > 0:
+            return f"{round(float(self.spotlight_kills or 0) / total * 100, 1)}%"
+        return "0%"
+
+    @property
+    def golden_bot_ratio(self) -> str:
+        total = float(self.total_enemies or 0)
+        if total > 0:
+            return f"{round(float(self.golden_bot_kills or 0) / total * 100, 1)}%"
+        return "0%"
+
 class BattleDetail(Base):
     """전투 기록의 상세 데이터(JSONB) 테이블"""
     __tablename__ = "battle_details"

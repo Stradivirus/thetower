@@ -5,7 +5,7 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, Form, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_db, get_db_replica
+from database import get_db, get_db_replica, SessionLocal
 from schemas import (
     BattleMainResponse,
     FullReportResponse,
@@ -29,6 +29,17 @@ import re
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
+async def _notify_milestone_in_background():
+    """백그라운드에서 전체 전투 기록 개수를 확인하고 50건 단위일 때 Slack 알림을 전송합니다."""
+    try:
+        async with SessionLocal() as bg_db:
+            total_count = await crud.count_reports(bg_db)
+            if total_count > 0 and total_count % 50 == 0:
+                msg = f"⚔️ [New Record] {total_count}번째 전투 기록이 등록되었습니다!"
+                slack.send_slack_notification(msg)
+    except Exception as e:
+        print(f"Notification Error: {e}")
+
 # =================================================================
 # 1. 생성 (POST) - 리포트 텍스트 파싱 및 저장
 # =================================================================
@@ -45,7 +56,7 @@ async def create_report(
     텍스트 형식의 전투 리포트를 파싱하여 DB에 저장합니다.
     - [변경] V2 포맷만 저장을 허용합니다. (V1은 더 이상 저장하지 않음)
     - V1 포맷 업로드 시 400 에러를 반환합니다.
-    - V2: BattleMain + BattleMainV2 + BattleDetailV2 저장 (기존 BattleDetail은 저장 안 함)
+    - V2: BattleMain + BattleMainV2 + BattleDetailV2 저장 (단일 트랜잭션 커밋)
     - 티어별 서버 최고 기록 갱신 시도
     - 50건 단위 기록 발생 시 Slack 알림 전송 (Background Task)
     """
@@ -62,22 +73,24 @@ async def create_report(
         parsed_data = parse_battle_report_v2(report_text)
         
         # BattleMain만 생성 (V1 Detail은 생성하지 않음)
-        # v1_compatible 딕셔너리에서 detail을 비워서 전달하면 crud.create_battle_record가 Detail을 생성하지 않도록 수정 필요
         v1_compatible = {
             'main': parsed_data['main'],
             'detail': None  # None을 전달하여 Detail 생성을 건너뜀
         }
         
-        result = await crud.create_battle_record(db, v1_compatible, current_user.id, notes)
+        result = await crud.create_battle_record(db, v1_compatible, current_user.id, notes, commit=False)
 
         if not result:
+            await db.rollback()
             print(f"⚠️ [User {current_user.id}] Invalid data, skipping save.")
             raise HTTPException(status_code=400, detail="Invalid data provided or data skipped")
 
         # 2. V2 전용 데이터 저장 (BattleMainV2, BattleDetailV2)
-        v2_result = await create_battle_record_v2(db, parsed_data, current_user.id)
+        v2_result = await create_battle_record_v2(db, parsed_data, current_user.id, commit=False)
         if not v2_result:
+            await db.rollback()
             print(f"⚠️ [User {current_user.id}] V2 data save failed.")
+            raise HTTPException(status_code=400, detail="V2 data save failed")
 
         # 3. 서버 최고 기록(Max Wave) 갱신 시도
         try:
@@ -88,19 +101,16 @@ async def create_report(
             wave_val = int(main_data.get('wave', 0))
 
             if tier_val > 0 and wave_val > 0:
-                await max_wave_crud.update_tier_record(db, tier=tier_val, wave=wave_val)
+                await max_wave_crud.update_tier_record(db, tier=tier_val, wave=wave_val, commit=False)
         except Exception as e:
             print(f"Max Wave Update Skipped: {e}")
 
-        # 4. 알림 전송 (50건 단위)
+        # 단일 트랜잭션 커밋 수행
+        await db.commit()
+
+        # 4. 알림 전송 (50건 단위 - 카운트 조회 포함 백그라운드 처리)
         if background_tasks:
-            try:
-                total_count = await crud.count_reports(db)
-                if total_count > 0 and total_count % 50 == 0:
-                    msg = f"⚔️ [New Record] {total_count}번째 전투 기록이 등록되었습니다!"
-                    background_tasks.add_task(slack.send_slack_notification, msg)
-            except Exception as e:
-                print(f"Notification Error: {e}")
+            background_tasks.add_task(_notify_milestone_in_background)
 
         return result
 
