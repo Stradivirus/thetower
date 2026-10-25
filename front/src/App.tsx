@@ -6,7 +6,7 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 import { User, Eye } from 'lucide-react';
-import ReportInputModal from './components/Detail/ReportInputModal';
+import ReportInputModal from './components/Layout/ReportInput/ReportInputModal';
 import AuthModal from './components/Auth/AuthModal';
 import NavBar from './components/Layout/NavBar';
 import { GameDataProvider } from './contexts/GameDataContext';

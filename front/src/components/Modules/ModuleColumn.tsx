@@ -127,6 +127,7 @@ export default function ModuleColumn({ moduleType, modules, progress, onModuleCl
   }, [moduleTranslations, modules, moduleType.id, viewMode]);
 
   const slotId = slotIdMap[moduleType.id];
+  const mainEfficiency = getEfficiencyPercent(progress[`module_${slotId}_main`] || 0);
   const subEfficiency = getEfficiencyPercent(progress[`module_${slotId}_sub`] || 0);
 
   return (
@@ -134,7 +135,11 @@ export default function ModuleColumn({ moduleType, modules, progress, onModuleCl
       {/* 열 헤더 */}
       <div className={`flex items-center gap-2 p-4 border-b border-slate-800 bg-slate-900/50 rounded-t-2xl ${moduleType.color.replace('text-', 'text-opacity-80 ')}`}>
         <h3 className="text-lg font-bold text-slate-200">{moduleType.label}</h3>
-        {viewMode === 'equipped' && <span className="text-[10px] text-slate-500 ml-auto">Assist Eff: {subEfficiency}%</span>}
+        {viewMode === 'equipped' && (
+          <span className="text-[10px] text-slate-400 ml-auto font-mono">
+            Main: <strong className="text-slate-200">{mainEfficiency}%</strong> / Sub: <strong className="text-slate-200">{subEfficiency}%</strong>
+          </span>
+        )}
       </div>
 
       {/* 모듈 카드 리스트 영역 */}

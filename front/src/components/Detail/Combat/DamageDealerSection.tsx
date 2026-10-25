@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Sword, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { RANK_COLORS, DEFAULT_RANK_COLOR } from '../../../constants/reportRules';
 import { T } from '../../../locales';
@@ -24,10 +23,11 @@ interface Props {
   majorStats: [string, any, number][];
   minorStats: [string, any][];
   totalDamageStr: string;
+  showMinors: boolean;
+  onToggleMinors: () => void;
 }
 
-export default function DamageDealerSection({ majorStats, minorStats, totalDamageStr }: Props) {
-  const [showMinors, setShowMinors] = useState(false);
+export default function DamageDealerSection({ majorStats, minorStats, totalDamageStr, showMinors, onToggleMinors }: Props) {
   const Text = T.detail;
 
   return (
@@ -76,7 +76,7 @@ export default function DamageDealerSection({ majorStats, minorStats, totalDamag
       {minorStats.length > 0 && (
         <div className="mt-6">
            <button 
-             onClick={() => setShowMinors(!showMinors)} 
+             onClick={onToggleMinors} 
              className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors mb-3 w-full border-t border-slate-800/80 pt-4"
            >
              {showMinors ? <ChevronUp size={14} /> : <ChevronDown size={14} />}

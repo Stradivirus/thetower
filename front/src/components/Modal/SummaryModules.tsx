@@ -115,7 +115,8 @@ export default function SummaryModules() {
     moduleData: EquippedModule | undefined,
     slotType: 'MAIN' | 'ASSIST',
     unlockLevel: number,
-    efficiency: number
+    mainEfficiency: number,
+    subEfficiency: number
   ) => {
     if (!moduleData) return null;
 
@@ -128,7 +129,6 @@ export default function SummaryModules() {
 
     const rarityInfo = RARITIES[visualRarity] || RARITIES[0];
     const availableEffects = REROLL_DATA[typeId] || [];
-    const hasMetaInfo = slotType === 'ASSIST' && (moduleData.rarity > visualRarity || true);
 
     return (
       <div className={`relative ${slotType === 'ASSIST' ? 'mt-4 pt-4 border-t-2 border-slate-700/50' : ''}`}>
@@ -160,17 +160,16 @@ export default function SummaryModules() {
           </div>
         </div>
 
-        {/* 부가 정보 (실제 등급 보정 및 효율) */}
-        {hasMetaInfo && (slotType === 'ASSIST') && (
-          <div className="flex items-center gap-2 mb-2 text-[10px] text-slate-500">
-             {moduleData.rarity > visualRarity && (
-               <span className="whitespace-nowrap">
-                 ({T.summary.MODULES.REAL_RARITY}: {RARITIES[moduleData.rarity].short})
-               </span>
-             )}
-             <span className="whitespace-nowrap">
-               {T.summary.MODULES.EFFICIENCY}: {efficiency}%
-             </span>
+        {/* 부가 정보 (Main/Sub 효율 분리 표기) */}
+        {slotType === 'ASSIST' && (
+          <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 mb-2 text-[10px] text-slate-400">
+            <span className="whitespace-nowrap">
+              Main: <span className="font-mono font-bold text-slate-300">{mainEfficiency}%</span>
+            </span>
+            <span className="text-slate-600">/</span>
+            <span className="whitespace-nowrap">
+              Sub: <span className="font-mono font-bold text-slate-300">{subEfficiency}%</span>
+            </span>
           </div>
         )}
         {slotType === 'MAIN' && <div className="mb-2"></div>}
@@ -186,9 +185,9 @@ export default function SummaryModules() {
               const baseVal = effectData.values[moduleData.rarity];
               let displayVal = baseVal;
 
-              // 효율(%) 반영 계산
+              // 서브 효율(%) 반영 계산
               if (typeof baseVal === 'number') {
-                const calculated = baseVal * (efficiency / 100);
+                const calculated = baseVal * (subEfficiency / 100);
                 displayVal = Number.isInteger(calculated) ? calculated : parseFloat(calculated.toFixed(2));
               }
 
@@ -260,6 +259,8 @@ export default function SummaryModules() {
           const unlockKey = `module_unlock_${mappedId}`;
           const unlockLevel = progress[unlockKey] || 0;
           
+          const mainEffLevel = progress[`module_${mappedId}_main`] || 0;
+          const mainEfficiency = getEfficiencyPercent(mainEffLevel);
           const subEffLevel = progress[`module_${mappedId}_sub`] || 0;
           const subEfficiency = getEfficiencyPercent(subEffLevel);
 
@@ -283,7 +284,7 @@ export default function SummaryModules() {
               <div className="p-3">
                 {/* 메인 슬롯 */}
                 {mainModule ? (
-                  renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100)
+                  renderModuleItem(typeId, mainModule, 'MAIN', unlockLevel, 100, 100)
                 ) : (
                   <div className="text-center py-4 text-xs text-slate-600 italic border-b-2 border-slate-700/50">
                     {T.summary.MODULES.NO_MAIN}
@@ -292,7 +293,7 @@ export default function SummaryModules() {
 
                 {/* 어시스트 슬롯 */}
                 {subModule ? (
-                  renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, subEfficiency)
+                  renderModuleItem(typeId, subModule, 'ASSIST', unlockLevel, mainEfficiency, subEfficiency)
                 ) : (
                   <div className="text-center py-4 text-xs text-slate-600 italic mt-2">
                     {T.summary.MODULES.NO_ASSIST}

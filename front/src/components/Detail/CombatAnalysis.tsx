@@ -2,6 +2,7 @@
  * 파일명: thetower/front/src/components/Detail/CombatAnalysis.tsx
  * 용도: 전투 리포트 상세 페이지에서 대미지 및 전투 데이터를 분석하여 시각화 (Refactored)
  */
+import { useState } from 'react';
 import { parseGameNumber } from '../../utils/format';
 import {
   DEFENSE_KEYS, ATTACK_SPECIFIC_KEYS
@@ -31,6 +32,8 @@ const CHART_COLORS = [
 ];
 
 export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, killEffects, killSourceJson, totalEnemies, stats }: Props) {
+  const [showMinors, setShowMinors] = useState(false);
+
   // --- 1. 데이터 파싱 및 초기화 ---
   let combatEntries: [string, any][] = [];
   let totalDamageStr = '0';
@@ -131,7 +134,9 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
           <DamageDealerSection 
             majorStats={majorStats} 
             minorStats={minorStats} 
-            totalDamageStr={totalDamageStr} 
+            totalDamageStr={totalDamageStr}
+            showMinors={showMinors}
+            onToggleMinors={() => setShowMinors(prev => !prev)}
           />
         </div>
         <div>
@@ -140,6 +145,8 @@ export default function CombatAnalysis({ combatJson, damageJsonV2, enemyJson, ki
             minorKillSources={minorKillSources}
             totalKills={totalKills}
             actualTotalEnemies={actualTotalEnemies}
+            showMinors={showMinors}
+            onToggleMinors={() => setShowMinors(prev => !prev)}
           />
         </div>
       </div>

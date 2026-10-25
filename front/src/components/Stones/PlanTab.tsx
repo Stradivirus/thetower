@@ -44,20 +44,20 @@ export default function PlanTab({
   const { isLoggedIn } = useGameData();
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in overflow-x-hidden">
       <div className={styles.card}>
         {/* 상단 요약 헤더 */}
         <div className="bg-slate-800/80 px-4 py-3 text-white font-bold text-sm border-b border-slate-700 flex flex-wrap justify-between items-center gap-3">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 min-w-0">
             <div className="flex items-center gap-2">
-              <ClipboardList size={18} className="text-purple-400" />
+              <ClipboardList size={18} className="text-purple-400 shrink-0" />
               <span className="text-base">Stone Upgrade Roadmap</span>
               <span className="text-xs font-normal text-slate-400">
                 ({evaluatedItems.length} Steps)
               </span>
             </div>
             <div className="h-4 w-px bg-slate-700 hidden sm:block" />
-            <div className="flex items-center gap-1.5 text-xs">
+            <div className="flex items-center gap-1.5 text-xs flex-wrap">
               <span className="text-slate-400">총 필요 스톤:</span>
               <span className="text-base font-mono font-bold text-yellow-400">
                 {formatNum(totalPlanStones)}
@@ -69,7 +69,7 @@ export default function PlanTab({
           </div>
 
           {isLoggedIn && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={onSavePlan}
                 disabled={isSaving || !isPlanChanged}
@@ -129,18 +129,18 @@ export default function PlanTab({
         ) : (
           <>
             {/* 데스크톱 테이블 뷰 */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-xs text-left">
+            <div className="hidden md:block overflow-x-hidden">
+              <table className="w-full table-fixed text-xs text-left">
                 <thead>
                   <tr>
-                    <th className={`${styles.th} w-14 text-center`}>순위</th>
-                    <th className={`${styles.th} w-24`}>분류</th>
+                    <th className={`${styles.th} w-12 !text-center pl-3`}>순위</th>
+                    <th className={`${styles.th} w-20`}>분류</th>
                     <th className={styles.th}>목표 항목</th>
-                    <th className={styles.th}>단계</th>
-                    <th className={styles.th}>수치 변화</th>
-                    <th className={`${styles.th} text-right`}>필요 스톤</th>
-                    <th className={`${styles.th} text-right`}>누적 필요 스톤</th>
-                    {isLoggedIn && <th className={`${styles.th} text-center w-44 whitespace-nowrap`}>관리</th>}
+                    <th className={`${styles.th} w-32`}>단계</th>
+                    <th className={`${styles.th} w-44 lg:w-52`}>수치 변화</th>
+                    <th className={`${styles.th} w-24 !text-right`}>필요 스톤</th>
+                    <th className={`${styles.th} w-28 !text-right pr-4`}>누적 필요 스톤</th>
+                    {isLoggedIn && <th className={`${styles.th} !text-center w-44 pr-4 whitespace-nowrap`}>관리</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -154,7 +154,7 @@ export default function PlanTab({
                         key={item.id}
                         className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors"
                       >
-                        <td className="px-2 py-2.5 text-center font-mono font-bold text-slate-400">
+                        <td className="pl-3 pr-2 py-2.5 text-center font-mono font-bold text-slate-400">
                           #{item.index}
                         </td>
                         <td className="px-2 py-2.5 whitespace-nowrap">
@@ -162,24 +162,33 @@ export default function PlanTab({
                             {item.categoryLabel}
                           </span>
                         </td>
-                        <td className="px-2 py-2.5 font-bold text-white whitespace-nowrap text-sm">
+                        <td
+                          className="px-2 py-2.5 font-bold text-white truncate text-sm"
+                          title={item.title}
+                        >
                           {item.title}
                         </td>
-                        <td className="px-2 py-2.5 font-mono text-cyan-400 font-bold whitespace-nowrap">
+                        <td
+                          className="px-2 py-2.5 font-mono text-cyan-400 font-bold truncate"
+                          title={item.stepDesc}
+                        >
                           {item.stepDesc}
                         </td>
-                        <td className="px-2 py-2.5 font-mono text-slate-300 max-w-[260px] truncate" title={item.valueDesc}>
+                        <td
+                          className="px-2 py-2.5 font-mono text-slate-300 truncate"
+                          title={item.valueDesc}
+                        >
                           {item.valueDesc}
                         </td>
                         <td className="px-2 py-2.5 text-right font-mono font-bold text-yellow-400 text-sm whitespace-nowrap">
                           {formatNum(item.cost)}
                         </td>
-                        <td className="px-2 py-2.5 text-right font-mono font-bold text-purple-300 text-sm whitespace-nowrap">
+                        <td className="pl-2 pr-4 py-2.5 text-right font-mono font-bold text-purple-300 text-sm whitespace-nowrap">
                           {formatNum(item.cumulativeCost)}
                         </td>
                         {isLoggedIn && (
-                          <td className="px-2 py-2.5 whitespace-nowrap">
-                            <div className="flex items-center justify-center gap-1">
+                          <td className="pl-2 pr-4 py-2.5 whitespace-nowrap">
+                            <div className="flex items-center justify-center gap-1.5">
                               <button
                                 onClick={() => onMovePlanItem(item.id, 'up')}
                                 disabled={isFirst}
@@ -198,7 +207,7 @@ export default function PlanTab({
                               </button>
                               <button
                                 onClick={() => onCompletePlanItem(item.id)}
-                                className="flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 font-bold text-[11px] transition-colors ml-1 whitespace-nowrap shrink-0"
+                                className="flex items-center gap-1 px-2.5 py-1 rounded bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25 font-bold text-[11px] transition-colors whitespace-nowrap shrink-0"
                                 title="내 실제 스톤 기록에 반영 및 완료 처리"
                               >
                                 <Check size={13} className="shrink-0" /> 완료
@@ -219,13 +228,13 @@ export default function PlanTab({
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td className={styles.tfootTd} colSpan={5}>
+                    <td className={`${styles.tfootTd} pl-3`} colSpan={5}>
                       Total Planned Stones ({evaluatedItems.length} Steps)
                     </td>
-                    <td className={`${styles.tfootTd} text-right text-yellow-400 font-mono text-base`}>
+                    <td className={`${styles.tfootTd} !text-right text-yellow-400 font-mono text-base`}>
                       {formatNum(totalPlanStones)}
                     </td>
-                    <td className={`${styles.tfootTd} text-right text-purple-300 font-mono text-base`}>
+                    <td className={`${styles.tfootTd} !text-right pr-4 text-purple-300 font-mono text-base`}>
                       {formatNum(totalPlanStones)}
                     </td>
                     {isLoggedIn && <td className={styles.tfootTd}></td>}
@@ -235,7 +244,7 @@ export default function PlanTab({
             </div>
 
             {/* 모바일 카드 리스트 뷰 */}
-            <div className="md:hidden divide-y divide-slate-800">
+            <div className="md:hidden divide-y divide-slate-800 overflow-x-hidden">
               {evaluatedItems.map((item, idx) => {
                 const badgeClass = CATEGORY_BADGE_STYLE[item.categoryLabel] || 'bg-slate-800 text-slate-300 border-slate-700';
                 const isFirst = idx === 0;
@@ -256,8 +265,8 @@ export default function PlanTab({
                       </span>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs bg-slate-950/50 px-3 py-2 rounded-lg border border-slate-800/70">
-                      <div className="text-slate-400 font-mono truncate mr-2">
+                    <div className="flex items-center justify-between text-xs bg-slate-950/50 px-3 py-2 rounded-lg border border-slate-800/70 min-w-0">
+                      <div className="text-slate-400 font-mono truncate mr-2 min-w-0 flex-1">
                         {item.valueDesc}
                       </div>
                       <div className="flex items-center gap-3 shrink-0 font-mono">
