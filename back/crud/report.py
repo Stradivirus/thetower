@@ -14,6 +14,7 @@ from .report_queries import (
     get_reports_by_month_query
 )
 from .report_utils import row_to_report_dict
+from .max_wave import recalculate_tier_record
 
 async def update_monthly_summary_add(db: AsyncSession, owner_id: int, date_obj: datetime, coins: float, cells: float, shards: float):
     """전투 기록 추가 시 월간 요약 대장 수치 누적"""
@@ -223,12 +224,15 @@ async def get_full_report(db: AsyncSession, battle_date: datetime, user_id: int)
     return {"main": main, "detail": main.detail}
 
 async def delete_battle_record(db: AsyncSession, battle_date: datetime, user_id: int) -> bool:
-    """특정 전투 기록을 삭제합니다 (BattleDetail은 Cascade 삭제되며, MonthlySummary 실시간 차감)."""
+    """특정 전투 기록을 삭제합니다 (BattleDetail은 Cascade 삭제되며, MonthlySummary 및 TierRecord 실시간 갱신)."""
     try:
         stmt = select(BattleMain).filter(BattleMain.battle_date == battle_date, BattleMain.owner_id == user_id)
         result = await db.execute(stmt)
         record = result.scalars().first()
         if record:
+            removed_tier = str(record.tier or '')
+            removed_wave = int(record.wave or 0)
+
             # 삭제하기 전에 요약 대장에서 수치 차감
             await update_monthly_summary_remove(
                 db, 
@@ -239,6 +243,11 @@ async def delete_battle_record(db: AsyncSession, battle_date: datetime, user_id:
                 record.reroll_shards_earned or 0
             )
             await db.delete(record)
+            await db.flush()
+
+            # 삭제된 기록이 최고 웨이브였을 경우 남은 기록 기준으로 TierRecord 재계산
+            await recalculate_tier_record(db, removed_tier, removed_wave, commit=False)
+
             await db.commit()
             return True
         return False

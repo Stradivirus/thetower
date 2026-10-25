@@ -160,7 +160,7 @@ const ReportListItem = React.memo<Props>(({ report, onSelectReport }) => {
       {/* 시간 및 웨이브 정보 (col-2) */}
       <div className="col-span-2 flex flex-col items-center justify-center">
         <div className="flex items-center gap-2">
-           <span className="text--[10px] px-1 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 leading-none">T{report.tier}</span>
+           <span className="text-[10px] px-1 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 leading-none">T{report.tier}</span>
            <span className="text-cyan-300 text-sm font-bold">W {report.wave}</span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">

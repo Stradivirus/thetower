@@ -26,9 +26,10 @@ interface Props {
   deletePopup: { isOpen: boolean; x: number; y: number }; // 삭제 팝업 상태 (부모 제어)
   onClosePopup: () => void;           // 삭제 팝업 닫기
   handleConfirmDelete: () => void;    // 최종 삭제 확인 핸들러
+  onMemoUpdated?: (newNotes: string) => void; // 메모 수정 완료 시 로컬 상태 갱신 콜백
 }
 
-export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, onClosePopup, handleConfirmDelete }: Props) {
+export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, onClosePopup, handleConfirmDelete, onMemoUpdated }: Props) {
   const { main, v2_main, v2_detail, detail } = data;
   const { isLoggedIn } = useGameData();
   const Text = T.detail;
@@ -44,8 +45,7 @@ export default function ReportDetailV2({ data, onBack, onDelete, deletePopup, on
     try {
       await updateMemo(main.battle_date, memoText);
       setIsEditing(false);
-      // 부모 컴포넌트에서 데이터를 다시 로드하도록 처리 필요
-      window.location.reload();
+      onMemoUpdated?.(memoText);
     } catch (error) {
       console.error('Failed to update memo:', error);
     }

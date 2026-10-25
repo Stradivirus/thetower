@@ -10,8 +10,8 @@ import {
   RARITIES, 
   DISPLAY_ORDER, 
   type EquippedModule,
-  EQUIPPED_SLOT_KEYS
 } from '../Modules/ModuleConstants';
+import { computePresetSwitchState } from '../../utils/moduleStateMutations';
 import { MODULE_TYPES as REROLL_DATA } from '../../data/module_reroll_data';
 import moduleCosts from '../../data/module_costs.json';
 import { T } from '../../locales'; 
@@ -24,41 +24,11 @@ export default function SummaryModules() {
 
   /** 
    * [프리셋 조회/전환] 요약 창에서 다른 프리셋의 장착 현황을 조회합니다.
-   * 현재 슬롯을 백업하고 대상 프리셋 슬롯을 적용합니다. (조회용이므로 서버 저장은 수행하지 않음)
+   * 공통 순수 함수(computePresetSwitchState)를 재사용하여 슬롯을 교체합니다.
    */
   const handleSelectPreset = (targetId: number) => {
     if (targetId === activePresetId) return;
-
-    // 1. 현재 슬롯 백업
-    const currentSlots: Record<string, any> = {};
-    EQUIPPED_SLOT_KEYS.forEach(key => {
-      if (modules[key]) {
-        currentSlots[key] = modules[key];
-      }
-    });
-
-    const targetPreset = presets[targetId.toString()] || { id: targetId, name: `Preset ${targetId}`, slots: {} };
-    const updatedPresets = {
-      ...presets,
-      [activePresetId.toString()]: {
-        ...(presets[activePresetId.toString()] || { id: activePresetId, name: `Preset ${activePresetId}`, slots: {} }),
-        slots: currentSlots
-      }
-    };
-
-    // 2. 새로운 modules 상태 구성
-    const newState = { ...modules };
-    EQUIPPED_SLOT_KEYS.forEach(key => {
-      delete newState[key];
-    });
-
-    Object.entries(targetPreset.slots || {}).forEach(([key, val]) => {
-      newState[key] = val;
-    });
-
-    newState.active_preset = targetId;
-    newState.presets = updatedPresets;
-
+    const { newState } = computePresetSwitchState(modules, presets, activePresetId, targetId);
     setModules(newState);
   };
 

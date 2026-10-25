@@ -14,7 +14,7 @@ interface Props {
 export default function ReportDetailPage({ battleDate, onBack }: Props) {
   const [data, setData] = useState<FullReportV2 | null>(null);
   const [loading, setLoading] = useState(true);
-  const { deleteReportFromState } = useReports();
+  const { deleteReportFromState, updateReportMemoInState } = useReports();
   
   // 삭제 확인 팝업 상태 (V1, V2 공통 사용을 위해 부모에서 관리)
   const [deletePopup, setDeletePopup] = useState<{isOpen: boolean; x: number; y: number;}>({ isOpen: false, x: 0, y: 0 });
@@ -28,6 +28,12 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
       .then(setData)
       .finally(() => setLoading(false));
   }, [battleDate]);
+
+  /** 메모 수정 시 페이지 새로고침 없이 상세 데이터 및 전역 목록 상태 동기화 */
+  const handleMemoUpdated = (newNotes: string) => {
+    setData(prev => prev ? { ...prev, main: { ...prev.main, notes: newNotes } } : prev);
+    updateReportMemoInState(battleDate, newNotes);
+  };
 
   /** 삭제 버튼 클릭 시 확인 팝업 표시 */
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -63,6 +69,7 @@ export default function ReportDetailPage({ battleDate, onBack }: Props) {
         deletePopup={deletePopup}
         onClosePopup={handleClosePopup}
         handleConfirmDelete={handleConfirmDelete}
+        onMemoUpdated={handleMemoUpdated}
       />
     );
   }

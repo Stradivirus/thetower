@@ -15,7 +15,12 @@ export function useHistoryData() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
-  const { reports: allReports, isLoading: reportsLoading } = useReports();
+  const { reports: allReports, isLoading: reportsLoading, ensureAllReportsLoaded } = useReports();
+
+  // 기록실 진입 시 전체 기록 지연 로드
+  useEffect(() => {
+    ensureAllReportsLoaded();
+  }, [ensureAllReportsLoaded]);
   
   // 상태 관리: 뷰 모드, 필터, 확장 여부, 무한 스크롤 노출 개수
   const [viewMode, setViewMode] = useState<'group' | 'list'>('group');

@@ -122,179 +122,116 @@ export function SummaryWeapons({ progress }: Props) {
                 {uw!.displayName}
               </h4>
 
-              {/* 모바일: 궁무플이 없으면 3열, 있으면 2x2(2열 2행) 레이아웃 */}
-              <div className="block md:hidden">
-                <div
-                  className={`grid gap-2.5 ${
-                    uw!.plus.length > 0 ? 'grid-cols-2' : 'grid-cols-3'
-                  }`}
-                >
-                  {/* 기본 스탯(Base) 카드 - 항상 앞쪽에 배치 */}
-                  {uw!.base.map((stat: any) => {
-                    const { statName, detail, displayLevel, displayMax, currentValue } = stat;
-                    const isMaxed = displayLevel >= displayMax;
-
-                    return (
-                      <div
-                        key={`base-${statName}`}
-                        className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-slate-600 transition-colors shadow-sm min-h-[64px]"
-                      >
-                        <div className="flex items-center justify-between z-10">
-                          <div className="flex items-center gap-1.5 overflow-hidden">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate">
-                              {detail.name || statName}
-                            </span>
-                          </div>
-
-                          <div
-                            className={`text-xl font-bold font-mono leading-none ${
-                              isMaxed ? 'text-yellow-400' : 'text-cyan-400'
-                            }`}
-                          >
-                            {formatValue(currentValue)}
-                            <span className="text-xs text-slate-500 font-normal ml-0.5">
-                              {detail.unit}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-end justify-between z-10 w-full">
-                          <span className="text-xs text-slate-500 font-bold leading-none">
-                            {T.summary.WEAPONS.LEVEL}
-                          </span>
-                          <div className="flex items-baseline gap-0.5 font-mono leading-none">
-                            <span
-                              className={`text-base font-bold ${
-                                isMaxed ? 'text-yellow-400' : 'text-blue-400'
-                              }`}
-                            >
-                              {displayLevel}
-                            </span>
-                            <span className="text-xs text-slate-600">/</span>
-                            <span
-                              className={`text-xs font-bold ${
-                                isMaxed ? 'text-yellow-400' : 'text-slate-200'
-                              }`}
-                            >
-                              {displayMax}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* 플러스 스탯(Plus) 카드 - 항상 마지막에 배치 */}
-                  {uw!.plus.map((stat: any) => {
-                    const { statName, detail, displayLevel, displayMax, currentValue } = stat;
-                    const isMaxed = displayLevel >= displayMax;
-
-                    return (
-                      <div
-                        key={`plus-${statName}`}
-                        className="bg-slate-900 border-2 border-pink-500/30 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-pink-400 transition-all shadow-[0_0_10px_rgba(236,72,153,0.1)] hover:shadow-[0_0_15px_rgba(236,72,153,0.2)] min-h-[64px]"
-                      >
-                        <div className="flex items-center justify-between z-10">
-                          <div className="flex items-center gap-1.5 overflow-hidden">
-                            <span className="text-xs font-bold text-pink-200 uppercase tracking-wider truncate">
-                              {detail.name || statName}
-                            </span>
-                          </div>
-
-                          <div
-                            className={`text-xl font-bold font-mono leading-none ${
-                              isMaxed ? 'text-yellow-400' : 'text-pink-300'
-                            }`}
-                          >
-                            {formatValue(currentValue)}
-                            <span className="text-xs text-pink-500/70 font-normal ml-0.5">
-                              {detail.unit}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-end justify-between z-10 w-full">
-                          <span className="text-xs text-slate-500 font-bold leading-none">
-                            {T.summary.WEAPONS.LEVEL}
-                          </span>
-                          <div className="flex items-baseline gap-0.5 font-mono leading-none">
-                            <span
-                              className={`text-base font-bold ${
-                                isMaxed ? 'text-yellow-400' : 'text-pink-400'
-                              }`}
-                            >
-                              {displayLevel}
-                            </span>
-                            <span className="text-xs text-slate-600">/</span>
-                            <span
-                              className={`text-xs font-bold ${
-                                isMaxed ? 'text-yellow-400' : 'text-slate-200'
-                              }`}
-                            >
-                              {displayMax}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 데스크톱: 기존 flex 레이아웃 유지 */}
-              <div className="hidden md:flex md:flex-wrap md:gap-2.5">
+              {/* 모바일: 궁무플이 없으면 3열, 있으면 2x2(2열 2행) 그리드 / 데스크톱: flex-wrap 레이아웃 통합 */}
+              <div
+                className={`grid gap-2.5 ${
+                  uw!.plus.length > 0 ? 'grid-cols-2' : 'grid-cols-3'
+                } md:flex md:flex-wrap`}
+              >
                 {/* 기본 스탯(Base) 카드 리스트 */}
                 {uw!.base.map((stat: any) => {
-                  const { statName, detail, displayLevel, displayMax, currentValue} = stat;
+                  const { statName, detail, displayLevel, displayMax, currentValue } = stat;
                   const isMaxed = displayLevel >= displayMax;
 
                   return (
-                    <div key={statName} className="w-[200px] bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-slate-600 transition-colors shadow-sm min-h-[64px]">
+                    <div
+                      key={`base-${statName}`}
+                      className="md:w-[200px] bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-slate-600 transition-colors shadow-sm min-h-[64px]"
+                    >
                       <div className="flex items-center justify-between z-10">
                         <div className="flex items-center gap-1.5 overflow-hidden">
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate">{detail.name || statName}</span>
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider truncate">
+                            {detail.name || statName}
+                          </span>
                         </div>
-                        
-                        <div className={`text-xl font-bold font-mono leading-none ${isMaxed ? 'text-yellow-400' : 'text-cyan-400'}`}>
-                          {formatValue(currentValue)}<span className="text-xs text-slate-500 font-normal ml-0.5">{detail.unit}</span>
+
+                        <div
+                          className={`text-xl font-bold font-mono leading-none ${
+                            isMaxed ? 'text-yellow-400' : 'text-cyan-400'
+                          }`}
+                        >
+                          {formatValue(currentValue)}
+                          <span className="text-xs text-slate-500 font-normal ml-0.5">
+                            {detail.unit}
+                          </span>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-end justify-between z-10 w-full">
-                        <span className="text-xs text-slate-500 font-bold leading-none">{T.summary.WEAPONS.LEVEL}</span>
+                        <span className="text-xs text-slate-500 font-bold leading-none">
+                          {T.summary.WEAPONS.LEVEL}
+                        </span>
                         <div className="flex items-baseline gap-0.5 font-mono leading-none">
-                          <span className={`text-base font-bold ${isMaxed ? 'text-yellow-400' : 'text-blue-400'}`}>{displayLevel}</span>
+                          <span
+                            className={`text-base font-bold ${
+                              isMaxed ? 'text-yellow-400' : 'text-blue-400'
+                            }`}
+                          >
+                            {displayLevel}
+                          </span>
                           <span className="text-xs text-slate-600">/</span>
-                          <span className={`text-xs font-bold ${isMaxed ? 'text-yellow-400' : 'text-slate-200'}`}>{displayMax}</span>
+                          <span
+                            className={`text-xs font-bold ${
+                              isMaxed ? 'text-yellow-400' : 'text-slate-200'
+                            }`}
+                          >
+                            {displayMax}
+                          </span>
                         </div>
                       </div>
                     </div>
                   );
                 })}
-                
+
                 {/* 플러스 스탯(Plus) 카드 리스트 */}
                 {uw!.plus.map((stat: any) => {
                   const { statName, detail, displayLevel, displayMax, currentValue } = stat;
                   const isMaxed = displayLevel >= displayMax;
 
                   return (
-                    <div key={statName} className="w-[190px] bg-slate-900 border-2 border-pink-500/30 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-pink-400 transition-all shadow-[0_0_10px_rgba(236,72,153,0.1)] hover:shadow-[0_0_15px_rgba(236,72,153,0.2)] min-h-[64px]">
+                    <div
+                      key={`plus-${statName}`}
+                      className="md:w-[190px] bg-slate-900 border-2 border-pink-500/30 rounded-lg px-3 py-2 flex flex-col justify-center gap-1 relative overflow-hidden group hover:border-pink-400 transition-all shadow-[0_0_10px_rgba(236,72,153,0.1)] hover:shadow-[0_0_15px_rgba(236,72,153,0.2)] min-h-[64px]"
+                    >
                       <div className="flex items-center justify-between z-10">
                         <div className="flex items-center gap-1.5 overflow-hidden">
-                          <span className="text-xs font-bold text-pink-200 uppercase tracking-wider truncate">{detail.name || statName}</span>
+                          <span className="text-xs font-bold text-pink-200 uppercase tracking-wider truncate">
+                            {detail.name || statName}
+                          </span>
                         </div>
-                        
-                        <div className={`text-xl font-bold font-mono leading-none ${isMaxed ? 'text-yellow-400' : 'text-pink-300'}`}>
-                          {formatValue(currentValue)}<span className="text-xs text-pink-500/70 font-normal ml-0.5">{detail.unit}</span>
+
+                        <div
+                          className={`text-xl font-bold font-mono leading-none ${
+                            isMaxed ? 'text-yellow-400' : 'text-pink-300'
+                          }`}
+                        >
+                          {formatValue(currentValue)}
+                          <span className="text-xs text-pink-500/70 font-normal ml-0.5">
+                            {detail.unit}
+                          </span>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-end justify-between z-10 w-full">
-                        <span className="text-xs text-slate-500 font-bold leading-none">{T.summary.WEAPONS.LEVEL}</span>
+                        <span className="text-xs text-slate-500 font-bold leading-none">
+                          {T.summary.WEAPONS.LEVEL}
+                        </span>
                         <div className="flex items-baseline gap-0.5 font-mono leading-none">
-                          <span className={`text-base font-bold ${isMaxed ? 'text-yellow-400' : 'text-pink-400'}`}>{displayLevel}</span>
+                          <span
+                            className={`text-base font-bold ${
+                              isMaxed ? 'text-yellow-400' : 'text-pink-400'
+                            }`}
+                          >
+                            {displayLevel}
+                          </span>
                           <span className="text-xs text-slate-600">/</span>
-                          <span className={`text-xs font-bold ${isMaxed ? 'text-yellow-400' : 'text-slate-200'}`}>{displayMax}</span>
+                          <span
+                            className={`text-xs font-bold ${
+                              isMaxed ? 'text-yellow-400' : 'text-slate-200'
+                            }`}
+                          >
+                            {displayMax}
+                          </span>
                         </div>
                       </div>
                     </div>

@@ -132,7 +132,7 @@ app.add_middleware(
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
     """
-    API 응답 시간을 측정하고 1초(1000ms) 초과 시 슬랙 알림을 보냅니다.
+    API 응답 시간을 측정하고 5초(5000ms) 초과 시 슬랙 알림을 보냅니다.
     """
     start_time = time.perf_counter()
     response = await call_next(request)
@@ -157,12 +157,6 @@ app.include_router(progress.router)
 app.include_router(modules.router)
 app.include_router(support.router)
 app.include_router(max_wave_router.router)
-
-@app.get("/api/test-slow")
-async def test_slow():
-    """테스트용: 1.5초 지연을 발생시켜 슬랙 알림을 유도합니다."""
-    await asyncio.sleep(1.5)
-    return {"message": "This was a slow request (1.5s delay)", "duration": "1500ms"}
 
 @app.get("/")
 def root():
