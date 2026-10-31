@@ -1,16 +1,16 @@
 /**
  * 파일명: thetower/front/src/components/Modules/ModuleHeader.tsx
  * 용도: 모듈 관리 페이지 상단 컨트롤 바
- * 기능: 장착/인벤토리/리롤 탭 전환, 변경 사항 저장 및 요약 버튼 제공, 스티키 헤더 적용
+ * 기능: 장착/인벤토리 탭 전환, 변경 사항 저장 및 요약 버튼 제공, 스티키 헤더 적용
  */
-import { List, Layers, Box, Dices, Info } from 'lucide-react';
+import { List, Layers, Box } from 'lucide-react';
 
 interface Props {
   handleSave: () => void;                                // 저장 버튼 클릭 핸들러
   isChanged: boolean;                                    // 변경 사항 존재 여부
   token: string | null;                                  // 로그인 토큰 (버튼 활성화 여부 결정)
-  viewMode: 'equipped' | 'inventory' | 'reroll' | 'info';         // 현재 선택된 뷰 모드
-  setViewMode: (mode: 'equipped' | 'inventory' | 'reroll' | 'info') => void; // 모드 변경 함수
+  viewMode: 'equipped' | 'inventory';                    // 현재 선택된 뷰 모드
+  setViewMode: (mode: 'equipped' | 'inventory') => void; // 모드 변경 함수
 }
 
 export default function ModuleHeader({ 
@@ -22,17 +22,6 @@ export default function ModuleHeader({
       
       {/* 탭 전환 버튼 그룹 */}
       <div className="flex bg-slate-900/50 p-1 rounded-xl border border-slate-800">
-        {/* 정보 탭 */}
-        <button
-          onClick={() => setViewMode('info')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-            viewMode === 'info' 
-              ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 shadow-sm' 
-              : 'text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          <Info size={16} /> Info
-        </button>
         {/* 장착 정보 탭 */}
         <button
           onClick={() => setViewMode('equipped')}
@@ -55,28 +44,15 @@ export default function ModuleHeader({
         >
           <Box size={16} /> Inventory
         </button>
-        {/* 리롤 시뮬레이션 탭 */}
-        <button
-          onClick={() => setViewMode('reroll')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-            viewMode === 'reroll' 
-              ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30 shadow-sm' 
-              : 'text-slate-500 hover:text-slate-300'
-          }`}
-        >
-          <Dices size={16} /> Reroll Sim
-        </button>
       </div>
 
-      {/* 액션 버튼 그룹 (리롤 모드가 아닐 때만 노출) */}
-      {viewMode !== 'reroll' && (
-        <button 
-          onClick={handleSave}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
-        >
-          <List size={16} /> {!token ? 'Summary' : (isChanged ? 'Save & Summary*' : 'Save & Summary')}
-        </button>
-      )}
+      {/* 액션 버튼 그룹 */}
+      <button 
+        onClick={handleSave}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border text-sm bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
+      >
+        <List size={16} /> {!token ? 'Summary' : (isChanged ? 'Save & Summary*' : 'Save & Summary')}
+      </button>
     </div>
   );
 }

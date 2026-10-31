@@ -11,26 +11,6 @@ export const RARITY = {
 
 export const RARITY_LABELS = ["Common", "Rare", "Epic", "Legendary", "Mythic", "Ancestral"];
 
-export const SUB_MODULE_CHANCES = {
-  [RARITY.COMMON]: 46.2,
-  [RARITY.RARE]: 40.0,
-  [RARITY.EPIC]: 10.0,
-  [RARITY.LEGENDARY]: 2.5,
-  [RARITY.MYTHIC]: 1.0,
-  [RARITY.ANCESTRAL]: 0.3,
-};
-
-export const REROLL_COSTS: Record<number, number> = {
-  0: 10,
-  1: 40,
-  2: 160,
-  3: 500,
-  4: 1000,
-  5: 1600,
-  6: 2250,
-  7: 3000,
-};
-
 // ==========================================
 // 1. CANNON (Attack)
 // ==========================================

@@ -27,8 +27,8 @@ export function useModulesData() {
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // 뷰 모드 상태: 장착중 / 인벤토리 / 리롤 시뮬레이터 / 정보
-  const [viewMode, setViewMode] = useState<'equipped' | 'inventory' | 'reroll' | 'info'>('equipped');
+  // 뷰 모드 상태: 장착중 / 인벤토리
+  const [viewMode, setViewMode] = useState<'equipped' | 'inventory'>('equipped');
 
   // 모듈 프리셋 상태 (1~5)
   const [activePresetId, setActivePresetId] = useState<number>(1);
