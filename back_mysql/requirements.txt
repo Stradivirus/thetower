@@ -4,6 +4,7 @@ sqlalchemy[asyncio]
 greenlet
 pymysql
 aiomysql
+asyncpg
 cryptography
 pydantic>=2.0.0
 python-dotenv    # .env 파일 로드용

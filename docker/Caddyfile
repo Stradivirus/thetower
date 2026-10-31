@@ -8,7 +8,7 @@ towerreport.o-r.kr, origin.towerreport.o-r.kr {
     }
 
     handle /api/* {
-        reverse_proxy backend:8000
+        reverse_proxy backend_mysql:8000
     }
 
     @static_assets {
