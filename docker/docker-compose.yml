@@ -3,42 +3,19 @@
 # 특징: 서비스 간 의존성 관리 및 볼륨 영구화 설정 포함
 
 services:
-  # 1. FastAPI 백엔드 서비스 (기존 PostgreSQL)
+  # 1. FastAPI 백엔드 서비스 (MySQL HeatWave 단일 DB)
   backend:
     build:
       context: ../
-      dockerfile: docker/backend.Dockerfile
+      dockerfile: docker/backend_mysql.Dockerfile
     container_name: thetower_backend
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_SERVER: ${POSTGRES_SERVER}
-      POSTGRES_SERVER_READ: ${POSTGRES_SERVER_READ}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_PORT: 5432
-      SECRET_KEY: ${SECRET_KEY}
-      ALGORITHM: ${ALGORITHM}
-      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
-      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
-      SLACK_INQUIRY_URL: ${SLACK_INQUIRY_URL}
-      OWNER_USERNAME: ${OWNER_USERNAME:-test}
-
-  # 2. FastAPI 백엔드 서비스 (신규 MySQL HeatWave 병행 테스트/전환용)
-  backend_mysql:
-    build:
-      context: ../
-      dockerfile: docker/backend_mysql.Dockerfile
-    container_name: thetower_backend_mysql
-    restart: always
-    ports:
-      - "127.0.0.1:8001:8000"
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_SERVER: ${POSTGRES_SERVER}
-      POSTGRES_SERVER_READ: ${POSTGRES_SERVER_READ}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      POSTGRES_SERVER: ${POSTGRES_SERVER:-}
+      POSTGRES_SERVER_READ: ${POSTGRES_SERVER_READ:-}
+      POSTGRES_DB: ${POSTGRES_DB:-}
       POSTGRES_PORT: 5432
       MYSQL_USER: ${MYSQL_USER:-}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-}
@@ -52,7 +29,7 @@ services:
       SLACK_INQUIRY_URL: ${SLACK_INQUIRY_URL}
       OWNER_USERNAME: ${OWNER_USERNAME:-test}
 
-  # 3. React + Caddy 프론트엔드 서비스
+  # 2. React + Caddy 프론트엔드 서비스
   frontend:
     build:
       context: ../
@@ -61,7 +38,6 @@ services:
     restart: always
     depends_on:
       - backend
-      - backend_mysql
     ports:
       - "80:80"
       - "443:443"
