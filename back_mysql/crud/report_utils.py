@@ -1,0 +1,54 @@
+"""
+파일명: thetower/back_mysql/crud/report_utils.py
+용도: 전투 기록 데이터 처리를 위한 유틸리티 함수
+기능: DB 로우 데이터를 응답용 딕셔너리로 변환 (MySQL Raw SQL 조회 시 JSON 문자열 파싱 포함)
+"""
+import json
+from .utils import parse_game_number_safe 
+
+def row_to_report_dict(row):
+    """
+    DB에서 조회된 SQLAlchemy Row 객체를 응답 스키마(BattleMainResponse)와 호환되는 딕셔너리로 변환합니다.
+    - 비율 데이터 포맷팅 (숫자 -> 문자열%)
+    - MySQL 드라이버에서 Raw SQL 실행 시 문자열로 반환되는 JSON 컬럼(top_damages) 역직렬화
+    - 선택적 속성(getattr) 안전하게 처리
+    """
+    
+    def format_ratio(val):
+        """숫자형 비율을 백분율 문자열로 변환합니다."""
+        return f"{val}%" if val is not None else None
+
+    raw_top_damages = getattr(row, "top_damages", [])
+    if isinstance(raw_top_damages, str):
+        try:
+            top_damages = json.loads(raw_top_damages)
+        except Exception:
+            top_damages = []
+    elif isinstance(raw_top_damages, list):
+        top_damages = raw_top_damages
+    else:
+        top_damages = []
+
+    return {
+        "battle_date": row.battle_date,
+        "created_at": row.created_at,
+        "tier": row.tier,
+        "wave": row.wave,
+        "game_time": row.game_time,
+        "real_time": row.real_time,
+        "coin_earned": row.coin_earned,
+        "coins_per_hour": row.coins_per_hour,
+        "cells_earned": row.cells_earned,
+        "reroll_shards_earned": row.reroll_shards_earned,
+        "killer": row.killer,
+        "damage_dealt": row.damage_dealt,
+        "damage_taken": row.damage_taken,
+        "notes": row.notes,
+        
+        "top_damages": top_damages, 
+        "best_coins_per_minute": getattr(row, "best_coins_per_minute", None),
+        
+        "death_wave_ratio": format_ratio(getattr(row, "death_wave_ratio", None)),
+        "spotlight_ratio": format_ratio(getattr(row, "spotlight_ratio", None)),
+        "golden_bot_ratio": format_ratio(getattr(row, "golden_bot_ratio", None)),
+    }
