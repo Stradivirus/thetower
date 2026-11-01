@@ -48,13 +48,13 @@ async def sync_monthly_summaries():
                 INSERT INTO monthly_summaries (owner_id, month_key, count, total_coins, total_cells, total_shards)
                 SELECT 
                     owner_id,
-                    TO_CHAR(battle_date, 'YYYY-MM') as month_key,
+                    DATE_FORMAT(battle_date, '%Y-%m') as month_key,
                     COUNT(*) as count,
                     COALESCE(SUM(coin_earned), 0) as total_coins,
                     COALESCE(SUM(cells_earned), 0) as total_cells,
                     COALESCE(SUM(reroll_shards_earned), 0) as total_shards
                 FROM battle_mains
-                GROUP BY owner_id, TO_CHAR(battle_date, 'YYYY-MM')
+                GROUP BY owner_id, DATE_FORMAT(battle_date, '%Y-%m')
             """))
             print("[System] 🔄 monthly_summaries 테이블 마이그레이션 완료!")
 

@@ -175,9 +175,9 @@ async def get_history_view(db: AsyncSession, user_id: int):
         s.month_key: {
             "month_key": s.month_key,
             "count": s.count,
-            "total_coins": float(s.total_coins),
-            "total_cells": float(s.total_cells),
-            "total_shards": float(s.total_shards)
+            "total_coins": int(s.total_coins or 0),
+            "total_cells": int(s.total_cells or 0),
+            "total_shards": int(s.total_shards or 0)
         }
         for s in summaries
     }
@@ -191,9 +191,9 @@ async def get_history_view(db: AsyncSession, user_id: int):
         
         if m_key in summary_map:
             summary_map[m_key]["count"] = max(0, summary_map[m_key]["count"] - 1)
-            summary_map[m_key]["total_coins"] = max(0.0, summary_map[m_key]["total_coins"] - float(r.get('coin_earned') or 0))
-            summary_map[m_key]["total_cells"] = max(0.0, summary_map[m_key]["total_cells"] - float(r.get('cells_earned') or 0))
-            summary_map[m_key]["total_shards"] = max(0.0, summary_map[m_key]["total_shards"] - float(r.get('reroll_shards_earned') or 0))
+            summary_map[m_key]["total_coins"] = max(0, summary_map[m_key]["total_coins"] - int(r.get('coin_earned') or 0))
+            summary_map[m_key]["total_cells"] = max(0, summary_map[m_key]["total_cells"] - int(r.get('cells_earned') or 0))
+            summary_map[m_key]["total_shards"] = max(0, summary_map[m_key]["total_shards"] - int(r.get('reroll_shards_earned') or 0))
             
     # 3. 보정 후 잔여 카운트가 존재하는 월별 요약만 리스트로 반환
     monthly_summaries = []

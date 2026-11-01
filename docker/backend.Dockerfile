@@ -1,5 +1,5 @@
 # 파일명: thetower/docker/backend.Dockerfile
-# 용도: FastAPI 백엔드 애플리케이션 빌드 및 실행 환경 설정
+# 용도: MySQL (Oracle MySQL HeatWave) 기반 FastAPI 백엔드 애플리케이션 빌드 및 실행 환경 설정
 # 특징: Python 3.12 slim 이미지를 기반으로 경량화된 컨테이너 구성
 
 FROM python:3.12-slim
@@ -14,12 +14,10 @@ WORKDIR $APP_HOME
 COPY back/requirements.txt $APP_HOME/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 백엔드 소스 코드 복사
+# MySQL 백엔드 소스 코드 복사
 COPY back/ $APP_HOME/back/
 
 WORKDIR $APP_HOME/back
 
 # Gunicorn을 사용하여 FastAPI 애플리케이션 실행
-# - workers 4: 동시 요청 처리를 위한 워커 수 설정
-# - uvicorn.workers.UvicornWorker: ASGI 지원을 위한 워커 클래스 사용
 CMD ["gunicorn", "main:app", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--max-requests", "1000", "--max-requests-jitter", "100", "--bind", "0.0.0.0:8000"]

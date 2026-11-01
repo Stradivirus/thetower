@@ -23,7 +23,7 @@ async def get_weekly_stats(db: AsyncSession, user_id: int, limit: int = 7):
     sql = text("""
         WITH raw_daily AS (
             SELECT 
-                TO_CHAR(battle_date, 'YYYY-MM-DD') as date_str,
+                DATE_FORMAT(battle_date, '%Y-%m-%d') as date_str,
                 SUM(coin_earned) as total_coins,
                 SUM(cells_earned) as total_cells
             FROM battle_mains
@@ -45,8 +45,8 @@ async def get_weekly_stats(db: AsyncSession, user_id: int, limit: int = 7):
             date_str,
             total_coins,
             total_cells,
-            CASE WHEN prev_coins > 0 THEN ROUND(((total_coins - prev_coins)::numeric / prev_coins * 100)::numeric, 1) ELSE 0 END as coin_growth,
-            CASE WHEN prev_cells > 0 THEN ROUND(((total_cells - prev_cells)::numeric / prev_cells * 100)::numeric, 1) ELSE 0 END as cell_growth
+            CASE WHEN prev_coins > 0 THEN ROUND(((total_coins - prev_coins) / prev_coins * 100), 1) ELSE 0 END as coin_growth,
+            CASE WHEN prev_cells > 0 THEN ROUND(((total_cells - prev_cells) / prev_cells * 100), 1) ELSE 0 END as cell_growth
         FROM with_prev
         WHERE date_str >= :display_start_date
         ORDER BY date_str ASC
@@ -87,7 +87,7 @@ async def get_weekly_trends(db: AsyncSession, user_id: int, limit: int = 8):
 
     sql = text("""
         SELECT
-            TO_CHAR(battle_date, 'YYYY-MM-DD') as date_str,
+            DATE_FORMAT(battle_date, '%Y-%m-%d') as date_str,
             SUM(coin_earned) as total_coins,
             SUM(cells_earned) as total_cells
         FROM battle_mains
@@ -168,7 +168,7 @@ async def get_monthly_trends(db: AsyncSession, user_id: int, limit: int = 6):
     sql = text("""
         WITH monthly_raw AS (
             SELECT 
-                TO_CHAR(battle_date, 'YYYY-MM') as month_str,
+                DATE_FORMAT(battle_date, '%Y-%m') as month_str,
                 SUM(coin_earned) as total_coins,
                 SUM(cells_earned) as total_cells
             FROM battle_mains
@@ -185,8 +185,8 @@ async def get_monthly_trends(db: AsyncSession, user_id: int, limit: int = 6):
         )
         SELECT 
             month_str as month, total_coins, total_cells,
-            CASE WHEN prev_coins > 0 THEN ROUND(((total_coins - prev_coins)::numeric / prev_coins * 100)::numeric, 1) ELSE 0 END as coin_growth,
-            CASE WHEN prev_cells > 0 THEN ROUND(((total_cells - prev_cells)::numeric / prev_cells * 100)::numeric, 1) ELSE 0 END as cell_growth,
+            CASE WHEN prev_coins > 0 THEN ROUND(((total_coins - prev_coins) / prev_coins * 100), 1) ELSE 0 END as coin_growth,
+            CASE WHEN prev_cells > 0 THEN ROUND(((total_cells - prev_cells) / prev_cells * 100), 1) ELSE 0 END as cell_growth,
             CASE WHEN month_str = :this_month THEN true ELSE false END as is_current
         FROM with_prev
         ORDER BY month_str DESC

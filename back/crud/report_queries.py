@@ -25,19 +25,19 @@ QUERY_REPORTS_WITH_RATIOS = """
         
         CASE 
             WHEN m.total_enemies > 0 THEN
-                ROUND((m.death_wave_kills::numeric / m.total_enemies::numeric * 100), 1)
+                ROUND((m.death_wave_kills / m.total_enemies * 100), 1)
             ELSE 0
         END as death_wave_ratio,
         
         CASE 
             WHEN m.total_enemies > 0 THEN
-                ROUND((m.spotlight_kills::numeric / m.total_enemies::numeric * 100), 1)
+                ROUND((m.spotlight_kills / m.total_enemies * 100), 1)
             ELSE 0
         END as spotlight_ratio,
 
         CASE 
             WHEN m.total_enemies > 0 THEN
-                ROUND((m.golden_bot_kills::numeric / m.total_enemies::numeric * 100), 1)
+                ROUND((m.golden_bot_kills / m.total_enemies * 100), 1)
             ELSE 0
         END as golden_bot_ratio,
 
