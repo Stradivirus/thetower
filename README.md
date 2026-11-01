@@ -12,7 +12,7 @@
 
 ### ⚙️ Backend & DB
 * **Framework**: FastAPI (Python 3.12), Pydantic v2
-* **ORM & DB**: SQLAlchemy, PostgreSQL (Primary/Replica 분리 아키텍처)
+* **ORM & DB**: SQLAlchemy, Oracle MySQL HeatWave / MySQL 8.4 (Primary/Replica 분리 아키텍처)
 * **Security**: JWT (OAuth2), bcrypt 해싱, SlowAPI (Rate Limiting)
 
 ### 🏗 Infrastructure & DevOps

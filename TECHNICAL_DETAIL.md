@@ -6,7 +6,7 @@
 
 * **Frontend**: React, TypeScript, Vite, Tailwind CSS, Recharts (차트), Lucide-react (아이콘)
 * **Backend**: FastAPI (Python), SQLAlchemy (ORM), Pydantic (검증)
-* **Database**: PostgreSQL
+* **Database**: Oracle MySQL HeatWave (MySQL 8.4)
 * **Infrastructure**: Docker Compose, Jenkins (CI/CD), Caddy (Web Server)
 
 ---
@@ -389,7 +389,7 @@ front/src/
    ↓
 [Gunicorn :8000] (Backend Container)
    ↓
-[PostgreSQL Primary/Replica]
+[Oracle MySQL HeatWave (Primary/Replica)]
 ```
 
 #### Jenkins CI/CD 파이프라인 (`Jenkinsfile`)
@@ -499,7 +499,7 @@ POST /api/support  - 문의 접수 (Slack 연동)
   ```
 
 ### 백엔드 최적화
-* **JSON 변경 감지**: SQLAlchemy `flag_modified`로 JSONB 필드 업데이트 보장
+* **JSON 변경 감지**: SQLAlchemy `flag_modified`로 JSON 필드 업데이트 보장
 * **트랜잭션 관리**: 읽기 전용 작업은 Replica DB로 라우팅
 * **비동기 처리**: BackgroundTasks를 활용한 Slack 알림 비동기 전송
 * **캐싱**: 정적 파일은 Caddy를 통한 HTTP 캐싱 적용
@@ -538,7 +538,7 @@ POST /api/support  - 문의 접수 (Slack 연동)
 └──────────────┬──────────────────────────┘
                ↓
 ┌─────────────────────────────────────────┐
-│      PostgreSQL Cluster                 │
+│      Oracle MySQL HeatWave              │
 │  ┌──────────────┐  ┌─────────────────┐ │
 │  │   Primary    │  │    Replica      │ │
 │  │ 1 OCPU/6GB  │◄─┤  1 OCPU/1GB    │ │
