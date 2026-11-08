@@ -11,16 +11,18 @@ from models import UserProgress, UserModules
 def _split_progress_payload(raw_data: dict):
     """
     프론트엔드에서 전달된 통합 progress 딕셔너리를
-    progress_json(스탯/효율), unlock_json(해금), card_json(카드), plan_json(계획표) 4개로 분리합니다.
+    base_json, plus_json, unlock_json, card_json, module_json, plan_json 6개로 분리합니다.
     값이 0인 불필요한 항목은 제외하여 JSON 크기를 최소화합니다.
     """
-    stats_data = {}
+    base_data = {}
+    plus_data = {}
     unlock_data = {}
     card_data = {}
+    module_data = {}
     plan_data = []
 
     if not isinstance(raw_data, dict):
-        return stats_data, unlock_data, card_data, plan_data
+        return base_data, plus_data, unlock_data, card_data, module_data, plan_data
 
     for k, v in raw_data.items():
         if k == "stone_plan":
@@ -38,28 +40,38 @@ def _split_progress_payload(raw_data: dict):
                     unlock_data[k] = v
             elif v:
                 unlock_data[k] = v
+        elif k.startswith("plus_"):
+            if v:
+                plus_data[k] = v
+        elif k.startswith("module_"):
+            if v:
+                module_data[k] = v
         else:
             if v:
-                stats_data[k] = v
+                base_data[k] = v
 
-    return stats_data, unlock_data, card_data, plan_data
+    return base_data, plus_data, unlock_data, card_data, module_data, plan_data
 
 
 def merge_progress_columns(db_progress: UserProgress) -> dict:
     """
-    DB의 4개 컬럼(progress_json, unlock_json, card_json, plan_json)을
-    프론트엔드 호환을 위한 단일 progress_json 딕셔너리로 병합합니다.
+    DB의 6개 컬럼(base_json, plus_json, unlock_json, card_json, module_json, plan_json)을
+    프론트엔드 호환을 위한 단일 딕셔너리로 병합합니다.
     """
     if not db_progress:
         return {}
 
     merged = {}
-    if isinstance(db_progress.progress_json, dict):
-        merged.update(db_progress.progress_json)
-    if isinstance(db_progress.unlock_json, dict):
-        merged.update(db_progress.unlock_json)
-    if isinstance(db_progress.card_json, dict):
-        merged.update(db_progress.card_json)
+    for col in (
+        db_progress.base_json,
+        db_progress.plus_json,
+        db_progress.unlock_json,
+        db_progress.card_json,
+        db_progress.module_json,
+    ):
+        if isinstance(col, dict):
+            merged.update(col)
+
     if isinstance(db_progress.plan_json, list) and len(db_progress.plan_json) > 0:
         merged["stone_plan"] = db_progress.plan_json
 
@@ -74,28 +86,34 @@ async def get_user_progress(db: AsyncSession, user_id: int):
 
 async def update_user_progress(db: AsyncSession, user_id: int, progress_data: dict):
     """
-    사용자의 게임 진행도 정보를 4개 컬럼(progress_json, unlock_json, card_json, plan_json)으로
+    사용자의 게임 진행도 정보를 6개 탭별 컬럼(base_json, plus_json, unlock_json, card_json, module_json, plan_json)으로
     분류하여 업데이트하거나 생성합니다.
     """
-    stats_data, unlock_data, card_data, plan_data = _split_progress_payload(progress_data)
+    base_data, plus_data, unlock_data, card_data, module_data, plan_data = _split_progress_payload(progress_data)
 
     db_progress = await get_user_progress(db, user_id)
     if db_progress:
-        db_progress.progress_json = stats_data
+        db_progress.base_json = base_data
+        db_progress.plus_json = plus_data
         db_progress.unlock_json = unlock_data
         db_progress.card_json = card_data
+        db_progress.module_json = module_data
         db_progress.plan_json = plan_data
         # JSON 데이터 내부 변경사항을 알리기 위해 플래그 설정
-        flag_modified(db_progress, "progress_json")
+        flag_modified(db_progress, "base_json")
+        flag_modified(db_progress, "plus_json")
         flag_modified(db_progress, "unlock_json")
         flag_modified(db_progress, "card_json")
+        flag_modified(db_progress, "module_json")
         flag_modified(db_progress, "plan_json")
     else:
         db_progress = UserProgress(
             user_id=user_id,
-            progress_json=stats_data,
+            base_json=base_data,
+            plus_json=plus_data,
             unlock_json=unlock_data,
             card_json=card_data,
+            module_json=module_data,
             plan_json=plan_data,
         )
         db.add(db_progress)

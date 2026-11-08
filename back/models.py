@@ -24,12 +24,14 @@ class User(Base):
     modules = relationship("UserModules", back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 class UserProgress(Base):
-    """사용자의 게임 진행 상황(스탯, 해금, 카드, 계획표)을 카테고리별 JSON 컬럼으로 저장"""
+    """사용자의 게임 진행 상황(기본 스탯, UW+, 해금, 카드, 모듈, 계획표)을 6개 탭별 JSON 컬럼으로 저장"""
     __tablename__ = "user_progress"
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    progress_json = Column(JSON, default=dict) 
+    base_json = Column(JSON, default=dict)
+    plus_json = Column(JSON, default=dict)
     unlock_json = Column(JSON, default=dict)
     card_json = Column(JSON, default=dict)
+    module_json = Column(JSON, default=dict)
     plan_json = Column(JSON, default=list)
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     user = relationship("User", back_populates="progress")
