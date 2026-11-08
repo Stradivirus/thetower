@@ -7,6 +7,7 @@ from .user import (
 from .game_data import (
     get_user_progress,
     update_user_progress,
+    merge_progress_columns,
     get_user_modules,
     update_user_modules
 )

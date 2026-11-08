@@ -21,7 +21,10 @@ async def get_progress(
     progress = await crud.get_user_progress(db, current_user.id)
     if not progress:
         return {"progress_json": {}}
-    return progress
+    return {
+        "progress_json": crud.merge_progress_columns(progress),
+        "updated_at": progress.updated_at,
+    }
 
 @router.post("/", response_model=schemas.ProgressResponse)
 async def save_progress(
@@ -30,4 +33,8 @@ async def save_progress(
     current_user: User = Depends(get_current_user)
 ):
     """사용자의 게임 진행도 데이터를 업데이트(저장)합니다."""
-    return await crud.update_user_progress(db, current_user.id, data.progress_json)
+    progress = await crud.update_user_progress(db, current_user.id, data.progress_json)
+    return {
+        "progress_json": crud.merge_progress_columns(progress),
+        "updated_at": progress.updated_at,
+    }

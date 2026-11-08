@@ -50,8 +50,56 @@ export function useStonesData(token: string | null) {
   /** 개별 항목의 진행도를 업데이트하거나(일반 모드), 계획표에 단계를 추가합니다(계획 담기 모드). */
   const updateProgress = (key: string, value: any) => {
     // 연구소(Lab) 토글은 모드와 무관하게 즉시 반영
-    if (!isPlanMode || key.endsWith('_on')) {
+    if (key.endsWith('_on')) {
       syncProgress({ ...progress, [key]: value });
+      return;
+    }
+
+    // 일반 모드: 실제 진행도 반영 + 이미 계획표에 있던 해당 달성 단계 자동 소진
+    if (!isPlanMode) {
+      let nextPlan = stonePlan;
+
+      if (stonePlan.length > 0) {
+        if (key === 'unlocked_weapons' || key === 'unlocked_plus_weapons') {
+          const newList: string[] = Array.isArray(value) ? value : [];
+          nextPlan = stonePlan.reduce<StonePlanItem[]>((acc, item) => {
+            if (item.key !== key) {
+              acc.push(item);
+              return acc;
+            }
+            const remaining = Array.isArray(item.targetValue)
+              ? item.targetValue.filter((w: string) => !newList.includes(w))
+              : [];
+            if (remaining.length > 0) {
+              acc.push({ ...item, targetValue: remaining });
+            }
+            return acc;
+          }, []);
+        } else if (key.startsWith('card_') || key.startsWith('bot_plus_')) {
+          if (Number(value || 0) >= 1) {
+            nextPlan = stonePlan.filter(item => item.key !== key);
+          }
+        } else {
+          const prevLv = Number(progress[key] || 0);
+          const nextLv = Number(value || 0);
+          if (nextLv > prevLv) {
+            let removeCount = nextLv - prevLv;
+            nextPlan = stonePlan.filter(item => {
+              if (item.key === key && removeCount > 0) {
+                removeCount--;
+                return false;
+              }
+              return true;
+            });
+          }
+        }
+      }
+
+      syncProgress({
+        ...progress,
+        [key]: value,
+        ...(nextPlan !== stonePlan ? { stone_plan: nextPlan } : {}),
+      });
       return;
     }
 
