@@ -160,21 +160,29 @@ async def get_weekly_trends(db: AsyncSession, user_id: int, limit: int = 8):
     return {"weekly_stats": trend_stats}
 
 async def get_monthly_trends(db: AsyncSession, user_id: int, limit: int = 6):
-    """월간 트렌드 분석 데이터를 조회합니다 (N개월)."""
+    """월간 트렌드 분석 데이터를 조회합니다 (N개월, monthly_summaries 요약 테이블 활용)."""
     today_utc = get_today_utc()
     this_month_str = today_utc.strftime("%Y-%m")
-    utc_start_limit = (datetime.now(timezone.utc) - timedelta(days=(limit + 3) * 30)).replace(tzinfo=None)
-    
+    curr_year = today_utc.year
+    curr_month = today_utc.month
+
+    # 최초 표시 월의 전월 대비 성장률(LAG) 계산을 위해 limit + 1개월 전부터 조회
+    start_m = curr_month - limit
+    start_y = curr_year
+    while start_m <= 0:
+        start_m += 12
+        start_y -= 1
+    start_month_str = f"{start_y}-{start_m:02d}"
+
     sql = text("""
         WITH monthly_raw AS (
             SELECT 
-                DATE_FORMAT(battle_date, '%Y-%m') as month_str,
-                SUM(coin_earned) as total_coins,
-                SUM(cells_earned) as total_cells
-            FROM battle_mains
+                month_key as month_str,
+                total_coins,
+                total_cells
+            FROM monthly_summaries
             WHERE owner_id = :user_id
-              AND battle_date >= :utc_start_limit
-            GROUP BY 1
+              AND month_key >= :start_month
         ),
         with_prev AS (
             SELECT 
@@ -192,13 +200,15 @@ async def get_monthly_trends(db: AsyncSession, user_id: int, limit: int = 6):
         ORDER BY month_str DESC
     """)
     
-    results = (await db.execute(sql, {"user_id": user_id, "utc_start_limit": utc_start_limit, "this_month": this_month_str})).fetchall()
+    results = (await db.execute(sql, {
+        "user_id": user_id,
+        "start_month": start_month_str,
+        "this_month": this_month_str
+    })).fetchall()
     result_map = {row.month: row for row in results}
     
     # 0으로 채우기
     trend_stats = []
-    curr_year = today_utc.year
-    curr_month = today_utc.month
     for i in range(limit):
         m = curr_month - i
         y = curr_year

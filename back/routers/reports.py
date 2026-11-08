@@ -5,7 +5,7 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, Form, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from database import get_db, get_db_replica, SessionLocal
+from database import get_db, SessionLocal
 from schemas import (
     BattleMainResponse,
     FullReportResponse,
@@ -17,7 +17,7 @@ from schemas import (
 )
 import crud
 from crud import max_wave as max_wave_crud
-from crud.report_v2 import create_battle_record_v2, get_v2_report
+from crud.report_v2 import create_battle_record_v2
 from parser import parse_battle_report
 from parser_v2 import is_v2, parse_battle_report_v2
 from datetime import datetime
@@ -198,14 +198,13 @@ async def get_monthly_trends_api(
 @router.get("/{battle_date}", response_model=FullReportV2Response)
 async def get_report_detail(
     battle_date: str,
-    db: AsyncSession = Depends(get_db_replica),
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_or_guest_user)
 ):
     """
-    특정 전투 기록의 상세 데이터를 조회합니다.
+    특정 전투 기록의 상세 데이터를 단일 JOIN 쿼리로 조회합니다.
     - V1: main + detail 반환
     - V2: main + v2_main + v2_detail 반환 (detail은 None)
-    - 리플리카 DB를 사용하여 대용량 상세 JSON 데이터를 로드합니다.
     """
     try:
         date_obj = datetime.fromisoformat(battle_date)
@@ -213,14 +212,7 @@ async def get_report_detail(
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
 
-        v2_main, v2_detail = await get_v2_report(db, date_obj, current_user.id)
-
-        return {
-            "main": report["main"],
-            "detail": report["detail"],       # V1이면 데이터 있음, V2면 빈 JSON
-            "v2_main": v2_main,               # V1이면 None
-            "v2_detail": v2_detail,           # V1이면 None
-        }
+        return report
 
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format")

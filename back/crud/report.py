@@ -216,12 +216,26 @@ async def get_reports_by_month(db: AsyncSession, user_id: int, month_key: str):
     return [row_to_report_dict(row) for row in results]
 
 async def get_full_report(db: AsyncSession, battle_date: datetime, user_id: int):
-    """특정 시점의 전투 기록 요약(Main)과 상세(Detail) 데이터를 통합 조회합니다."""
-    stmt = select(BattleMain).options(joinedload(BattleMain.detail)).filter(BattleMain.battle_date == battle_date, BattleMain.owner_id == user_id)
+    """특정 시점의 전투 기록 요약(Main)과 상세(V1/V2 Detail) 데이터를 단일 쿼리로 통합 조회합니다."""
+    stmt = (
+        select(BattleMain)
+        .options(
+            joinedload(BattleMain.detail),
+            joinedload(BattleMain.v2_main),
+            joinedload(BattleMain.v2_detail),
+        )
+        .filter(BattleMain.battle_date == battle_date, BattleMain.owner_id == user_id)
+    )
     result = await db.execute(stmt)
     main = result.scalars().first()
-    if not main: return None
-    return {"main": main, "detail": main.detail}
+    if not main:
+        return None
+    return {
+        "main": main,
+        "detail": main.detail,
+        "v2_main": main.v2_main,
+        "v2_detail": main.v2_detail,
+    }
 
 async def delete_battle_record(db: AsyncSession, battle_date: datetime, user_id: int) -> bool:
     """특정 전투 기록을 삭제합니다 (BattleDetail은 Cascade 삭제되며, MonthlySummary 및 TierRecord 실시간 갱신)."""

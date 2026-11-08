@@ -69,27 +69,30 @@ async def report_ghost_users():
     """
     [Job 2] 유령 계정 탐지 리포트 생성
     - 실행 주기: 매월 1일 09:05 KST
-    - 내용: 전투 기록, 진행도, 모듈 데이터가 전혀 없는 '껍데기' 계정을 찾아 Slack으로 알림
+    - 내용: 전투 기록, 진행도, 모듈 데이터가 전혀 없고 마지막 로그인이 1달(30일) 이상 경과(또는 기록 없음)한 계정을 찾아 Slack으로 알림
     """
     async with SessionLocal() as db:
         print("[System] 유령 계정 스캔 중...")
         
         try:
-            # 전투(battle), 연구(progress), 모듈(modules) 기록이 모두 0인 계정 스캔
+            cutoff_login = datetime.now() - timedelta(days=30)
+
+            # 전투(battle), 연구(progress), 모듈(modules) 기록이 모두 0이고 최근 1달 내 접속 기록이 없는 계정 스캔
             sql = text("""
-                SELECT u.id, u.username
+                SELECT u.id, u.username, u.last_login
                 FROM users u
                 LEFT JOIN battle_mains b ON u.id = b.owner_id
                 LEFT JOIN user_progress p ON u.id = p.user_id
                 LEFT JOIN user_modules m ON u.id = m.user_id
-                GROUP BY u.id, u.username
+                WHERE u.last_login IS NULL OR u.last_login < :cutoff_login
+                GROUP BY u.id, u.username, u.last_login
                 HAVING COUNT(b.battle_date) = 0 
                    AND COUNT(p.user_id) = 0 
                    AND COUNT(m.user_id) = 0
                 ORDER BY u.id ASC;
             """)
             
-            results = (await db.execute(sql)).fetchall()
+            results = (await db.execute(sql, {"cutoff_login": cutoff_login})).fetchall()
             
             # 발견된 유령 계정이 없으면 작업 종료
             if not results:
@@ -99,14 +102,17 @@ async def report_ghost_users():
             ghost_count = len(results)
             
             # 사용자 명단 생성 (길이 제한 처리)
-            user_list = [f"{r.username}({r.id})" for r in results]
+            user_list = [
+                f"{r.username}({r.id}, {r.last_login.strftime('%Y-%m-%d') if r.last_login else '미접속'})"
+                for r in results
+            ]
             user_text = ", ".join(user_list)
             if len(user_text) > 500:
                 user_text = user_text[:500] + "..."
     
             msg = (
                 f"👻 *[유령 계정 정리 알림]*\n"
-                f"데이터가 없는 껍데기 계정 *{ghost_count}개*가 발견되었습니다.\n"
+                f"데이터가 없고 최근 1달 이상 미접속한 껍데기 계정 *{ghost_count}개*가 발견되었습니다.\n"
                 f"서버 용량 확보를 위해 삭제를 권장합니다.\n"
                 f"```{user_text}```"
             )

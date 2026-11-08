@@ -9,7 +9,7 @@ import time
 import asyncio
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, engine_read, Base
+from database import engine, Base
 from routers import reports, auth, progress, modules, support
 from routers import max_wave as max_wave_router
 from contextlib import asynccontextmanager
@@ -105,8 +105,7 @@ async def lifespan(app: FastAPI):
     lock_file.close()
 
     await engine.dispose()
-    await engine_read.dispose()
-    print("[System] DB Connection Pools Disposed")
+    print("[System] DB Connection Pool Disposed")
 
 # FastAPI 앱 객체 생성
 app = FastAPI(title="The Tower Battle Reports API", lifespan=lifespan)
