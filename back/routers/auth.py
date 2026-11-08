@@ -57,7 +57,8 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
+    kst = timezone(timedelta(hours=9))
+    user.last_login = datetime.now(kst).replace(tzinfo=None)
     await db.commit()
     
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)

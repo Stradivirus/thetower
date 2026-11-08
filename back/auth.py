@@ -86,8 +86,9 @@ async def get_current_user(
     if user is None:
         raise credentials_exception
 
-    # 마지막 로그인 기록이 없거나 3시간 이상 경과한 경우 갱신
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    # 마지막 로그인 기록이 없거나 3시간 이상 경과한 경우 한국 시간(KST)으로 갱신
+    kst = timezone(timedelta(hours=9))
+    now = datetime.now(kst).replace(tzinfo=None)
     if user.last_login is None or (now - user.last_login) >= timedelta(hours=3):
         user.last_login = now
         await db.commit()
