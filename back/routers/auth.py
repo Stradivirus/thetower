@@ -3,7 +3,7 @@
 용도: 사용자 인증(회원가입, 로그인) API 라우터 (비동기 리팩토링)
 기능: 회원가입 시 유효성 검사, 로그인 시 JWT 토큰 발급
 """
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,6 +56,9 @@ async def login(
             detail="아이디 또는 비밀번호가 잘못되었습니다.",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+    user.last_login = datetime.now(timezone.utc).replace(tzinfo=None)
+    await db.commit()
     
     access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(

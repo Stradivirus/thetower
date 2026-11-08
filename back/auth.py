@@ -85,6 +85,14 @@ async def get_current_user(
     user = await crud.get_user_by_username(db, username=username)
     if user is None:
         raise credentials_exception
+
+    # 마지막 로그인 기록이 없거나 3시간 이상 경과한 경우 갱신
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if user.last_login is None or (now - user.last_login) >= timedelta(hours=3):
+        user.last_login = now
+        await db.commit()
+        await db.refresh(user)
+
     return user
 
 async def get_current_or_guest_user(

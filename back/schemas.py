@@ -21,7 +21,7 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     """사용자 정보 응답 스키마"""
     id: int
-    is_active: bool
+    last_login: Optional[datetime] = None
     class Config:
         from_attributes = True
 
